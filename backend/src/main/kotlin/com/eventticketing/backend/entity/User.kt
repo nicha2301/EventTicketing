@@ -2,8 +2,8 @@ package com.eventticketing.backend.entity
 
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
-import org.hibernate.annotations.GenericGenerator
 import org.hibernate.annotations.UpdateTimestamp
+import org.hibernate.annotations.UuidGenerator
 import java.time.LocalDateTime
 import java.util.*
 
@@ -11,8 +11,7 @@ import java.util.*
 @Table(name = "users")
 class User(
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @UuidGenerator
     @Column(name = "id", updatable = false, nullable = false)
     val id: UUID? = null,
     

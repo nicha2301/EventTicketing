@@ -1,66 +1,138 @@
 package com.eventticketing.backend.entity
 
 import jakarta.persistence.*
-import org.hibernate.annotations.CreationTimestamp
-import org.hibernate.annotations.GenericGenerator
-import org.hibernate.annotations.UpdateTimestamp
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.annotation.LastModifiedDate
+import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
 
 @Entity
 @Table(name = "events")
-class Event(
+@EntityListeners(AuditingEntityListener::class)
+data class Event(
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "id", updatable = false, nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     val id: UUID? = null,
-    
+
+    @Column(nullable = false, length = 255)
+    var title: String,
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    var description: String,
+
+    @Column(name = "short_description", nullable = false)
+    var shortDescription: String,
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizer_id", nullable = false)
     var organizer: User,
-    
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    var category: Category,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id", nullable = false)
+    var location: Location,
+
     @Column(nullable = false)
-    var title: String,
-    
-    @Column(columnDefinition = "TEXT")
-    var description: String? = null,
-    
+    var address: String,
+
     @Column(nullable = false)
-    var location: String,
-    
-    @Column(precision = 10, scale = 7)
-    var latitude: BigDecimal? = null,
-    
-    @Column(precision = 10, scale = 7)
-    var longitude: BigDecimal? = null,
-    
+    var city: String,
+
+    @Column(nullable = false)
+    var latitude: Double,
+
+    @Column(nullable = false)
+    var longitude: Double,
+
+    @Column(name = "max_attendees", nullable = false)
+    var maxAttendees: Int,
+
+    @Column(name = "current_attendees", nullable = false)
+    var currentAttendees: Int = 0,
+
+    @Column(name = "featured_image_url")
+    var featuredImageUrl: String? = null,
+
     @Column(name = "start_date", nullable = false)
     var startDate: LocalDateTime,
-    
+
     @Column(name = "end_date", nullable = false)
     var endDate: LocalDateTime,
-    
-    @Column(name = "image_url")
-    var imageUrl: String? = null,
-    
+
+    @Column(name = "is_private", nullable = false)
+    var isPrivate: Boolean = false,
+
+    @Column(name = "is_featured", nullable = false)
+    var isFeatured: Boolean = false,
+
+    @Column(name = "is_free", nullable = false)
+    var isFree: Boolean = false,
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var status: EventStatus = EventStatus.DRAFT,
-    
+
+    @Column(name = "cancellation_reason")
+    var cancellationReason: String? = null,
+
     @OneToMany(mappedBy = "event", cascade = [CascadeType.ALL], orphanRemoval = true)
-    val ticketTypes: MutableSet<TicketType> = mutableSetOf(),
-    
-    @CreationTimestamp
+    var images: MutableList<EventImage> = mutableListOf(),
+
+    @OneToMany(mappedBy = "event", cascade = [CascadeType.ALL], orphanRemoval = true)
+    var ticketTypes: MutableList<TicketType> = mutableListOf(),
+
+    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    
-    @UpdateTimestamp
+    var createdAt: LocalDateTime = LocalDateTime.now(),
+
+    @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
+) {
+    // Phương thức tiện ích để thêm hình ảnh
+    fun addImage(image: EventImage) {
+        images.add(image)
+        image.event = this
+    }
+
+    // Phương thức tiện ích để thêm loại vé
+    fun addTicketType(ticketType: TicketType) {
+        ticketTypes.add(ticketType)
+        ticketType.event = this
+    }
+}
+
+@Entity
+@Table(name = "event_images")
+@EntityListeners(AuditingEntityListener::class)
+data class EventImage(
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    val id: UUID? = null,
+
+    @Column(nullable = false)
+    var url: String,
+
+    @Column(name = "is_primary", nullable = false)
+    var isPrimary: Boolean = false,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id", nullable = false)
+    var event: Event? = null,
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    var createdAt: LocalDateTime = LocalDateTime.now()
 )
 
 enum class EventStatus {
-    DRAFT, PUBLISHED, CANCELLED, COMPLETED
-} 
+    DRAFT,       // Bản nháp, chưa công bố
+    PUBLISHED,   // Đã công bố, đang bán vé
+    CANCELLED,   // Đã hủy
+    COMPLETED    // Đã diễn ra
+}

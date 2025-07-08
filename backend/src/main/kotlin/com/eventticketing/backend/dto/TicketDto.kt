@@ -8,30 +8,49 @@ import java.time.LocalDateTime
 import java.util.*
 
 data class TicketDto(
-    val id: UUID?,
-    val ticketTypeId: UUID,
-    val eventId: UUID,
-    val eventTitle: String,
-    val ticketTypeName: String,
+    val id: UUID? = null,
+    
+    val ticketNumber: String? = null,
+    
     val userId: UUID,
+    
     val userName: String,
-    val price: BigDecimal,
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    val purchaseDate: LocalDateTime,
-    val status: TicketStatus,
-    val qrCode: String,
-    val checkedIn: Boolean,
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    val checkedInAt: LocalDateTime?
-)
-
-data class TicketPurchaseDto(
-    @field:NotNull(message = "Ticket type ID is required")
+    
+    val eventId: UUID,
+    
+    val eventTitle: String,
+    
     val ticketTypeId: UUID,
     
-    @field:NotNull(message = "Payment method is required")
-    val paymentMethod: String
+    val ticketTypeName: String,
+    
+    val price: BigDecimal,
+    
+    val status: TicketStatus,
+    
+    val qrCodeUrl: String? = null,
+    
+    val purchaseDate: LocalDateTime? = null,
+    
+    val checkedInAt: LocalDateTime? = null,
+    
+    val cancelledAt: LocalDateTime? = null,
+    
+    val paymentId: UUID? = null,
+    
+    val paymentStatus: String? = null,
+    
+    val eventStartDate: LocalDateTime,
+    
+    val eventEndDate: LocalDateTime,
+    
+    val eventLocation: String,
+    
+    val eventAddress: String,
+    
+    val eventImageUrl: String? = null
 )
+
 
 data class TicketCheckInDto(
     val qrCode: String

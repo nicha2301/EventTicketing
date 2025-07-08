@@ -1,7 +1,7 @@
 package com.eventticketing.backend.entity
 
 import jakarta.persistence.*
-import org.hibernate.annotations.GenericGenerator
+import org.hibernate.annotations.UuidGenerator
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
@@ -10,8 +10,7 @@ import java.util.*
 @Table(name = "payments")
 class Payment(
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @UuidGenerator
     @Column(name = "id", updatable = false, nullable = false)
     val id: UUID? = null,
     
@@ -29,17 +28,38 @@ class Payment(
     @Column(name = "payment_method", nullable = false)
     var paymentMethod: String,
     
-    @Column(name = "transaction_id", nullable = false)
-    var transactionId: String,
+    @Column(name = "transaction_id")
+    var transactionId: String? = null,
+    
+    @Column(name = "payment_url")
+    var paymentUrl: String? = null,
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var status: PaymentStatus = PaymentStatus.PENDING,
     
-    @Column(name = "payment_date", nullable = false)
-    val paymentDate: LocalDateTime = LocalDateTime.now()
+    @Column(name = "created_at", nullable = false)
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    
+    @Column(name = "updated_at", nullable = false)
+    var updatedAt: LocalDateTime = LocalDateTime.now(),
+    
+    @Column(name = "refunded_amount", precision = 10, scale = 2)
+    var refundedAmount: BigDecimal? = null,
+    
+    @Column(name = "refunded_at")
+    var refundedAt: LocalDateTime? = null,
+    
+    @Column(name = "refund_reason")
+    var refundReason: String? = null,
+    
+    @Column(name = "description")
+    var description: String? = null,
+    
+    @Column(name = "metadata", columnDefinition = "json")
+    var metadata: String? = null
 )
 
 enum class PaymentStatus {
-    PENDING, COMPLETED, FAILED, REFUNDED
+    PENDING, COMPLETED, FAILED, REFUNDED, CANCELLED, PROCESSING
 } 

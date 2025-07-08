@@ -30,16 +30,29 @@ interface PaymentRepository : JpaRepository<Payment, UUID> {
         JOIN tt.event e
         WHERE e.id = :eventId
     """)
-    fun findByEventId(@Param("eventId") UUID: UUID, pageable: Pageable): Page<Payment>
+    fun findByEventId(@Param("eventId") eventId: UUID, pageable: Pageable): Page<Payment>
     
     @Query("""
         SELECT SUM(p.amount) FROM Payment p
         WHERE p.status = :status
-        AND p.paymentDate BETWEEN :startDate AND :endDate
+        AND p.createdAt BETWEEN :startDate AND :endDate
     """)
     fun sumAmountByStatusAndDateRange(
         @Param("status") status: PaymentStatus,
         @Param("startDate") startDate: LocalDateTime,
         @Param("endDate") endDate: LocalDateTime
     ): Optional<Double>
+    
+    @Query("""
+        SELECT COUNT(p) FROM Payment p
+        WHERE p.status = :status
+    """)
+    fun countByStatus(@Param("status") status: PaymentStatus): Long
+    
+    @Query("""
+        SELECT p FROM Payment p
+        WHERE p.user.id = :userId
+        ORDER BY p.createdAt DESC
+    """)
+    fun findByUserId(@Param("userId") userId: UUID, pageable: Pageable): Page<Payment>
 } 

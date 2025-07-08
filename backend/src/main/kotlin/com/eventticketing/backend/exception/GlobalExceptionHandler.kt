@@ -1,7 +1,6 @@
 package com.eventticketing.backend.exception
 
-import com.eventticketing.backend.dto.ErrorResponse
-import jakarta.servlet.http.HttpServletRequest
+import com.eventticketing.backend.dto.ApiResponse
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -10,6 +9,9 @@ import org.springframework.validation.FieldError
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
+import org.springframework.web.context.request.WebRequest
+import java.time.LocalDateTime
+import java.util.*
 
 @ControllerAdvice
 class GlobalExceptionHandler {
@@ -18,78 +20,133 @@ class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException::class)
     fun handleResourceNotFoundException(
         ex: ResourceNotFoundException,
-        request: HttpServletRequest
-    ): ResponseEntity<ErrorResponse> {
-        logger.error("Resource not found: ${ex.message}")
-        val errorResponse = ErrorResponse(
-            status = HttpStatus.NOT_FOUND.value(),
-            message = ex.message ?: "Resource not found",
-            path = request.requestURI
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<ErrorDetails>> {
+        val errorDetails = ErrorDetails(
+            timestamp = LocalDateTime.now(),
+            message = ex.message ?: "Không tìm thấy tài nguyên",
+            path = request.getDescription(false)
         )
-        return ResponseEntity(errorResponse, HttpStatus.NOT_FOUND)
+        
+        return ResponseEntity(ApiResponse(success = false, message = ex.message, data = errorDetails), HttpStatus.NOT_FOUND)
+    }
+
+    @ExceptionHandler(ResourceAlreadyExistsException::class)
+    fun handleResourceAlreadyExistsException(
+        ex: ResourceAlreadyExistsException,
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<ErrorDetails>> {
+        val errorDetails = ErrorDetails(
+            timestamp = LocalDateTime.now(),
+            message = ex.message ?: "Tài nguyên đã tồn tại",
+            path = request.getDescription(false)
+        )
+        
+        return ResponseEntity(
+            ApiResponse(success = false, message = ex.message, data = errorDetails),
+            HttpStatus.CONFLICT
+        )
     }
 
     @ExceptionHandler(BadRequestException::class)
     fun handleBadRequestException(
         ex: BadRequestException,
-        request: HttpServletRequest
-    ): ResponseEntity<ErrorResponse> {
-        logger.error("Bad request: ${ex.message}")
-        val errorResponse = ErrorResponse(
-            status = HttpStatus.BAD_REQUEST.value(),
-            message = ex.message ?: "Bad request",
-            path = request.requestURI
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<ErrorDetails>> {
+        val errorDetails = ErrorDetails(
+            timestamp = LocalDateTime.now(),
+            message = ex.message ?: "Yêu cầu không hợp lệ",
+            path = request.getDescription(false)
         )
-        return ResponseEntity(errorResponse, HttpStatus.BAD_REQUEST)
+        
+        return ResponseEntity(
+            ApiResponse(success = false, message = ex.message, data = errorDetails),
+            HttpStatus.BAD_REQUEST
+        )
+    }
+
+    @ExceptionHandler(UnauthorizedException::class)
+    fun handleUnauthorizedException(
+        ex: UnauthorizedException,
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<ErrorDetails>> {
+        val errorDetails = ErrorDetails(
+            timestamp = LocalDateTime.now(),
+            message = ex.message ?: "Không có quyền truy cập",
+            path = request.getDescription(false)
+        )
+        
+        return ResponseEntity(
+            ApiResponse(success = false, message = ex.message, data = errorDetails),
+            HttpStatus.UNAUTHORIZED
+        )
     }
 
     @ExceptionHandler(AccessDeniedException::class)
     fun handleAccessDeniedException(
         ex: AccessDeniedException,
-        request: HttpServletRequest
-    ): ResponseEntity<ErrorResponse> {
-        logger.error("Access denied: ${ex.message}")
-        val errorResponse = ErrorResponse(
-            status = HttpStatus.FORBIDDEN.value(),
-            message = ex.message ?: "Access denied",
-            path = request.requestURI
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<ErrorDetails>> {
+        val errorDetails = ErrorDetails(
+            timestamp = LocalDateTime.now(),
+            message = "Không có quyền thực hiện hành động này",
+            path = request.getDescription(false)
         )
-        return ResponseEntity(errorResponse, HttpStatus.FORBIDDEN)
+        
+        return ResponseEntity(
+            ApiResponse(success = false, message = "Không có quyền thực hiện hành động này", data = errorDetails),
+            HttpStatus.FORBIDDEN
+        )
     }
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
-    fun handleValidationExceptions(
+    fun handleMethodArgumentNotValidException(
         ex: MethodArgumentNotValidException,
-        request: HttpServletRequest
-    ): ResponseEntity<ErrorResponse> {
-        val errors = mutableMapOf<String, String>()
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        val errors = HashMap<String, String>()
+        
         ex.bindingResult.allErrors.forEach { error ->
-            val fieldName = (error as? FieldError)?.field ?: error.objectName
-            val errorMessage = error.defaultMessage ?: "Validation error"
-            errors[fieldName] = errorMessage
+            val fieldName = (error as FieldError).field
+            val errorMessage = error.getDefaultMessage()
+            errors[fieldName] = errorMessage ?: "Lỗi không xác định"
         }
         
-        logger.error("Validation error: $errors")
-        val errorResponse = ErrorResponse(
-            status = HttpStatus.BAD_REQUEST.value(),
-            message = "Validation failed",
-            path = request.requestURI,
-            errors = errors
+        val errorDetails = mapOf(
+            "timestamp" to LocalDateTime.now(),
+            "message" to "Dữ liệu đầu vào không hợp lệ",
+            "path" to request.getDescription(false),
+            "errors" to errors
         )
-        return ResponseEntity(errorResponse, HttpStatus.BAD_REQUEST)
+        
+        return ResponseEntity(
+            ApiResponse(success = false, message = "Dữ liệu đầu vào không hợp lệ", data = errorDetails),
+            HttpStatus.BAD_REQUEST
+        )
     }
 
     @ExceptionHandler(Exception::class)
-    fun handleGenericException(
+    fun handleGlobalException(
         ex: Exception,
-        request: HttpServletRequest
-    ): ResponseEntity<ErrorResponse> {
-        logger.error("Unexpected error", ex)
-        val errorResponse = ErrorResponse(
-            status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            message = "An unexpected error occurred",
-            path = request.requestURI
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<ErrorDetails>> {
+        logger.error("Lỗi không mong đợi: ", ex)
+        
+        val errorDetails = ErrorDetails(
+            timestamp = LocalDateTime.now(),
+            message = "Đã xảy ra lỗi. Vui lòng thử lại sau",
+            path = request.getDescription(false)
         )
-        return ResponseEntity(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR)
+        
+        return ResponseEntity(
+            ApiResponse(success = false, message = "Đã xảy ra lỗi. Vui lòng thử lại sau", data = errorDetails),
+            HttpStatus.INTERNAL_SERVER_ERROR
+        )
     }
+
+    data class ErrorDetails(
+        val timestamp: LocalDateTime,
+        val message: String,
+        val path: String
+    )
 } 

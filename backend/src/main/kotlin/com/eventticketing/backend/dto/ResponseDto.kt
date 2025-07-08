@@ -3,13 +3,6 @@ package com.eventticketing.backend.dto
 import org.springframework.data.domain.Page
 import java.time.LocalDateTime
 
-data class ApiResponse<T>(
-    val success: Boolean,
-    val message: String? = null,
-    val data: T? = null,
-    val timestamp: LocalDateTime = LocalDateTime.now()
-)
-
 data class PagedResponse<T>(
     val content: List<T>,
     val page: Int,
