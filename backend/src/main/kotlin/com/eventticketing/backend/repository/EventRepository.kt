@@ -80,13 +80,12 @@ interface EventRepository : JpaRepository<Event, UUID>, JpaSpecificationExecutor
      * Sử dụng công thức Haversine để tính khoảng cách
      */
     @Query(
-        value = "SELECT *, " +
-                "(6371 * acos(cos(radians(:latitude)) * cos(radians(e.latitude)) * cos(radians(e.longitude) - " +
-                "radians(:longitude)) + sin(radians(:latitude)) * sin(radians(e.latitude)))) as distance " +
-                "FROM events e " +
+        value = "SELECT * FROM events e " +
                 "WHERE e.status = :status " +
-                "HAVING distance < :radius " +
-                "ORDER BY distance",
+                "AND (6371 * acos(cos(radians(:latitude)) * cos(radians(e.latitude)) * cos(radians(e.longitude) - " +
+                "radians(:longitude)) + sin(radians(:latitude)) * sin(radians(e.latitude)))) < :radius " +
+                "ORDER BY (6371 * acos(cos(radians(:latitude)) * cos(radians(e.latitude)) * cos(radians(e.longitude) - " +
+                "radians(:longitude)) + sin(radians(:latitude)) * sin(radians(e.latitude))))",
         nativeQuery = true
     )
     fun findNearbyEvents(
@@ -121,4 +120,14 @@ interface EventRepository : JpaRepository<Event, UUID>, JpaSpecificationExecutor
         "SELECT COUNT(e) FROM Event e WHERE e.location.id = :locationId"
     )
     fun countByLocationId(@Param("locationId") locationId: UUID): Long
+    
+    /**
+     * Tìm sự kiện theo trạng thái và thời gian bắt đầu trong khoảng
+     * Dùng để tìm sự kiện sắp diễn ra để gửi thông báo nhắc nhở
+     */
+    fun findByStatusAndStartDateBetween(
+        status: EventStatus, 
+        startFrom: LocalDateTime, 
+        startTo: LocalDateTime
+    ): List<Event>
 } 

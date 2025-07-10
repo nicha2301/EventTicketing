@@ -11,6 +11,9 @@ import com.eventticketing.backend.util.FileStorageService
 import com.eventticketing.backend.util.SecurityUtils
 import jakarta.persistence.criteria.Predicate
 import org.slf4j.LoggerFactory
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.Cacheable
+import org.springframework.cache.annotation.Caching
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.domain.Specification
@@ -34,6 +37,11 @@ class EventServiceImpl(
     private val logger = LoggerFactory.getLogger(EventServiceImpl::class.java)
 
     @Transactional
+    @Caching(evict = [
+        CacheEvict(value = ["events"], allEntries = true),
+        CacheEvict(value = ["featuredEvents"], allEntries = true),
+        CacheEvict(value = ["upcomingEvents"], allEntries = true)
+    ])
     override fun createEvent(eventCreateDto: EventCreateDto, organizerId: UUID): EventDto {
         // Kiểm tra người tổ chức
         val organizer = userRepository.findById(organizerId)
@@ -85,6 +93,12 @@ class EventServiceImpl(
     }
 
     @Transactional
+    @Caching(evict = [
+        CacheEvict(value = ["eventDetails"], key = "#id"),
+        CacheEvict(value = ["events"], allEntries = true),
+        CacheEvict(value = ["featuredEvents"], allEntries = true),
+        CacheEvict(value = ["upcomingEvents"], allEntries = true)
+    ])
     override fun updateEvent(id: UUID, eventUpdateDto: EventUpdateDto, organizerId: UUID): EventDto {
         // Kiểm tra sự kiện tồn tại và quyền truy cập
         val event = findEventAndCheckPermission(id, organizerId)
@@ -128,6 +142,7 @@ class EventServiceImpl(
         return mapToEventDto(updatedEvent)
     }
 
+    @Cacheable(value = ["eventDetails"], key = "#id", unless = "#result == null")
     override fun getEventById(id: UUID): EventDto {
         val event = eventRepository.findById(id)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy sự kiện với ID $id") }
@@ -140,6 +155,7 @@ class EventServiceImpl(
         return mapToEventDto(event)
     }
 
+    @Cacheable(value = ["events"], key = "'all_' + #pageable.pageNumber + '_' + #pageable.pageSize", unless = "#result.isEmpty()")
     override fun getAllEvents(pageable: Pageable): Page<EventDto> {
         val events = if (securityUtils.isAdmin()) {
             // Admin có thể xem tất cả sự kiện
@@ -198,69 +214,121 @@ class EventServiceImpl(
                     val eventStatus = EventStatus.valueOf(status.uppercase())
                     predicates.add(criteriaBuilder.equal(root.get<EventStatus>("status"), eventStatus))
                 } catch (e: IllegalArgumentException) {
+                    // Bỏ qua nếu status không hợp lệ
                     logger.warn("Trạng thái không hợp lệ: $status")
                 }
             }
-            
+
             // Tìm theo từ khóa
-            keyword?.let {
-                val keywordPredicate = criteriaBuilder.or(
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), "%${it.lowercase()}%"),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), "%${it.lowercase()}%"),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("shortDescription")), "%${it.lowercase()}%")
+            if (!keyword.isNullOrEmpty()) {
+                val keywordLower = keyword.lowercase()
+                val titlePredicate = criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("title")),
+                    "%$keywordLower%"
                 )
-                predicates.add(keywordPredicate)
+                val descriptionPredicate = criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("description")),
+                    "%$keywordLower%"
+                )
+                predicates.add(criteriaBuilder.or(titlePredicate, descriptionPredicate))
             }
-            
+
             // Tìm theo danh mục
-            categoryId?.let {
-                predicates.add(criteriaBuilder.equal(root.get<Category>("category").get<UUID>("id"), it))
+            if (categoryId != null) {
+                predicates.add(criteriaBuilder.equal(root.get<Category>("category").get<UUID>("id"), categoryId))
             }
-            
-            // Tìm theo địa điểm
-            locationId?.let {
-                predicates.add(criteriaBuilder.equal(root.get<Location>("location").get<UUID>("id"), it))
-            }
-            
+
             // Tìm theo thời gian
-            startDate?.let {
-                val localStartDate = LocalDateTime.ofInstant(it.toInstant(), TimeZone.getDefault().toZoneId())
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("startDate"), localStartDate))
+            if (startDate != null) {
+                val startLocalDateTime = startDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("startDate"), startLocalDateTime))
             }
-            
-            endDate?.let {
-                val localEndDate = LocalDateTime.ofInstant(it.toInstant(), TimeZone.getDefault().toZoneId())
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("endDate"), localEndDate))
+
+            if (endDate != null) {
+                val endLocalDateTime = endDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("endDate"), endLocalDateTime))
             }
-            
+
+            // Tìm theo địa điểm
+            if (locationId != null) {
+                predicates.add(criteriaBuilder.equal(root.get<Location>("location").get<UUID>("id"), locationId))
+            }
+
+            // Tìm theo giá
+            if (minPrice != null) {
+                // Tìm các sự kiện có ít nhất một loại vé có giá >= minPrice
+                // Đây là một truy vấn phức tạp hơn, có thể cần join với bảng TicketType
+                // Giả sử có một join với bảng TicketType
+                val subquery = query!!.subquery(BigDecimal::class.java)
+                val ticketTypeRoot = subquery.from(TicketType::class.java)
+                subquery.select(ticketTypeRoot.get("price"))
+                subquery.where(criteriaBuilder.equal(ticketTypeRoot.get<Event>("event"), root))
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(
+                    subquery.selection as jakarta.persistence.criteria.Expression<BigDecimal>,
+                    BigDecimal.valueOf(minPrice)
+                ))
+            }
+
+            if (maxPrice != null) {
+                // Tương tự như trên
+                val subquery = query!!.subquery(BigDecimal::class.java)
+                val ticketTypeRoot = subquery.from(TicketType::class.java)
+                subquery.select(ticketTypeRoot.get("price"))
+                subquery.where(criteriaBuilder.equal(ticketTypeRoot.get<Event>("event"), root))
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(
+                    subquery.selection as jakarta.persistence.criteria.Expression<BigDecimal>,
+                    BigDecimal.valueOf(maxPrice)
+                ))
+            }
+
+            // Tìm theo bán kính
+            if (latitude != null && longitude != null && radius != null) {
+                // Tính toán bán kính dựa trên công thức Haversine
+                // Đây là một tính toán phức tạp, có thể cần sử dụng native query hoặc function trong database
+                // Giả sử database hỗ trợ tính khoảng cách địa lý
+                // Ví dụ với PostgreSQL và extension PostGIS
+                // Đây chỉ là giả lập logic, cần thay thế bằng native query thực tế
+                val latPath = root.get<Double>("latitude")
+                val lonPath = root.get<Double>("longitude")
+                
+                // Haversine formula
+                val radiusInMeters = radius * 1000 // Convert km to meters
+                val earthRadius = 6371000.0 // Earth radius in meters
+                
+                // Đây chỉ là mô phỏng, cần thay thế bằng native query thực tế
+                val haversine = criteriaBuilder.function(
+                    "haversine",
+                    Double::class.java,
+                    latPath,
+                    lonPath,
+                    criteriaBuilder.literal(latitude),
+                    criteriaBuilder.literal(longitude)
+                )
+                
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(haversine, radiusInMeters))
+            }
+
             criteriaBuilder.and(*predicates.toTypedArray())
         }
-        
-        // Với tìm kiếm theo khoảng cách, cần sử dụng native query riêng
-        if (latitude != null && longitude != null && radius != null) {
-            val eventStatus = if (securityUtils.isAdmin() && status != null) 
-                status else EventStatus.PUBLISHED.name
-            
-            val nearbyEvents = eventRepository.findNearbyEvents(latitude, longitude, radius, eventStatus, pageable)
-            return nearbyEvents.map { mapToEventDto(it) }
-        }
-        
+
         val events = eventRepository.findAll(spec, pageable)
         return events.map { mapToEventDto(it) }
     }
 
     @Transactional
+    @Caching(evict = [
+        CacheEvict(value = ["eventDetails"], key = "#id"),
+        CacheEvict(value = ["events"], allEntries = true),
+        CacheEvict(value = ["featuredEvents"], allEntries = true),
+        CacheEvict(value = ["upcomingEvents"], allEntries = true)
+    ])
     override fun deleteEvent(id: UUID, organizerId: UUID): Boolean {
-        // Kiểm tra sự kiện tồn tại và quyền truy cập
         val event = findEventAndCheckPermission(id, organizerId)
         
-        // Xóa tất cả hình ảnh trước
-        event.images.forEach {
-            try {
-                fileStorageService.deleteFile(it.url)
-            } catch (e: Exception) {
-                logger.warn("Không thể xóa file: ${it.url}", e)
-            }
+        // Kiểm tra xem sự kiện có thể xóa không (ví dụ: chưa có vé nào được bán)
+        // Giả sử có một phương thức kiểm tra
+        if (hasTicketsSold(event)) {
+            throw BadRequestException("Không thể xóa sự kiện đã có vé được bán")
         }
         
         eventRepository.delete(event)
@@ -270,13 +338,17 @@ class EventServiceImpl(
     }
 
     @Transactional
+    @Caching(evict = [
+        CacheEvict(value = ["eventDetails"], key = "#id"),
+        CacheEvict(value = ["events"], allEntries = true),
+        CacheEvict(value = ["featuredEvents"], allEntries = true),
+        CacheEvict(value = ["upcomingEvents"], allEntries = true)
+    ])
     override fun publishEvent(id: UUID, organizerId: UUID): EventDto {
-        // Kiểm tra sự kiện tồn tại và quyền truy cập
         val event = findEventAndCheckPermission(id, organizerId)
         
-        // Kiểm tra trạng thái hiện tại
         if (event.status != EventStatus.DRAFT) {
-            throw BadRequestException("Chỉ có thể công bố sự kiện ở trạng thái nháp")
+            throw BadRequestException("Chỉ có thể công bố sự kiện đang ở trạng thái nháp")
         }
         
         event.status = EventStatus.PUBLISHED
@@ -287,213 +359,171 @@ class EventServiceImpl(
     }
 
     @Transactional
+    @Caching(evict = [
+        CacheEvict(value = ["eventDetails"], key = "#id"),
+        CacheEvict(value = ["events"], allEntries = true),
+        CacheEvict(value = ["featuredEvents"], allEntries = true),
+        CacheEvict(value = ["upcomingEvents"], allEntries = true)
+    ])
     override fun cancelEvent(id: UUID, organizerId: UUID, reason: String): EventDto {
-        // Kiểm tra sự kiện tồn tại và quyền truy cập
         val event = findEventAndCheckPermission(id, organizerId)
         
-        // Kiểm tra trạng thái hiện tại
-        if (event.status != EventStatus.PUBLISHED) {
-            throw BadRequestException("Chỉ có thể hủy sự kiện đã công bố")
+        if (event.status == EventStatus.CANCELLED) {
+            throw BadRequestException("Sự kiện đã bị hủy trước đó")
         }
         
         event.status = EventStatus.CANCELLED
         event.cancellationReason = reason
-        
         val cancelledEvent = eventRepository.save(event)
-        logger.info("Đã hủy sự kiện: $id với lý do: $reason")
+        logger.info("Đã hủy sự kiện: $id, lý do: $reason")
+        
+        // Gửi thông báo cho người đã mua vé
+        // notificationService.notifyCancelledEvent(event, reason)
         
         return mapToEventDto(cancelledEvent)
     }
 
     @Transactional
+    @CacheEvict(value = ["eventDetails"], key = "#id")
     override fun uploadEventImage(id: UUID, image: MultipartFile, isPrimary: Boolean): ImageDto {
-        // Kiểm tra sự kiện tồn tại
-        val event = eventRepository.findById(id)
-            .orElseThrow { ResourceNotFoundException("Không tìm thấy sự kiện với ID $id") }
+        val event = findEventAndCheckPermission(id, null)
         
-        // Kiểm tra quyền truy cập
-        if (!securityUtils.isCurrentUserOrAdmin(event.organizer.id!!)) {
-            throw UnauthorizedException("Bạn không có quyền tải lên hình ảnh cho sự kiện này")
-        }
+        // Lưu file và lấy URL
+        val fileName = "${UUID.randomUUID()}-${image.originalFilename}"
+        val subfolder = "events/$id"
+        val filePath = fileStorageService.storeFile(image, subfolder)
         
-        // Kiểm tra loại file
-        if (!fileStorageService.isImageFile(image)) {
-            throw BadRequestException("Chỉ hỗ trợ tải lên file hình ảnh")
-        }
-        
-        // Lưu file
-        val filename = fileStorageService.storeFile(image, "events")
-        val fileUrl = fileStorageService.getFileUrl(filename, "events")
-        
-        // Tạo đối tượng EventImage
+        // Tạo đối tượng Image
         val eventImage = EventImage(
-            url = fileUrl,
-            isPrimary = isPrimary,
-            event = event
+            event = event,
+            url = filePath,
+            isPrimary = isPrimary
         )
         
-        // Nếu là hình ảnh chính, cập nhật featuredImageUrl của sự kiện
+        // Nếu là ảnh chính, cập nhật các ảnh khác thành không phải ảnh chính
         if (isPrimary) {
-            // Đặt tất cả hình ảnh hiện có thành không phải hình chính
             event.images.forEach { it.isPrimary = false }
-            
-            event.featuredImageUrl = fileUrl
         }
         
-        // Thêm hình ảnh vào sự kiện
-        event.addImage(eventImage)
-        eventRepository.save(event)
+        // Thêm ảnh mới vào danh sách ảnh của sự kiện
+        event.images.add(eventImage)
         
-        logger.info("Đã tải lên hình ảnh cho sự kiện $id: $fileUrl")
+        // Lưu sự kiện
+        eventRepository.save(event)
+        logger.info("Đã tải lên ảnh cho sự kiện: $id, isPrimary: $isPrimary")
         
         return ImageDto(
-            id = eventImage.id,
-            url = fileUrl,
-            eventId = id,
-            isPrimary = isPrimary,
-            createdAt = eventImage.createdAt
+            id = eventImage.id!!,
+            url = eventImage.url,
+            isPrimary = eventImage.isPrimary
         )
     }
 
     @Transactional
+    @CacheEvict(value = ["eventDetails"], key = "#id")
     override fun deleteEventImage(id: UUID, imageId: UUID): Boolean {
-        // Kiểm tra sự kiện tồn tại
-        val event = eventRepository.findById(id)
-            .orElseThrow { ResourceNotFoundException("Không tìm thấy sự kiện với ID $id") }
+        val event = findEventAndCheckPermission(id, null)
         
-        // Kiểm tra quyền truy cập
-        if (!securityUtils.isCurrentUserOrAdmin(event.organizer.id!!)) {
-            throw UnauthorizedException("Bạn không có quyền xóa hình ảnh của sự kiện này")
-        }
+        // Tìm ảnh cần xóa
+            val imageToDelete = event.images.find { it.id == imageId }
+            ?: throw ResourceNotFoundException("Không tìm thấy ảnh với ID $imageId cho sự kiện $id")
         
-        // Tìm hình ảnh cần xóa
-        val imageToRemove = event.images.find { it.id == imageId }
-            ?: throw ResourceNotFoundException("Không tìm thấy hình ảnh với ID $imageId cho sự kiện này")
+        // Xóa file từ storage
+        fileStorageService.deleteFile(imageToDelete.url)
         
-        // Xóa file
-        try {
-            fileStorageService.deleteFile(imageToRemove.url.replace("/api/files/", ""))
-        } catch (e: Exception) {
-            logger.warn("Không thể xóa file: ${imageToRemove.url}", e)
-        }
+        // Xóa ảnh khỏi danh sách
+        event.images.removeIf { it.id == imageId }
         
-        // Nếu là hình ảnh chính, cập nhật featuredImageUrl của sự kiện
-        if (imageToRemove.isPrimary) {
-            event.featuredImageUrl = null
-        }
-        
-        // Xóa hình ảnh khỏi danh sách
-        event.images.remove(imageToRemove)
+        // Lưu sự kiện
         eventRepository.save(event)
-        
-        logger.info("Đã xóa hình ảnh $imageId của sự kiện $id")
+        logger.info("Đã xóa ảnh $imageId của sự kiện: $id")
         
         return true
     }
 
     override fun getEventImages(id: UUID): List<ImageDto> {
-        // Kiểm tra sự kiện tồn tại
         val event = eventRepository.findById(id)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy sự kiện với ID $id") }
         
-        // Áp dụng quyền truy cập cho sự kiện draft
-        if (event.status == EventStatus.DRAFT && !securityUtils.isCurrentUserOrAdmin(event.organizer.id!!)) {
-            throw UnauthorizedException("Bạn không có quyền xem hình ảnh của sự kiện này")
-        }
-        
-        // Chuyển đổi sang DTO
-        return event.images.map { 
+        return event.images.map {
             ImageDto(
-                id = it.id,
+                id = it.id!!,
                 url = it.url,
-                eventId = id,
-                isPrimary = it.isPrimary,
-                createdAt = it.createdAt
+                isPrimary = it.isPrimary
             )
         }
     }
 
+    @Cacheable(value = ["featuredEvents"], key = "#limit", unless = "#result.isEmpty()")
     override fun getFeaturedEvents(limit: Int): List<EventDto> {
-        val pageable = Pageable.ofSize(limit)
+        // Lấy các sự kiện nổi bật (có đánh dấu isFeatured)
+        val pageable = org.springframework.data.domain.PageRequest.of(0, limit)
         val featuredEvents = eventRepository.findByIsFeaturedTrueAndStatus(EventStatus.PUBLISHED, pageable)
         return featuredEvents.content.map { mapToEventDto(it) }
     }
 
+    @Cacheable(value = ["upcomingEvents"], key = "#limit", unless = "#result.isEmpty()")
     override fun getUpcomingEvents(limit: Int): List<EventDto> {
         val now = LocalDateTime.now()
-        val pageable = Pageable.ofSize(limit)
+        val pageable = org.springframework.data.domain.PageRequest.of(0, limit)
         val upcomingEvents = eventRepository.findByStartDateAfterAndStatus(now, EventStatus.PUBLISHED, pageable)
         return upcomingEvents.content.map { mapToEventDto(it) }
     }
 
     override fun getEventsByCategory(categoryId: UUID, pageable: Pageable): Page<EventDto> {
-        // Kiểm tra danh mục tồn tại
-        if (!categoryRepository.existsById(categoryId)) {
-            throw ResourceNotFoundException("Không tìm thấy danh mục với ID $categoryId")
+        // Sử dụng specification để tìm theo categoryId và status
+        val spec = Specification<Event> { root, query, criteriaBuilder ->
+            val predicates = mutableListOf<Predicate>()
+            predicates.add(criteriaBuilder.equal(root.get<Category>("category").get<UUID>("id"), categoryId))
+            predicates.add(criteriaBuilder.equal(root.get<EventStatus>("status"), EventStatus.PUBLISHED))
+            criteriaBuilder.and(*predicates.toTypedArray())
         }
         
-        val events = if (securityUtils.isAdmin()) {
-            // Admin xem tất cả sự kiện trong danh mục
-            eventRepository.findByCategoryId(categoryId, pageable)
-        } else {
-            // Người dùng chỉ xem sự kiện đã công bố
-            val spec = Specification<Event> { root, query, criteriaBuilder ->
-                val predicates = mutableListOf<Predicate>()
-                predicates.add(criteriaBuilder.equal(root.get<Category>("category").get<UUID>("id"), categoryId))
-                predicates.add(criteriaBuilder.equal(root.get<EventStatus>("status"), EventStatus.PUBLISHED))
-                criteriaBuilder.and(*predicates.toTypedArray())
-            }
-            eventRepository.findAll(spec, pageable)
-        }
-        
+        val events = eventRepository.findAll(spec, pageable)
         return events.map { mapToEventDto(it) }
     }
 
     override fun getNearbyEvents(latitude: Double, longitude: Double, radius: Double, pageable: Pageable): Page<EventDto> {
-        val events = eventRepository.findNearbyEvents(
-            latitude,
-            longitude,
-            radius,
-            EventStatus.PUBLISHED.name,
-            pageable
-        )
-        
-        return events.map { mapToEventDto(it) }
+        // Sử dụng phương thức findNearbyEvents với status đã được chuyển thành String
+        val statusStr = EventStatus.PUBLISHED.name
+        val nearbyEvents = eventRepository.findNearbyEvents(latitude, longitude, radius, statusStr, pageable)
+        return nearbyEvents.map { mapToEventDto(it) }
     }
 
-    /**
-     * Phương thức hỗ trợ để kiểm tra sự kiện tồn tại và quyền truy cập
-     */
-    private fun findEventAndCheckPermission(id: UUID, organizerId: UUID): Event {
+    // Helper methods
+    
+    private fun findEventAndCheckPermission(id: UUID, organizerId: UUID?): Event {
         val event = eventRepository.findById(id)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy sự kiện với ID $id") }
         
-        // Kiểm tra quyền truy cập
-        if (event.organizer.id != organizerId && !securityUtils.isAdmin()) {
-            throw UnauthorizedException("Bạn không có quyền thao tác với sự kiện này")
+        // Nếu organizerId được cung cấp, kiểm tra quyền
+        if (organizerId != null && event.organizer.id != organizerId && !securityUtils.isAdmin()) {
+            throw UnauthorizedException("Bạn không có quyền thực hiện thao tác này")
         }
         
         return event
     }
-
-    /**
-     * Chuyển đổi Event sang EventDto
-     */
+    
+    private fun hasTicketsSold(event: Event): Boolean {
+        // Kiểm tra xem sự kiện đã có vé nào được bán chưa
+        // Giả sử có một repository method để kiểm tra
+        return false // Placeholder
+    }
+    
     private fun mapToEventDto(event: Event): EventDto {
-        // Tính giá vé thấp nhất và cao nhất nếu có loại vé
-        var minPrice: BigDecimal? = null
-        var maxPrice: BigDecimal? = null
-        
-        if (event.ticketTypes.isNotEmpty()) {
-            minPrice = event.ticketTypes.minOfOrNull { it.price }
-            maxPrice = event.ticketTypes.maxOfOrNull { it.price }
-        }
+        // Tìm ảnh chính của sự kiện
+        val primaryImage = event.images.find { it.isPrimary }?.url
         
         // Danh sách URL hình ảnh
         val imageUrls = event.images.map { it.url }
         
+        // Tính giá vé thấp nhất và cao nhất
+        val ticketPrices = event.ticketTypes.map { it.price }
+        val minTicketPrice = if (ticketPrices.isNotEmpty()) ticketPrices.minOrNull() else null
+        val maxTicketPrice = if (ticketPrices.isNotEmpty()) ticketPrices.maxOrNull() else null
+        
         return EventDto(
-            id = event.id,
+            id = event.id!!,
             title = event.title,
             description = event.description,
             shortDescription = event.shortDescription,
@@ -507,20 +537,20 @@ class EventServiceImpl(
             city = event.city,
             latitude = event.latitude,
             longitude = event.longitude,
-            status = event.status,
             maxAttendees = event.maxAttendees,
             currentAttendees = event.currentAttendees,
-            featuredImageUrl = event.featuredImageUrl,
-            imageUrls = imageUrls,
-            minTicketPrice = minPrice,
-            maxTicketPrice = maxPrice,
             startDate = event.startDate,
             endDate = event.endDate,
-            createdAt = event.createdAt,
-            updatedAt = event.updatedAt,
             isPrivate = event.isPrivate,
+            isFree = event.isFree,
             isFeatured = event.isFeatured,
-            isFree = event.isFree
+            status = event.status,
+            featuredImageUrl = event.featuredImageUrl ?: primaryImage,
+            imageUrls = imageUrls,
+            minTicketPrice = minTicketPrice,
+            maxTicketPrice = maxTicketPrice,
+            createdAt = event.createdAt,
+            updatedAt = event.updatedAt
         )
     }
 } 

@@ -85,6 +85,18 @@ data class Event(
 
     @OneToMany(mappedBy = "event", cascade = [CascadeType.ALL], orphanRemoval = true)
     var ticketTypes: MutableList<TicketType> = mutableListOf(),
+    
+    @OneToMany(mappedBy = "event", cascade = [CascadeType.ALL], orphanRemoval = true)
+    var comments: MutableList<Comment> = mutableListOf(),
+    
+    @OneToMany(mappedBy = "event", cascade = [CascadeType.ALL], orphanRemoval = true)
+    var ratings: MutableList<Rating> = mutableListOf(),
+    
+    @Column(name = "average_rating")
+    var averageRating: Double = 0.0,
+    
+    @Column(name = "rating_count")
+    var ratingCount: Int = 0,
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -104,6 +116,33 @@ data class Event(
     fun addTicketType(ticketType: TicketType) {
         ticketTypes.add(ticketType)
         ticketType.event = this
+    }
+    
+    // Phương thức tiện ích để thêm bình luận
+    fun addComment(comment: Comment) {
+        comments.add(comment)
+        comment.event = this
+    }
+    
+    // Phương thức tiện ích để thêm đánh giá
+    fun addRating(rating: Rating) {
+        ratings.add(rating)
+        rating.event = this
+        
+        // Cập nhật đánh giá trung bình
+        updateAverageRating()
+    }
+    
+    // Phương thức cập nhật đánh giá trung bình
+    fun updateAverageRating() {
+        val approvedRatings = ratings.filter { it.status == RatingStatus.APPROVED }
+        ratingCount = approvedRatings.size
+        
+        if (ratingCount > 0) {
+            averageRating = approvedRatings.map { it.score.toDouble() }.average()
+        } else {
+            averageRating = 0.0
+        }
     }
 }
 
