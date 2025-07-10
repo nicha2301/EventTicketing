@@ -1,14 +1,22 @@
 package com.eventticketing.backend.util
 
+import jakarta.mail.internet.MimeMessage
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.io.ClassPathResource
 import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
+import org.springframework.mail.javamail.MimeMessageHelper
 import org.springframework.stereotype.Service
+import org.thymeleaf.TemplateEngine
+import org.thymeleaf.context.Context
+import java.nio.charset.StandardCharsets
+import java.util.*
 
 @Service
 class EmailService(
-    private val mailSender: JavaMailSender? = null
+    private val mailSender: JavaMailSender? = null,
+    private val templateEngine: TemplateEngine? = null
 ) {
     private val logger = LoggerFactory.getLogger(EmailService::class.java)
 
@@ -24,21 +32,14 @@ class EmailService(
     fun sendActivationEmail(to: String, name: String, token: String) {
         val subject = "Kích hoạt tài khoản Event Ticketing"
         val activationLink = "$appUrl/api/auth/activate?token=$token"
-        val content = """
-            Xin chào $name,
-            
-            Cảm ơn bạn đã đăng ký tài khoản tại Event Ticketing.
-            Vui lòng nhấn vào liên kết bên dưới để kích hoạt tài khoản của bạn:
-            
-            $activationLink
-            
-            Liên kết sẽ hết hạn sau 24 giờ.
-            
-            Trân trọng,
-            Event Ticketing Team
-        """.trimIndent()
-
-        sendEmail(to, subject, content)
+        
+        val variables = mapOf(
+            "name" to name,
+            "activationLink" to activationLink,
+            "expiryHours" to "24"
+        )
+        
+        sendHtmlEmail(to, subject, "activation", variables)
     }
 
     /**
@@ -47,90 +48,154 @@ class EmailService(
     fun sendPasswordResetEmail(to: String, name: String, token: String) {
         val subject = "Đặt lại mật khẩu Event Ticketing"
         val resetLink = "$appUrl/reset-password?token=$token"
-        val content = """
-            Xin chào $name,
-            
-            Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu của bạn.
-            Vui lòng nhấn vào liên kết bên dưới để đặt lại mật khẩu:
-            
-            $resetLink
-            
-            Liên kết sẽ hết hạn sau 1 giờ.
-            Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
-            
-            Trân trọng,
-            Event Ticketing Team
-        """.trimIndent()
-
-        sendEmail(to, subject, content)
+        
+        val variables = mapOf(
+            "name" to name,
+            "resetLink" to resetLink,
+            "expiryHours" to "1"
+        )
+        
+        sendHtmlEmail(to, subject, "password-reset", variables)
     }
 
     /**
      * Gửi email xác nhận mua vé
      */
-    fun sendTicketConfirmationEmail(to: String, name: String, eventName: String, ticketType: String, qrCode: String) {
+    fun sendTicketConfirmationEmail(to: String, name: String, eventName: String, eventDate: String, 
+                                   eventLocation: String, ticketType: String, ticketPrice: String, 
+                                   qrCodeData: String, ticketId: String) {
         val subject = "Xác nhận vé sự kiện: $eventName"
-        val content = """
-            Xin chào $name,
-            
-            Cảm ơn bạn đã mua vé tham gia sự kiện: $eventName
-            
-            Chi tiết vé:
-            - Loại vé: $ticketType
-            - Mã QR: $qrCode
-            
-            Vui lòng xuất trình mã QR khi tham gia sự kiện.
-            Bạn cũng có thể xem vé đã mua trong ứng dụng Event Ticketing.
-            
-            Trân trọng,
-            Event Ticketing Team
-        """.trimIndent()
-
-        sendEmail(to, subject, content)
+        
+        val variables = mapOf(
+            "name" to name,
+            "eventName" to eventName,
+            "eventDate" to eventDate,
+            "eventLocation" to eventLocation,
+            "ticketType" to ticketType,
+            "ticketPrice" to ticketPrice,
+            "qrCodeData" to qrCodeData,
+            "ticketId" to ticketId,
+            "viewTicketUrl" to "$appUrl/tickets/$ticketId"
+        )
+        
+        sendHtmlEmail(to, subject, "ticket-confirmation", variables)
     }
 
     /**
      * Gửi email thông báo sự kiện sắp diễn ra
      */
-    fun sendEventReminderEmail(to: String, name: String, eventName: String, eventDate: String, eventLocation: String) {
+    fun sendEventReminderEmail(to: String, name: String, eventName: String, eventDate: String, 
+                              eventLocation: String, eventId: String, ticketId: String) {
         val subject = "Nhắc nhở: Sự kiện $eventName sắp diễn ra"
-        val content = """
-            Xin chào $name,
-            
-            Chúng tôi xin nhắc nhở bạn rằng sự kiện $eventName mà bạn đã đăng ký sẽ diễn ra vào:
-            
-            Thời gian: $eventDate
-            Địa điểm: $eventLocation
-            
-            Hãy nhớ mang theo vé (mã QR) khi tham gia sự kiện.
-            
-            Trân trọng,
-            Event Ticketing Team
-        """.trimIndent()
-
-        sendEmail(to, subject, content)
+        
+        val variables = mapOf(
+            "name" to name,
+            "eventName" to eventName,
+            "eventDate" to eventDate,
+            "eventLocation" to eventLocation,
+            "eventDetailsUrl" to "$appUrl/events/$eventId",
+            "ticketUrl" to "$appUrl/tickets/$ticketId"
+        )
+        
+        sendHtmlEmail(to, subject, "event-reminder", variables)
     }
 
     /**
      * Gửi email thông báo cho ban tổ chức khi có người mua vé
      */
-    fun sendOrganizerNotificationEmail(to: String, organizerName: String, eventName: String, ticketType: String) {
+    fun sendOrganizerNotificationEmail(to: String, organizerName: String, eventName: String, 
+                                      ticketType: String, buyerName: String, purchaseDate: String, 
+                                      eventId: String) {
         val subject = "Thông báo: Vé mới được mua cho sự kiện $eventName"
-        val content = """
-            Xin chào $organizerName,
-            
-            Có người vừa mua vé tham gia sự kiện $eventName do bạn tổ chức.
-            
-            Chi tiết:
-            - Loại vé: $ticketType
-            
-            Vui lòng đăng nhập vào hệ thống để xem thông tin chi tiết.
-            
-            Trân trọng,
-            Event Ticketing Team
-        """.trimIndent()
+        
+        val variables = mapOf(
+            "organizerName" to organizerName,
+            "eventName" to eventName,
+            "ticketType" to ticketType,
+            "buyerName" to buyerName,
+            "purchaseDate" to purchaseDate,
+            "dashboardUrl" to "$appUrl/organizer/events/$eventId"
+        )
+        
+        sendHtmlEmail(to, subject, "organizer-notification", variables)
+    }
+    
+    /**
+     * Gửi email thông báo bình luận mới
+     */
+    fun sendNewCommentNotificationEmail(to: String, name: String, eventName: String, 
+                                       commenterName: String, commentContent: String, eventId: String) {
+        val subject = "Thông báo: Bình luận mới cho sự kiện $eventName"
+        
+        val variables = mapOf(
+            "name" to name,
+            "eventName" to eventName,
+            "commenterName" to commenterName,
+            "commentContent" to commentContent,
+            "eventUrl" to "$appUrl/events/$eventId"
+        )
+        
+        sendHtmlEmail(to, subject, "comment-notification", variables)
+    }
+    
+    /**
+     * Gửi email thông báo đánh giá mới
+     */
+    fun sendNewRatingNotificationEmail(to: String, name: String, eventName: String, 
+                                      raterName: String, rating: Int, review: String?, eventId: String) {
+        val subject = "Thông báo: Đánh giá mới cho sự kiện $eventName"
+        
+        val variables = mapOf(
+            "name" to name,
+            "eventName" to eventName,
+            "raterName" to raterName,
+            "rating" to rating.toString(),
+            "review" to (review ?: "Không có nhận xét"),
+            "eventUrl" to "$appUrl/events/$eventId"
+        )
+        
+        sendHtmlEmail(to, subject, "rating-notification", variables)
+    }
 
-        sendEmail(to, subject, content)
+    /**
+     * Phương thức gửi email HTML với template
+     */
+    private fun sendHtmlEmail(to: String, subject: String, templateName: String, variables: Map<String, String>) {
+        try {
+            if (mailSender == null || templateEngine == null) {
+                // Log email nếu không có mail sender hoặc template engine (development)
+                logger.info("Would send HTML email to: $to")
+                logger.info("Subject: $subject")
+                logger.info("Template: $templateName")
+                logger.info("Variables: $variables")
+                return
+            }
+
+            val context = Context(Locale("vi"))
+            context.setVariables(variables)
+            
+            val htmlContent = templateEngine.process("email/$templateName", context)
+            
+            val message: MimeMessage = mailSender.createMimeMessage()
+            val helper = MimeMessageHelper(message, true, StandardCharsets.UTF_8.name())
+            
+            helper.setFrom(fromEmail ?: "noreply@eventticketing.com")
+            helper.setTo(to)
+            helper.setSubject(subject)
+            helper.setText(htmlContent, true)
+            
+            // Thêm logo vào email
+            helper.addInline("logo", ClassPathResource("static/images/logo.png"))
+            
+            mailSender.send(message)
+            logger.info("HTML email sent successfully to: $to")
+        } catch (e: Exception) {
+            logger.error("Failed to send HTML email to $to: ${e.message}")
+            // Fallback to plain text email
+            val plainContent = "Vui lòng xem email này ở định dạng HTML. " +
+                               "Nếu bạn không thể xem được, vui lòng liên hệ support@eventticketing.com."
+            sendEmail(to, subject, plainContent)
+        }
     }
 
     /**

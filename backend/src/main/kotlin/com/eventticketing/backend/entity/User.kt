@@ -2,6 +2,7 @@ package com.eventticketing.backend.entity
 
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
+import org.hibernate.annotations.Type
 import org.hibernate.annotations.UpdateTimestamp
 import org.hibernate.annotations.UuidGenerator
 import java.time.LocalDateTime
@@ -34,6 +35,15 @@ class User(
     @Column(nullable = false)
     var enabled: Boolean = true,
     
+    @Column(name = "notification_preferences", columnDefinition = "jsonb")
+    var notificationPreferences: String = "{}",
+    
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val deviceTokens: MutableList<DeviceToken> = mutableListOf(),
+    
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val notifications: MutableList<Notification> = mutableListOf(),
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
@@ -41,8 +51,4 @@ class User(
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-)
-
-enum class UserRole {
-    USER, ORGANIZER, ADMIN
-} 
+) 
