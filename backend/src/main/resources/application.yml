@@ -6,6 +6,13 @@ spring:
     username: postgres
     password: 123
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 20000 # 20 seconds
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000 # 5 minutes
+      max-lifetime: 1200000 # 20 minutes
+      auto-commit: true
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -14,6 +21,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          batch_size: 50
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
+        generate_statistics: false
   liquibase:
     change-log: classpath:/db/changelog/db.changelog-master.xml
     enabled: true
@@ -33,6 +46,23 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  task:
+    scheduling:
+      pool:
+        size: 5
+      thread-name-prefix: event-ticketing-scheduler-
+  cache:
+    type: none # Đổi từ redis sang none
+#    redis:
+#      time-to-live: 3600000 # 1 hour in milliseconds
+#      cache-null-values: false
+#  data:
+#    redis:
+#      host: localhost
+#      port: 6379
+#      password: # Để trống nếu không có mật khẩu
+#      timeout: 2000 # ms
+#      database: 0 # Sử dụng database số 0
 
 server:
   port: 8080
@@ -40,6 +70,11 @@ server:
     context-path: /
   error:
     include-stacktrace: never
+  tomcat:
+    max-threads: 200
+    max-connections: 10000
+    accept-count: 100
+    connection-timeout: 5000
 
 app:
   jwt:
@@ -48,16 +83,41 @@ app:
   url: http://localhost:8080
   upload:
     dir: ${user.home}/event-ticketing/uploads
+    url-prefix: /uploads/
   cors:
     allowed-origins: http://localhost:3000, https://eventticketing.com
+  notification:
+    email:
+      enabled: true
+      from-email: noreply@eventticketing.com
+      from-name: Event Ticketing
+      templates:
+        activation: email/activation
+        password-reset: email/password-reset
+        ticket-confirmation: email/ticket-confirmation
+        event-reminder: email/event-reminder
+        organizer-notification: email/organizer-notification
+        comment-notification: email/comment-notification
+        rating-notification: email/rating-notification
+    push:
+      enabled: false
+      firebase-config-path: firebase-service-account.json
 
 logging:
   level:
     root: INFO
+    org.springframework: INFO
     com.eventticketing: DEBUG
     org.springframework.security: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  file:
+    name: ${user.home}/event-ticketing/logs/event-ticketing.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+      total-size-cap: 3GB
 
 springdoc:
   api-docs:
@@ -71,13 +131,41 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,metrics,prometheus,loggers,env,mappings,scheduledtasks,caches,liquibase
+      base-path: /actuator
+      cors:
+        allowed-origins: "*"
+        allowed-methods: GET
   endpoint:
     health:
-      show-details: always
+      show-details: when_authorized
+      show-components: when_authorized
+      roles: ADMIN
+    info:
+      enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  info:
+    env:
+      enabled: true
+    git:
+      enabled: true
+    build:
+      enabled: true
   metrics:
     tags:
-      application: ${spring.application.name} 
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      sla:
+        http.server.requests: 50ms, 100ms, 200ms, 500ms
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 payment:
   vnpay:
