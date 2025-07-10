@@ -17,68 +17,24 @@ import java.util.*
 class GlobalExceptionHandler {
     private val logger = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
 
-    @ExceptionHandler(ResourceNotFoundException::class)
-    fun handleResourceNotFoundException(
-        ex: ResourceNotFoundException,
+    /**
+     * Xử lý tất cả các AppException
+     */
+    @ExceptionHandler(AppException::class)
+    fun handleAppException(
+        ex: AppException,
         request: WebRequest
     ): ResponseEntity<ApiResponse<ErrorDetails>> {
         val errorDetails = ErrorDetails(
             timestamp = LocalDateTime.now(),
-            message = ex.message ?: "Không tìm thấy tài nguyên",
-            path = request.getDescription(false)
-        )
-        
-        return ResponseEntity(ApiResponse(success = false, message = ex.message, data = errorDetails), HttpStatus.NOT_FOUND)
-    }
-
-    @ExceptionHandler(ResourceAlreadyExistsException::class)
-    fun handleResourceAlreadyExistsException(
-        ex: ResourceAlreadyExistsException,
-        request: WebRequest
-    ): ResponseEntity<ApiResponse<ErrorDetails>> {
-        val errorDetails = ErrorDetails(
-            timestamp = LocalDateTime.now(),
-            message = ex.message ?: "Tài nguyên đã tồn tại",
-            path = request.getDescription(false)
+            message = ex.message,
+            path = request.getDescription(false),
+            errorCode = ex.errorCode
         )
         
         return ResponseEntity(
             ApiResponse(success = false, message = ex.message, data = errorDetails),
-            HttpStatus.CONFLICT
-        )
-    }
-
-    @ExceptionHandler(BadRequestException::class)
-    fun handleBadRequestException(
-        ex: BadRequestException,
-        request: WebRequest
-    ): ResponseEntity<ApiResponse<ErrorDetails>> {
-        val errorDetails = ErrorDetails(
-            timestamp = LocalDateTime.now(),
-            message = ex.message ?: "Yêu cầu không hợp lệ",
-            path = request.getDescription(false)
-        )
-        
-        return ResponseEntity(
-            ApiResponse(success = false, message = ex.message, data = errorDetails),
-            HttpStatus.BAD_REQUEST
-        )
-    }
-
-    @ExceptionHandler(UnauthorizedException::class)
-    fun handleUnauthorizedException(
-        ex: UnauthorizedException,
-        request: WebRequest
-    ): ResponseEntity<ApiResponse<ErrorDetails>> {
-        val errorDetails = ErrorDetails(
-            timestamp = LocalDateTime.now(),
-            message = ex.message ?: "Không có quyền truy cập",
-            path = request.getDescription(false)
-        )
-        
-        return ResponseEntity(
-            ApiResponse(success = false, message = ex.message, data = errorDetails),
-            HttpStatus.UNAUTHORIZED
+            ex.errorType.status
         )
     }
 
@@ -90,7 +46,8 @@ class GlobalExceptionHandler {
         val errorDetails = ErrorDetails(
             timestamp = LocalDateTime.now(),
             message = "Không có quyền thực hiện hành động này",
-            path = request.getDescription(false)
+            path = request.getDescription(false),
+            errorCode = ErrorType.ACCESS_DENIED.prefix
         )
         
         return ResponseEntity(
@@ -116,7 +73,8 @@ class GlobalExceptionHandler {
             "timestamp" to LocalDateTime.now(),
             "message" to "Dữ liệu đầu vào không hợp lệ",
             "path" to request.getDescription(false),
-            "errors" to errors
+            "errors" to errors,
+            "errorCode" to ErrorType.VALIDATION_ERROR.prefix
         )
         
         return ResponseEntity(
@@ -135,7 +93,8 @@ class GlobalExceptionHandler {
         val errorDetails = ErrorDetails(
             timestamp = LocalDateTime.now(),
             message = "Đã xảy ra lỗi. Vui lòng thử lại sau",
-            path = request.getDescription(false)
+            path = request.getDescription(false),
+            errorCode = ErrorType.INTERNAL_SERVER_ERROR.prefix
         )
         
         return ResponseEntity(
@@ -147,6 +106,7 @@ class GlobalExceptionHandler {
     data class ErrorDetails(
         val timestamp: LocalDateTime,
         val message: String,
-        val path: String
+        val path: String,
+        val errorCode: String? = null
     )
 } 
