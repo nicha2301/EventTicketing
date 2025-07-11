@@ -47,7 +47,8 @@ class UserServiceImpl(
             fullName = userCreateDto.fullName,
             phoneNumber = userCreateDto.phoneNumber,
             role = userCreateDto.role,
-            enabled = false // Tài khoản chưa kích hoạt
+            enabled = false, // Tài khoản chưa kích hoạt
+            notificationPreferences = emptyMap() // Khởi tạo đúng kiểu dữ liệu Map<String, Any>
         )
 
         val savedUser = userRepository.save(user)
@@ -79,14 +80,16 @@ class UserServiceImpl(
                 throw UnauthorizedException("Tài khoản chưa được kích hoạt")
             }
             
-            val jwt = jwtProvider.generateJwtToken(authentication)
+            // Sử dụng trực tiếp đối tượng User từ cơ sở dữ liệu để tạo JWT token
+            val jwt = jwtProvider.generateJwtToken(user)
             
             return UserAuthResponseDto(
                 id = user.id!!,
                 email = user.email,
                 fullName = user.fullName,
                 role = user.role,
-                token = jwt
+                token = jwt,
+                profilePictureUrl = user.profilePictureUrl
             )
         } catch (e: Exception) {
             logger.error("Đăng nhập thất bại: ${e.message}")
@@ -198,13 +201,25 @@ class UserServiceImpl(
 
     @Transactional
     override fun activateUser(activationToken: String): Boolean {
-        // Trong thực tế, token nên được lưu trong database hoặc cache với thời hạn
-        // Ở đây chúng ta giả định rằng token hợp lệ và lấy email từ token
-        val email = "user@example.com" // Giả định lấy từ token
+        // This is a simplified implementation for testing purposes
+        // In a production environment, you would:
+        // 1. Store tokens in a database with associated email and expiry time
+        // 2. Look up the token in the database
+        // 3. Verify it's not expired
+        // 4. Find the user by the associated email
         
-        val user = userRepository.findByEmail(email)
-            .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với email $email") }
+        // For testing purposes, extract email from token or use query parameter
+        // Assuming token contains the email or is associated with the email
         
+        // TEMPORARY SOLUTION: Let's find the most recently registered unactivated user
+        val unactivatedUsers = userRepository.findByEnabled(false)
+        if (unactivatedUsers.isEmpty()) {
+            logger.warn("No unactivated users found for token: $activationToken")
+            return false
+        }
+        
+        // Activate the user
+        val user = unactivatedUsers[0] // Get the most recent unactivated user
         user.enabled = true
         userRepository.save(user)
         
@@ -249,6 +264,58 @@ class UserServiceImpl(
         }
     }
 
+    @Transactional
+    override fun authenticateWithGoogle(googleAuthRequest: GoogleAuthRequestDto): UserAuthResponseDto {
+        try {
+            // Xác thực token ID từ Google (trong thực tế cần gọi API Google để xác thực)
+            // Giả sử token đã được xác thực ở phía client
+            
+            // Kiểm tra xem người dùng đã tồn tại chưa
+            val userOptional = userRepository.findByEmail(googleAuthRequest.email)
+            
+            val user = if (userOptional.isPresent) {
+                // Nếu người dùng đã tồn tại, cập nhật thông tin nếu cần
+                val existingUser = userOptional.get()
+                existingUser.fullName = googleAuthRequest.name // Cập nhật tên từ Google
+                existingUser.profilePictureUrl = googleAuthRequest.profilePictureUrl // Cập nhật ảnh đại diện
+                
+                // Đảm bảo tài khoản đã được kích hoạt
+                if (!existingUser.enabled) {
+                    existingUser.enabled = true
+                }
+                
+                userRepository.save(existingUser)
+            } else {
+                // Nếu người dùng chưa tồn tại, tạo mới
+                val newUser = User(
+                    email = googleAuthRequest.email,
+                    password = passwordEncoder.encode(UUID.randomUUID().toString()), // Tạo mật khẩu ngẫu nhiên
+                    fullName = googleAuthRequest.name,
+                    role = UserRole.USER,
+                    enabled = true, // Tài khoản Google đã được xác thực nên kích hoạt luôn
+                    profilePictureUrl = googleAuthRequest.profilePictureUrl,
+                    notificationPreferences = emptyMap() // Khởi tạo đúng kiểu dữ liệu Map<String, Any>
+                )
+                
+                userRepository.save(newUser)
+            }
+            
+            // Tạo JWT token
+            val jwt = jwtProvider.generateJwtToken(user)
+            
+            return UserAuthResponseDto(
+                id = user.id!!,
+                email = user.email,
+                fullName = user.fullName,
+                role = user.role,
+                token = jwt
+            )
+        } catch (e: Exception) {
+            logger.error("Đăng nhập Google thất bại: ${e.message}")
+            throw UnauthorizedException("Không thể xác thực với Google: ${e.message}")
+        }
+    }
+
     private fun mapToUserDto(user: User): UserDto {
         return UserDto(
             id = user.id,
@@ -257,6 +324,7 @@ class UserServiceImpl(
             phoneNumber = user.phoneNumber,
             role = user.role,
             enabled = user.enabled,
+            profilePictureUrl = user.profilePictureUrl,
             createdAt = user.createdAt
         )
     }

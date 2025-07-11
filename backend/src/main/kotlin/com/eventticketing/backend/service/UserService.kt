@@ -18,6 +18,11 @@ interface UserService {
     fun authenticateUser(loginRequest: LoginRequestDto): UserAuthResponseDto
     
     /**
+     * Xác thực người dùng bằng Google và trả về JWT token
+     */
+    fun authenticateWithGoogle(googleAuthRequest: GoogleAuthRequestDto): UserAuthResponseDto
+    
+    /**
      * Lấy thông tin người dùng theo ID
      */
     fun getUserById(id: UUID): UserDto

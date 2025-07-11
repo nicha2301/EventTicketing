@@ -39,6 +39,19 @@ class AuthController(private val userService: UserService) {
             data = userAuthResponse
         ))
     }
+    
+    @PostMapping("/google")
+    @SecurityRequirements // Không yêu cầu xác thực
+    @Operation(summary = "Đăng nhập bằng Google và lấy token")
+    fun authenticateWithGoogle(@Valid @RequestBody googleAuthRequest: GoogleAuthRequestDto): ResponseEntity<ApiResponse<UserAuthResponseDto>> {
+        val userAuthResponse = userService.authenticateWithGoogle(googleAuthRequest)
+        
+        return ResponseEntity.ok(ApiResponse(
+            success = true,
+            message = "Đăng nhập bằng Google thành công",
+            data = userAuthResponse
+        ))
+    }
 
     @GetMapping("/activate")
     @SecurityRequirements // Không yêu cầu xác thực

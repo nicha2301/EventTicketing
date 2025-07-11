@@ -20,6 +20,7 @@ data class UserDto(
     val phoneNumber: String?,
     val role: UserRole,
     val enabled: Boolean,
+    val profilePictureUrl: String? = null,
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     val createdAt: LocalDateTime? = null
@@ -52,6 +53,7 @@ data class UserCreateDto(
 data class UserUpdateDto(
     val fullName: String? = null,
     val phoneNumber: String? = null,
+    val profilePictureUrl: String? = null,
     val enabled: Boolean? = null
 )
 
@@ -75,7 +77,8 @@ data class UserAuthResponseDto(
     val email: String,
     val fullName: String,
     val role: UserRole,
-    val token: String
+    val token: String,
+    val profilePictureUrl: String? = null
 )
 
 /**

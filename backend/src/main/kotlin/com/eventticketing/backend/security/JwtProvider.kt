@@ -11,6 +11,7 @@ import io.jsonwebtoken.security.Keys
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.Authentication
+import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.stereotype.Component
 import java.nio.charset.StandardCharsets
 import java.util.Date
@@ -40,9 +41,22 @@ class JwtProvider {
      * Tạo JWT token từ thông tin xác thực
      */
     fun generateJwtToken(authentication: Authentication): String {
-        val userPrincipal = authentication.principal as User
+        val userPrincipal = authentication.principal
 
-        return Jwts.builder()
+        // Kiểm tra xem principal có phải là UserDetails không
+        if (userPrincipal is UserDetails) {
+            return Jwts.builder()
+                .subject(userPrincipal.username)
+                .issuedAt(Date())
+                .expiration(Date(Date().time + jwtExpiration * 1000))
+                // Không thêm userId và role claim vì chúng ta không có thông tin này từ UserDetails
+                .signWith(getSigningKey())
+                .compact()
+        }
+        
+        // Trường hợp principal là User entity của chúng ta (hiếm gặp, nhưng cứ giữ để tương thích ngược)
+        if (userPrincipal is User) {
+            return Jwts.builder()
                 .subject(userPrincipal.email)
                 .issuedAt(Date())
                 .expiration(Date(Date().time + jwtExpiration * 1000))
@@ -50,6 +64,10 @@ class JwtProvider {
                 .claim("role", userPrincipal.role.name)
                 .signWith(getSigningKey())
                 .compact()
+        }
+        
+        // Fallback nếu principal không phải loại nào trong số đó
+        throw IllegalArgumentException("Loại principal không được hỗ trợ: ${userPrincipal?.javaClass}")
     }
 
     /**

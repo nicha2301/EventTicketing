@@ -2,9 +2,11 @@ package com.eventticketing.backend.entity
 
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
+import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.annotations.Type
 import org.hibernate.annotations.UpdateTimestamp
 import org.hibernate.annotations.UuidGenerator
+import org.hibernate.type.SqlTypes
 import java.time.LocalDateTime
 import java.util.*
 
@@ -35,8 +37,12 @@ class User(
     @Column(nullable = false)
     var enabled: Boolean = true,
     
+    @Column(name = "profile_picture_url")
+    var profilePictureUrl: String? = null,
+    
     @Column(name = "notification_preferences", columnDefinition = "jsonb")
-    var notificationPreferences: String = "{}",
+    @JdbcTypeCode(SqlTypes.JSON)
+    var notificationPreferences: Map<String, Any> = emptyMap(),
     
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
     val deviceTokens: MutableList<DeviceToken> = mutableListOf(),
