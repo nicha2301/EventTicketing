@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Xác nhận mua vé</title>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <h1>Xin chào <span th:text="${name}">người dùng</span>!</h1>
+        
+        <p>Cảm ơn bạn đã mua vé tham gia sự kiện của chúng tôi. Dưới đây là thông tin chi tiết về vé của bạn:</p>
+        
+        <div class="info-box">
+            <h3 th:text="${eventName}">Tên sự kiện</h3>
+            <p><strong>Ngày:</strong> <span th:text="${eventDate}">01/01/2023</span></p>
+            <p><strong>Địa điểm:</strong> <span th:text="${eventLocation}">Địa điểm sự kiện</span></p>
+            <p><strong>Loại vé:</strong> <span th:text="${ticketType}">Loại vé</span></p>
+            <p><strong>Giá vé:</strong> <span th:text="${ticketPrice}">100.000 VND</span></p>
+        </div>
+        
+        <p>Vui lòng xuất trình mã QR code dưới đây khi tham gia sự kiện:</p>
+        
+        <div class="qr-code">
+            <img th:src="'data:image/png;base64,' + ${qrCodeData}" alt="QR Code" />
+            <p><strong>Mã vé:</strong> <span th:text="${ticketId}">TICKET-123</span></p>
+        </div>
+        
+        <p style="text-align: center;">
+            <a th:href="${viewTicketUrl}" class="button">Xem vé của tôi</a>
+        </p>
+        
+        <p>Bạn cũng có thể xem vé đã mua trong ứng dụng Event Ticketing hoặc trên trang web của chúng tôi.</p>
+        
+        <p><strong>Lưu ý quan trọng:</strong></p>
+        <ul>
+            <li>Vui lòng đến sớm để tránh tình trạng xếp hàng chờ đợi.</li>
+            <li>Mã QR code chỉ có giá trị cho một lần quét.</li>
+            <li>Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi.</li>
+        </ul>
+        
+        <p>Chúc bạn có một trải nghiệm tuyệt vời tại sự kiện!</p>
+        
+        <p>Trân trọng,<br>Event Ticketing Team</p>
+    </th:block>
+</body>
+</html> 

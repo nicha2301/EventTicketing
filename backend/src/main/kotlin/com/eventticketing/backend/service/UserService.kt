@@ -23,6 +23,16 @@ interface UserService {
     fun authenticateWithGoogle(googleAuthRequest: GoogleAuthRequestDto): UserAuthResponseDto
     
     /**
+     * Refresh JWT token
+     */
+    fun refreshToken(refreshToken: String): UserAuthResponseDto
+    
+    /**
+     * Đăng xuất người dùng
+     */
+    fun logout(token: String): Boolean
+    
+    /**
      * Lấy thông tin người dùng theo ID
      */
     fun getUserById(id: UUID): UserDto

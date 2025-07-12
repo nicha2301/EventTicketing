@@ -53,6 +53,39 @@ class AuthController(private val userService: UserService) {
         ))
     }
 
+    @PostMapping("/refresh-token")
+    @SecurityRequirements // Không yêu cầu xác thực
+    @Operation(summary = "Refresh JWT token")
+    fun refreshToken(@Valid @RequestBody refreshTokenRequest: RefreshTokenRequest): ResponseEntity<ApiResponse<UserAuthResponseDto>> {
+        val userAuthResponse = userService.refreshToken(refreshTokenRequest.refreshToken)
+        
+        return ResponseEntity.ok(ApiResponse(
+            success = true,
+            message = "Token đã được refresh thành công",
+            data = userAuthResponse
+        ))
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Đăng xuất người dùng")
+    fun logout(@Valid @RequestBody logoutRequest: LogoutRequest): ResponseEntity<ApiResponse<String>> {
+        val result = userService.logout(logoutRequest.token)
+        
+        return if (result) {
+            ResponseEntity.ok(ApiResponse(
+                success = true,
+                message = "Đăng xuất thành công",
+                data = "Đã đăng xuất"
+            ))
+        } else {
+            ResponseEntity.badRequest().body(ApiResponse(
+                success = false,
+                message = "Không thể đăng xuất",
+                data = null
+            ))
+        }
+    }
+
     @GetMapping("/activate")
     @SecurityRequirements // Không yêu cầu xác thực
     @Operation(summary = "Kích hoạt tài khoản người dùng")

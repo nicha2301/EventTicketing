@@ -29,6 +29,9 @@ class JwtProvider {
     @Value("\${app.jwt.expiration}")
     private var jwtExpiration: Int = 0
 
+    @Value("\${app.jwt.refresh-expiration:604800}")
+    private var refreshExpiration: Int = 604800
+
     /**
      * Tạo key từ chuỗi bí mật
      */
@@ -80,8 +83,33 @@ class JwtProvider {
                 .expiration(Date(Date().time + jwtExpiration * 1000))
                 .claim("userId", user.id)
                 .claim("role", user.role.name)
+                .claim("type", "access")
                 .signWith(getSigningKey())
                 .compact()
+    }
+
+    /**
+     * Tạo refresh token từ User
+     */
+    fun generateRefreshToken(user: User): String {
+        return Jwts.builder()
+                .subject(user.email)
+                .issuedAt(Date())
+                .expiration(Date(Date().time + refreshExpiration * 1000))
+                .claim("userId", user.id)
+                .claim("role", user.role.name)
+                .claim("type", "refresh")
+                .signWith(getSigningKey())
+                .compact()
+    }
+
+    /**
+     * Tạo cả access token và refresh token
+     */
+    fun generateTokenPair(user: User): TokenPair {
+        val accessToken = generateJwtToken(user)
+        val refreshToken = generateRefreshToken(user)
+        return TokenPair(accessToken, refreshToken)
     }
 
     /**
@@ -124,6 +152,14 @@ class JwtProvider {
     }
 
     /**
+     * Lấy token type từ JWT token
+     */
+    fun getTokenTypeFromJwtToken(token: String): String? {
+        val claims = getAllClaimsFromToken(token)
+        return claims["type"] as? String
+    }
+
+    /**
      * Kiểm tra JWT token có hợp lệ không
      */
     fun validateJwtToken(authToken: String): Boolean {
@@ -147,4 +183,24 @@ class JwtProvider {
 
         return false
     }
-} 
+
+    /**
+     * Kiểm tra xem token có phải là refresh token không
+     */
+    fun isRefreshToken(token: String): Boolean {
+        return try {
+            val tokenType = getTokenTypeFromJwtToken(token)
+            tokenType == "refresh"
+        } catch (e: Exception) {
+            false
+        }
+    }
+}
+
+/**
+ * Data class để chứa cặp access token và refresh token
+ */
+data class TokenPair(
+    val accessToken: String,
+    val refreshToken: String
+) 

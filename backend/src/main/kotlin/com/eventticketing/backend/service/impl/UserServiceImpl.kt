@@ -81,19 +81,76 @@ class UserServiceImpl(
             }
             
             // Sử dụng trực tiếp đối tượng User từ cơ sở dữ liệu để tạo JWT token
-            val jwt = jwtProvider.generateJwtToken(user)
+            val tokenPair = jwtProvider.generateTokenPair(user)
             
             return UserAuthResponseDto(
                 id = user.id!!,
                 email = user.email,
                 fullName = user.fullName,
                 role = user.role,
-                token = jwt,
+                token = tokenPair.accessToken,
+                refreshToken = tokenPair.refreshToken,
                 profilePictureUrl = user.profilePictureUrl
             )
         } catch (e: Exception) {
             logger.error("Đăng nhập thất bại: ${e.message}")
             throw UnauthorizedException("Email hoặc mật khẩu không đúng")
+        }
+    }
+
+    override fun refreshToken(refreshToken: String): UserAuthResponseDto {
+        try {
+            // Kiểm tra xem token có phải là refresh token không
+            if (!jwtProvider.isRefreshToken(refreshToken)) {
+                throw UnauthorizedException("Token không phải là refresh token")
+            }
+            
+            // Validate refresh token
+            if (!jwtProvider.validateJwtToken(refreshToken)) {
+                throw UnauthorizedException("Refresh token không hợp lệ hoặc đã hết hạn")
+            }
+            
+            // Lấy email từ refresh token
+            val email = jwtProvider.getUsernameFromJwtToken(refreshToken)
+            
+            // Tìm user trong database
+            val user = userRepository.findByEmail(email)
+                .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với email $email") }
+            
+            if (!user.enabled) {
+                throw UnauthorizedException("Tài khoản chưa được kích hoạt")
+            }
+            
+            // Tạo cặp token mới
+            val tokenPair = jwtProvider.generateTokenPair(user)
+            
+            return UserAuthResponseDto(
+                id = user.id!!,
+                email = user.email,
+                fullName = user.fullName,
+                role = user.role,
+                token = tokenPair.accessToken,
+                refreshToken = tokenPair.refreshToken,
+                profilePictureUrl = user.profilePictureUrl
+            )
+        } catch (e: Exception) {
+            logger.error("Refresh token thất bại: ${e.message}")
+            throw UnauthorizedException("Không thể refresh token: ${e.message}")
+        }
+    }
+
+    override fun logout(token: String): Boolean {
+        try {
+            // Trong thực tế, bạn có thể:
+            // 1. Thêm token vào blacklist
+            // 2. Lưu vào Redis với TTL
+            // 3. Hoặc chỉ đơn giản là trả về true vì JWT là stateless
+            
+            logger.info("Người dùng đã đăng xuất với token: ${token.take(20)}...")
+            return true
+        } catch (e: Exception) {
+            logger.error("Logout thất bại: ${e.message}")
+            return false
         }
     }
 
@@ -301,14 +358,15 @@ class UserServiceImpl(
             }
             
             // Tạo JWT token
-            val jwt = jwtProvider.generateJwtToken(user)
+            val tokenPair = jwtProvider.generateTokenPair(user)
             
             return UserAuthResponseDto(
                 id = user.id!!,
                 email = user.email,
                 fullName = user.fullName,
                 role = user.role,
-                token = jwt
+                token = tokenPair.accessToken,
+                refreshToken = tokenPair.refreshToken
             )
         } catch (e: Exception) {
             logger.error("Đăng nhập Google thất bại: ${e.message}")

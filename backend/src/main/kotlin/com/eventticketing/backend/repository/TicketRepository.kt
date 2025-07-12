@@ -48,6 +48,11 @@ interface TicketRepository : JpaRepository<Ticket, UUID> {
      * Tìm tất cả vé của một sự kiện theo trạng thái
      */
     fun findByEventIdAndStatus(eventId: UUID, status: TicketStatus, pageable: Pageable): Page<Ticket>
+    
+    /**
+     * Tìm tất cả vé của một sự kiện theo trạng thái (không phân trang)
+     */
+    fun findByEventIdAndStatus(eventId: UUID, status: TicketStatus): List<Ticket>
 
     /**
      * Đếm số lượng vé đã bán của một sự kiện
@@ -66,4 +71,35 @@ interface TicketRepository : JpaRepository<Ticket, UUID> {
      */
     @Query("SELECT t FROM Ticket t WHERE t.status = 'RESERVED' AND t.createdAt < :expirationTime")
     fun findExpiredReservations(@Param("expirationTime") expirationTime: LocalDateTime): List<Ticket>
+    
+    // Methods for reporting
+    /**
+     * Tìm tất cả vé của một sự kiện (không phân trang) cho reporting
+     */
+    fun findByEventId(eventId: UUID): List<Ticket>
+    
+    /**
+     * Tìm tất cả vé tạo ra trong khoảng thời gian cho reporting
+     */
+    fun findByCreatedAtBetween(startDate: LocalDateTime, endDate: LocalDateTime): List<Ticket>
+    
+    /**
+     * Tìm tất cả vé của một sự kiện tạo ra trong khoảng thời gian cho reporting
+     */
+    fun findByEventIdAndCreatedAtBetween(eventId: UUID, startDate: LocalDateTime, endDate: LocalDateTime): List<Ticket>
+    
+    /**
+     * Đếm số lượng vé đã check-in của một sự kiện
+     */
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.event.id = :eventId AND t.status = 'CHECKED_IN'")
+    fun countCheckedInTicketsByEventId(@Param("eventId") eventId: UUID): Long
+    
+    /**
+     * Đếm số lượng vé theo trạng thái check-in và loại vé
+     */
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.ticketType.id = :ticketTypeId AND t.status = :status")
+    fun countTicketsByTicketTypeIdAndStatus(
+        @Param("ticketTypeId") ticketTypeId: UUID, 
+        @Param("status") status: TicketStatus
+    ): Long
 } 

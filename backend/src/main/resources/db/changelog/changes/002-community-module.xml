@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="002-community-module" author="system">
+        <comment>Thêm các bảng cho Community Module</comment>
+
+        <!-- Thêm cột đánh giá vào bảng events -->
+        <addColumn tableName="events">
+            <column name="average_rating" type="DOUBLE PRECISION" defaultValueNumeric="0.0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rating_count" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <!-- Tạo bảng comments -->
+        <createTable tableName="comments">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="content" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_comment_event" references="events(id)"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_comment_user" references="users(id)"/>
+            </column>
+            <column name="parent_id" type="UUID">
+                <constraints nullable="true" foreignKeyName="fk_comment_parent" references="comments(id)"/>
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Tạo bảng ratings -->
+        <createTable tableName="ratings">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="score" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="review" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="event_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_rating_event" references="events(id)"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_rating_user" references="users(id)"/>
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="APPROVED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_reported" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="report_reason" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Tạo unique constraint cho ratings để đảm bảo mỗi người dùng chỉ có thể đánh giá một sự kiện một lần -->
+        <addUniqueConstraint tableName="ratings" 
+                            columnNames="user_id, event_id" 
+                            constraintName="uk_user_event_rating"/>
+
+        <!-- Tạo index để tăng tốc truy vấn -->
+        <createIndex tableName="comments" indexName="idx_comment_event">
+            <column name="event_id"/>
+        </createIndex>
+        <createIndex tableName="comments" indexName="idx_comment_user">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="comments" indexName="idx_comment_parent">
+            <column name="parent_id"/>
+        </createIndex>
+        <createIndex tableName="comments" indexName="idx_comment_status">
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex tableName="ratings" indexName="idx_rating_event">
+            <column name="event_id"/>
+        </createIndex>
+        <createIndex tableName="ratings" indexName="idx_rating_user">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="ratings" indexName="idx_rating_status">
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="ratings" indexName="idx_rating_reported">
+            <column name="is_reported"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog> 

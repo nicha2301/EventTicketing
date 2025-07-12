@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Thông báo đánh giá mới</title>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <h1>Xin chào <span th:text="${name}">người dùng</span>!</h1>
+        
+        <p>Có một đánh giá mới cho sự kiện <strong th:text="${eventName}">Tên sự kiện</strong> mà bạn tổ chức.</p>
+        
+        <div class="info-box">
+            <p><strong>Người đánh giá:</strong> <span th:text="${raterName}">Tên người đánh giá</span></p>
+            <p><strong>Đánh giá:</strong> <span class="rating" th:text="${'★'.repeat(#numbers.formatInteger(rating, 0))}">★★★★★</span></p>
+            <p th:if="${review != null && review != ''}"><strong>Nhận xét:</strong></p>
+            <p th:if="${review != null && review != ''}" style="font-style: italic;" th:text="${review}">Nội dung nhận xét...</p>
+        </div>
+        
+        <p>Để xem đánh giá này và các đánh giá khác, vui lòng nhấn vào nút bên dưới:</p>
+        
+        <p style="text-align: center;">
+            <a th:href="${eventUrl}" class="button">Xem đánh giá</a>
+        </p>
+        
+        <p>Trân trọng,<br>Event Ticketing Team</p>
+    </th:block>
+</body>
+</html> 

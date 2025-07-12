@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Thông báo bình luận mới</title>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <h1>Xin chào <span th:text="${name}">người dùng</span>!</h1>
+        
+        <p>Có một bình luận mới trên sự kiện <strong th:text="${eventName}">Tên sự kiện</strong> mà bạn đang theo dõi.</p>
+        
+        <div class="info-box">
+            <p><strong>Người bình luận:</strong> <span th:text="${commenterName}">Tên người bình luận</span></p>
+            <p><strong>Nội dung:</strong></p>
+            <p style="font-style: italic;" th:text="${commentContent}">Nội dung bình luận...</p>
+        </div>
+        
+        <p>Để xem và phản hồi bình luận này, vui lòng nhấn vào nút bên dưới:</p>
+        
+        <p style="text-align: center;">
+            <a th:href="${eventUrl}" class="button">Xem bình luận</a>
+        </p>
+        
+        <p>Trân trọng,<br>Event Ticketing Team</p>
+    </th:block>
+</body>
+</html> 

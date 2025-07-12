@@ -78,6 +78,7 @@ data class UserAuthResponseDto(
     val fullName: String,
     val role: UserRole,
     val token: String,
+    val refreshToken: String? = null,
     val profilePictureUrl: String? = null
 )
 
@@ -94,4 +95,20 @@ data class PasswordChangeDto(
     
     @field:NotBlank(message = "Xác nhận mật khẩu không được để trống")
     val confirmPassword: String
+)
+
+/**
+ * DTO cho refresh token request
+ */
+data class RefreshTokenRequest(
+    @field:NotBlank(message = "Refresh token không được để trống")
+    val refreshToken: String
+)
+
+/**
+ * DTO cho logout request
+ */
+data class LogoutRequest(
+    @field:NotBlank(message = "Token không được để trống")
+    val token: String
 ) 

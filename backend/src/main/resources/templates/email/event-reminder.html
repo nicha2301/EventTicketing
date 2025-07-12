@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Nhắc nhở sự kiện</title>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <h1>Xin chào <span th:text="${name}">người dùng</span>!</h1>
+        
+        <p>Chúng tôi xin nhắc nhở bạn rằng sự kiện mà bạn đã đăng ký sẽ diễn ra trong thời gian sắp tới.</p>
+        
+        <div class="info-box">
+            <h3 th:text="${eventName}">Tên sự kiện</h3>
+            <p><strong>Thời gian:</strong> <span th:text="${eventDate}">01/01/2023</span></p>
+            <p><strong>Địa điểm:</strong> <span th:text="${eventLocation}">Địa điểm sự kiện</span></p>
+        </div>
+        
+        <p style="text-align: center;">
+            <a th:href="${eventDetailsUrl}" class="button">Xem chi tiết sự kiện</a>
+        </p>
+        
+        <p>Hãy nhớ mang theo vé (mã QR) khi tham gia sự kiện. Bạn có thể xem lại vé của mình bằng cách nhấn vào nút bên dưới:</p>
+        
+        <p style="text-align: center;">
+            <a th:href="${ticketUrl}" class="button">Xem vé của tôi</a>
+        </p>
+        
+        <p><strong>Lưu ý quan trọng:</strong></p>
+        <ul>
+            <li>Vui lòng đến sớm để tránh tình trạng xếp hàng chờ đợi.</li>
+            <li>Kiểm tra thông tin giao thông và bãi đỗ xe trước khi đến.</li>
+            <li>Mang theo giấy tờ tùy thân để đối chiếu khi cần thiết.</li>
+        </ul>
+        
+        <p>Chúc bạn có một trải nghiệm tuyệt vời tại sự kiện!</p>
+        
+        <p>Trân trọng,<br>Event Ticketing Team</p>
+    </th:block>
+</body>
+</html> 

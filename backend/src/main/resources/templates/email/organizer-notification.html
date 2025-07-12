@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Thông báo cho ban tổ chức</title>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <h1>Xin chào <span th:text="${organizerName}">người tổ chức</span>!</h1>
+        
+        <p>Có người vừa mua vé tham gia sự kiện do bạn tổ chức.</p>
+        
+        <div class="info-box">
+            <h3 th:text="${eventName}">Tên sự kiện</h3>
+            <p><strong>Loại vé:</strong> <span th:text="${ticketType}">Loại vé</span></p>
+            <p><strong>Người mua:</strong> <span th:text="${buyerName}">Tên người mua</span></p>
+            <p><strong>Thời gian mua:</strong> <span th:text="${purchaseDate}">01/01/2023 10:00</span></p>
+        </div>
+        
+        <p>Bạn có thể xem thêm thông tin chi tiết và quản lý sự kiện của mình bằng cách nhấn vào nút bên dưới:</p>
+        
+        <p style="text-align: center;">
+            <a th:href="${dashboardUrl}" class="button">Xem bảng điều khiển</a>
+        </p>
+        
+        <p>Chúng tôi sẽ tiếp tục cập nhật cho bạn khi có thêm người đăng ký tham gia sự kiện.</p>
+        
+        <p>Trân trọng,<br>Event Ticketing Team</p>
+    </th:block>
+</body>
+</html> 

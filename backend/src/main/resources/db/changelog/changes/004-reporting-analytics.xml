@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="004-create-reports-table" author="eventticketing">
+        <createTable tableName="reports">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="date_generated" type="TIMESTAMP WITHOUT TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="parameters" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="result_data" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="file_path" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_report_user" references="users(id)"/>
+            </column>
+            <column name="event_id" type="UUID">
+                <constraints nullable="true" foreignKeyName="fk_report_event" references="events(id)"/>
+            </column>
+        </createTable>
+        
+        <createIndex indexName="idx_report_type" tableName="reports">
+            <column name="type"/>
+        </createIndex>
+        
+        <createIndex indexName="idx_report_date" tableName="reports">
+            <column name="date_generated"/>
+        </createIndex>
+        
+        <createIndex indexName="idx_report_user" tableName="reports">
+            <column name="user_id"/>
+        </createIndex>
+        
+        <createIndex indexName="idx_report_event" tableName="reports">
+            <column name="event_id"/>
+        </createIndex>
+    </changeSet>
+    
+</databaseChangeLog> 

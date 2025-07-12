@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Kích hoạt tài khoản</title>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <h1>Xin chào <span th:text="${name}">người dùng</span>!</h1>
+        
+        <p>Cảm ơn bạn đã đăng ký tài khoản tại Event Ticketing. Chúng tôi rất vui mừng được chào đón bạn!</p>
+        
+        <p>Để hoàn tất quá trình đăng ký và kích hoạt tài khoản của bạn, vui lòng nhấn vào nút bên dưới:</p>
+        
+        <p style="text-align: center;">
+            <a th:href="${activationLink}" class="button">Kích hoạt tài khoản</a>
+        </p>
+        
+        <div class="info-box">
+            <p>Liên kết này sẽ hết hạn sau <strong th:text="${expiryHours}">24</strong> giờ.</p>
+            <p>Nếu bạn không thể nhấn vào nút trên, vui lòng sao chép và dán liên kết sau vào trình duyệt của bạn:</p>
+            <p><a th:href="${activationLink}" th:text="${activationLink}">https://eventticketing.com/activate</a></p>
+        </div>
+        
+        <p>Nếu bạn không yêu cầu đăng ký tài khoản này, vui lòng bỏ qua email này hoặc liên hệ với chúng tôi nếu bạn có bất kỳ thắc mắc nào.</p>
+        
+        <p>Trân trọng,<br>Event Ticketing Team</p>
+    </th:block>
+</body>
+</html> 
