@@ -30,7 +30,7 @@ class TicketController(
     @PostMapping("/purchase")
     fun purchaseTickets(@Valid @RequestBody ticketPurchaseDto: TicketPurchaseDto): ResponseEntity<ApiResponse<TicketPurchaseResponseDto>> {
         val response = ticketService.purchaseTickets(ticketPurchaseDto)
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Đặt vé thành công", response))
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response))
     }
 
     /**
@@ -39,7 +39,7 @@ class TicketController(
     @GetMapping("/{ticketId}")
     fun getTicketById(@PathVariable ticketId: UUID): ResponseEntity<ApiResponse<TicketDto>> {
         val ticket = ticketService.getTicketById(ticketId)
-        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin vé thành công", ticket))
+        return ResponseEntity.ok(ApiResponse.success(ticket))
     }
 
     /**
@@ -48,7 +48,7 @@ class TicketController(
     @GetMapping("/number/{ticketNumber}")
     fun getTicketByNumber(@PathVariable ticketNumber: String): ResponseEntity<ApiResponse<TicketDto>> {
         val ticket = ticketService.getTicketByNumber(ticketNumber)
-        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin vé thành công", ticket))
+        return ResponseEntity.ok(ApiResponse.success(ticket))
     }
 
     /**
@@ -68,7 +68,7 @@ class TicketController(
             ticketService.getTicketsByUserId(currentUser.id!!, pageable)
         }
         
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách vé thành công", tickets))
+        return ResponseEntity.ok(ApiResponse.success(tickets))
     }
 
     /**
@@ -81,7 +81,7 @@ class TicketController(
         @PageableDefault(size = 20) pageable: Pageable
     ): ResponseEntity<ApiResponse<Page<TicketDto>>> {
         val tickets = ticketService.getTicketsByEventId(eventId, pageable)
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách vé của sự kiện thành công", tickets))
+        return ResponseEntity.ok(ApiResponse.success(tickets))
     }
 
     /**
@@ -91,7 +91,7 @@ class TicketController(
     @PreAuthorize("hasRole('ADMIN')")
     fun checkInTicket(@PathVariable ticketId: UUID): ResponseEntity<ApiResponse<TicketDto>> {
         val ticket = ticketService.checkInTicket(ticketId)
-        return ResponseEntity.ok(ApiResponse.success("Check-in vé thành công", ticket))
+        return ResponseEntity.ok(ApiResponse.success(ticket))
     }
 
     /**
@@ -101,7 +101,7 @@ class TicketController(
     @PreAuthorize("hasRole('ADMIN')")
     fun checkInTicketByNumber(@PathVariable ticketNumber: String): ResponseEntity<ApiResponse<TicketDto>> {
         val ticket = ticketService.checkInTicketByNumber(ticketNumber)
-        return ResponseEntity.ok(ApiResponse.success("Check-in vé thành công", ticket))
+        return ResponseEntity.ok(ApiResponse.success(ticket))
     }
 
     /**
@@ -110,7 +110,7 @@ class TicketController(
     @PostMapping("/{ticketId}/cancel")
     fun cancelTicket(@PathVariable ticketId: UUID): ResponseEntity<ApiResponse<TicketDto>> {
         val ticket = ticketService.cancelTicket(ticketId)
-        return ResponseEntity.ok(ApiResponse.success("Hủy vé thành công", ticket))
+        return ResponseEntity.ok(ApiResponse.success(ticket))
     }
 
     /**
@@ -123,7 +123,7 @@ class TicketController(
         @RequestParam status: String
     ): ResponseEntity<ApiResponse<TicketPurchaseResponseDto>> {
         val response = ticketService.updatePaymentStatus(orderId, paymentId, status)
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thanh toán thành công", response))
+        return ResponseEntity.ok(ApiResponse.success(response))
     }
 
     /**
@@ -133,6 +133,6 @@ class TicketController(
     @PreAuthorize("hasRole('ADMIN')")
     fun processExpiredReservations(): ResponseEntity<ApiResponse<Map<String, Int>>> {
         val count = ticketService.processExpiredReservations()
-        return ResponseEntity.ok(ApiResponse.success("Đã xử lý vé hết hạn", mapOf("expiredCount" to count)))
+        return ResponseEntity.ok(ApiResponse.success(mapOf("expiredCount" to count)))
     }
 } 

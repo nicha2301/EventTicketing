@@ -8,18 +8,7 @@ import java.time.LocalDateTime
 import java.util.*
 
 @Entity
-@Table(
-    name = "tickets",
-    indexes = [
-        Index(name = "idx_ticket_user", columnList = "user_id"),
-        Index(name = "idx_ticket_event", columnList = "event_id"),
-        Index(name = "idx_ticket_type", columnList = "ticket_type_id"),
-        Index(name = "idx_ticket_status", columnList = "status"),
-        Index(name = "idx_ticket_number", columnList = "ticket_number"),
-        Index(name = "idx_ticket_qr_code", columnList = "qr_code"),
-        Index(name = "idx_ticket_payment", columnList = "payment_id")
-    ]
-)
+@Table(name = "tickets")
 data class Ticket(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

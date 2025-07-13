@@ -38,10 +38,8 @@ class TicketTypeServiceImpl(
         }
         
         // Kiểm tra thông tin hợp lệ
-        val saleStartDate = ticketTypeDto.salesStartDate ?: LocalDateTime.now()
-        val saleEndDate = ticketTypeDto.salesEndDate ?: event.endDate
-        
-        if (saleStartDate.isAfter(saleEndDate)) {
+        if (ticketTypeDto.salesStartDate != null && ticketTypeDto.salesEndDate != null && 
+            ticketTypeDto.salesStartDate.isAfter(ticketTypeDto.salesEndDate)) {
             throw BadRequestException("Thời gian bắt đầu bán vé phải trước thời gian kết thúc")
         }
         
@@ -51,12 +49,15 @@ class TicketTypeServiceImpl(
             description = ticketTypeDto.description,
             price = ticketTypeDto.price,
             quantity = ticketTypeDto.quantity,
-            quantitySold = 0,
-            saleStartDate = saleStartDate,
-            saleEndDate = saleEndDate,
-            maxPerOrder = ticketTypeDto.maxTicketsPerCustomer,
-            minPerOrder = ticketTypeDto.minTicketsPerOrder,
-            event = event
+            availableQuantity = ticketTypeDto.quantity,
+            event = event,
+            salesStartDate = ticketTypeDto.salesStartDate,
+            salesEndDate = ticketTypeDto.salesEndDate,
+            maxTicketsPerCustomer = ticketTypeDto.maxTicketsPerCustomer,
+            minTicketsPerOrder = ticketTypeDto.minTicketsPerOrder ?: 1,
+            isEarlyBird = ticketTypeDto.isEarlyBird,
+            isVIP = ticketTypeDto.isVIP,
+            isActive = ticketTypeDto.isActive
         )
         
         val savedTicketType = ticketTypeRepository.save(ticketType)
@@ -71,15 +72,13 @@ class TicketTypeServiceImpl(
         val ticketType = findTicketTypeById(id)
         
         // Kiểm tra quyền truy cập
-        if (!securityUtils.isCurrentUserOrAdmin(ticketType.event!!.organizer.id!!)) {
+        if (!securityUtils.isCurrentUserOrAdmin(ticketType.event.organizer.id!!)) {
             throw UnauthorizedException("Bạn không có quyền cập nhật loại vé này")
         }
         
         // Kiểm tra thông tin hợp lệ
-        val saleStartDate = ticketTypeDto.salesStartDate ?: ticketType.saleStartDate
-        val saleEndDate = ticketTypeDto.salesEndDate ?: ticketType.saleEndDate
-        
-        if (saleStartDate.isAfter(saleEndDate)) {
+        if (ticketTypeDto.salesStartDate != null && ticketTypeDto.salesEndDate != null && 
+            ticketTypeDto.salesStartDate.isAfter(ticketTypeDto.salesEndDate)) {
             throw BadRequestException("Thời gian bắt đầu bán vé phải trước thời gian kết thúc")
         }
         
@@ -90,14 +89,18 @@ class TicketTypeServiceImpl(
         
         // Nếu số lượng vé mới lớn hơn số lượng vé cũ, cập nhật số lượng vé còn lại
         if (ticketTypeDto.quantity > ticketType.quantity) {
-            // Không cần cập nhật availableQuantity vì entity sử dụng quantitySold
-            ticketType.quantity = ticketTypeDto.quantity
+            val difference = ticketTypeDto.quantity - ticketType.quantity
+            ticketType.availableQuantity += difference
         }
         
-        ticketType.saleStartDate = saleStartDate
-        ticketType.saleEndDate = saleEndDate
-        ticketType.maxPerOrder = ticketTypeDto.maxTicketsPerCustomer
-        ticketType.minPerOrder = ticketTypeDto.minTicketsPerOrder
+        ticketType.quantity = ticketTypeDto.quantity
+        ticketType.salesStartDate = ticketTypeDto.salesStartDate
+        ticketType.salesEndDate = ticketTypeDto.salesEndDate
+        ticketType.maxTicketsPerCustomer = ticketTypeDto.maxTicketsPerCustomer
+        ticketType.minTicketsPerOrder = ticketTypeDto.minTicketsPerOrder ?: 1
+        ticketType.isEarlyBird = ticketTypeDto.isEarlyBird
+        ticketType.isVIP = ticketTypeDto.isVIP
+        ticketType.isActive = ticketTypeDto.isActive
         ticketType.updatedAt = LocalDateTime.now()
         
         val updatedTicketType = ticketTypeRepository.save(ticketType)
@@ -127,12 +130,12 @@ class TicketTypeServiceImpl(
         val ticketType = findTicketTypeById(id)
         
         // Kiểm tra quyền truy cập
-        if (!securityUtils.isCurrentUserOrAdmin(ticketType.event!!.organizer.id!!)) {
+        if (!securityUtils.isCurrentUserOrAdmin(ticketType.event.organizer.id!!)) {
             throw UnauthorizedException("Bạn không có quyền xóa loại vé này")
         }
         
         // Kiểm tra xem đã có vé nào được bán chưa
-        if (ticketType.quantitySold > 0) {
+        if (ticketType.quantity > ticketType.availableQuantity) {
             throw BadRequestException("Không thể xóa loại vé đã có người mua")
         }
         
@@ -153,7 +156,7 @@ class TicketTypeServiceImpl(
         }
         
         // Kiểm tra và cập nhật số lượng vé còn lại
-        if (!ticketType.reserveTickets(purchasedQuantity)) {
+        if (!ticketType.updateAvailableQuantity(purchasedQuantity)) {
             throw BadRequestException("Không đủ vé hoặc loại vé không khả dụng")
         }
         
@@ -166,7 +169,7 @@ class TicketTypeServiceImpl(
     override fun checkTicketAvailability(id: UUID, quantity: Int): Boolean {
         try {
             val ticketType = findTicketTypeById(id)
-            return ticketType.canReserve(quantity)
+            return ticketType.hasAvailableTickets(quantity)
         } catch (e: ResourceNotFoundException) {
             return false
         }
@@ -184,23 +187,21 @@ class TicketTypeServiceImpl(
      * Chuyển đổi TicketType thành TicketTypeDto
      */
     private fun mapToTicketTypeDto(ticketType: TicketType): TicketTypeDto {
-        val availableQuantity = ticketType.quantity - ticketType.quantitySold
-        
         return TicketTypeDto(
             id = ticketType.id,
             name = ticketType.name,
             description = ticketType.description,
             price = ticketType.price,
             quantity = ticketType.quantity,
-            availableQuantity = availableQuantity,
-            eventId = ticketType.event?.id,
-            salesStartDate = ticketType.saleStartDate,
-            salesEndDate = ticketType.saleEndDate,
-            maxTicketsPerCustomer = ticketType.maxPerOrder,
-            minTicketsPerOrder = ticketType.minPerOrder,
-            isEarlyBird = false, // Không có trong entity
-            isVIP = false, // Không có trong entity
-            isActive = ticketType.isOnSale(),
+            availableQuantity = ticketType.availableQuantity,
+            eventId = ticketType.event.id,
+            salesStartDate = ticketType.salesStartDate,
+            salesEndDate = ticketType.salesEndDate,
+            maxTicketsPerCustomer = ticketType.maxTicketsPerCustomer,
+            minTicketsPerOrder = ticketType.minTicketsPerOrder,
+            isEarlyBird = ticketType.isEarlyBird,
+            isVIP = ticketType.isVIP,
+            isActive = ticketType.isActive,
             createdAt = ticketType.createdAt,
             updatedAt = ticketType.updatedAt
         )

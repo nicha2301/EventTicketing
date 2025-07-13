@@ -112,3 +112,15 @@ data class LogoutRequest(
     @field:NotBlank(message = "Token không được để trống")
     val token: String
 ) 
+
+/**
+ * DTO cho việc đặt lại mật khẩu
+ */
+data class PasswordResetDto(
+    @field:NotBlank(message = "Token không được để trống")
+    val token: String,
+    
+    @field:NotBlank(message = "Mật khẩu mới không được để trống")
+    @field:Size(min = 6, message = "Mật khẩu mới phải có ít nhất 6 ký tự")
+    val newPassword: String
+) 

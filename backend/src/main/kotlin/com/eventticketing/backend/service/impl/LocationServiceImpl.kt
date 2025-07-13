@@ -8,9 +8,6 @@ import com.eventticketing.backend.repository.EventRepository
 import com.eventticketing.backend.repository.LocationRepository
 import com.eventticketing.backend.service.LocationService
 import org.slf4j.LoggerFactory
-import org.springframework.cache.annotation.CacheEvict
-import org.springframework.cache.annotation.Cacheable
-import org.springframework.cache.annotation.Caching
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -26,26 +23,27 @@ class LocationServiceImpl(
 
     private val logger = LoggerFactory.getLogger(LocationServiceImpl::class.java)
 
-    @Cacheable(value = ["locations"], key = "'all_' + #pageable.pageNumber + '_' + #pageable.pageSize", unless = "#result.isEmpty()")
     override fun getAllLocations(pageable: Pageable): Page<LocationDto> {
-        logger.debug("Fetching all locations from database")
         return locationRepository.findAll(pageable).map { mapToLocationDto(it) }
     }
 
-    @Cacheable(value = ["locations"], key = "#id", unless = "#result == null")
     override fun getLocationById(id: UUID): LocationDto {
-        logger.debug("Fetching location with ID: $id from database")
         val location = findLocationById(id)
         return mapToLocationDto(location)
     }
 
     @Transactional
-    @CacheEvict(value = ["locations"], allEntries = true)
     override fun createLocation(locationDto: LocationDto): LocationDto {
         // Kiểm tra xem đã tồn tại địa điểm với tên và địa chỉ này chưa
         val existingLocation = locationRepository.findByNameContainingIgnoreCase(locationDto.name, Pageable.ofSize(1))
         if (existingLocation.hasContent() && existingLocation.content.first().address == locationDto.address) {
             throw BadRequestException("Địa điểm với tên và địa chỉ này đã tồn tại")
+        }
+
+        // Kiểm tra tọa độ hợp lệ
+        if (locationDto.latitude < -90 || locationDto.latitude > 90 || 
+            locationDto.longitude < -180 || locationDto.longitude > 180) {
+            throw BadRequestException("Tọa độ không hợp lệ")
         }
 
         val location = Location(
@@ -54,9 +52,13 @@ class LocationServiceImpl(
             city = locationDto.city,
             state = locationDto.state,
             country = locationDto.country,
+            postalCode = locationDto.postalCode,
             latitude = locationDto.latitude,
             longitude = locationDto.longitude,
+            capacity = locationDto.capacity,
             description = locationDto.description,
+            website = locationDto.website,
+            phoneNumber = locationDto.phoneNumber
         )
 
         val savedLocation = locationRepository.save(location)
@@ -66,12 +68,6 @@ class LocationServiceImpl(
     }
 
     @Transactional
-    @Caching(
-        evict = [
-            CacheEvict(value = ["locations"], key = "#id"),
-            CacheEvict(value = ["locations"], allEntries = true)
-        ]
-    )
     override fun updateLocation(id: UUID, locationDto: LocationDto): LocationDto {
         val location = findLocationById(id)
         
@@ -81,10 +77,20 @@ class LocationServiceImpl(
         location.city = locationDto.city
         location.state = locationDto.state
         location.country = locationDto.country
+        location.postalCode = locationDto.postalCode
+        
+        // Kiểm tra tọa độ hợp lệ
+        if (locationDto.latitude < -90 || locationDto.latitude > 90 || 
+            locationDto.longitude < -180 || locationDto.longitude > 180) {
+            throw BadRequestException("Tọa độ không hợp lệ")
+        }
+        
         location.latitude = locationDto.latitude
         location.longitude = locationDto.longitude
+        location.capacity = locationDto.capacity
         location.description = locationDto.description
-        // Không có trường imageUrl trong LocationDto
+        location.website = locationDto.website
+        location.phoneNumber = locationDto.phoneNumber
         location.updatedAt = LocalDateTime.now()
 
         val updatedLocation = locationRepository.save(location)
@@ -94,12 +100,6 @@ class LocationServiceImpl(
     }
 
     @Transactional
-    @Caching(
-        evict = [
-            CacheEvict(value = ["locations"], key = "#id"),
-            CacheEvict(value = ["locations"], allEntries = true)
-        ]
-    )
     override fun deleteLocation(id: UUID): Boolean {
         val location = findLocationById(id)
         
@@ -173,9 +173,13 @@ class LocationServiceImpl(
             city = location.city,
             state = location.state,
             country = location.country,
+            postalCode = location.postalCode,
             latitude = location.latitude,
             longitude = location.longitude,
+            capacity = location.capacity,
             description = location.description,
+            website = location.website,
+            phoneNumber = location.phoneNumber,
             createdAt = location.createdAt,
             updatedAt = location.updatedAt
         )

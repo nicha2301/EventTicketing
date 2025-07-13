@@ -1,6 +1,5 @@
 package com.eventticketing.backend.security
 
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.AuthenticationManager
@@ -28,8 +27,6 @@ class WebSecurityConfig(
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
     private val jwtAuthenticationEntryPoint: JwtAuthenticationEntryPoint
 ) {
-    @Value("\${app.cors.allowed-origins}")
-    private lateinit var allowedOrigins: String
 
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
@@ -46,8 +43,13 @@ class WebSecurityConfig(
                         "/swagger-ui/**",
                         "/swagger-ui.html",
                         "/actuator/**",
-                        "/error"
+                        "/error",
+                        "/api/events/public/**",
+                        "/api/events/search",
+                        "/api/events/{id}/public"
                     ).permitAll()
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    .requestMatchers("/api/organizer/**").hasAnyRole("ADMIN", "ORGANIZER")
                     .anyRequest().authenticated()
             }
 
@@ -58,18 +60,25 @@ class WebSecurityConfig(
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
-            // Chuyển chuỗi origins từ application.yml thành list
-            allowedOrigins = this@WebSecurityConfig.allowedOrigins
-                .split(",")
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-            
-            allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
-            allowedHeaders = listOf("Authorization", "Content-Type", "X-Auth-Token")
-            exposedHeaders = listOf("X-Auth-Token")
-            // Cho phép credentials (cookies, authorization headers)
+            allowedOrigins = listOf(
+                "http://localhost:3000",
+                "http://localhost:3001", 
+                "https://eventticketing.com",
+                "https://www.eventticketing.com"
+            )
+            allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+            allowedHeaders = listOf(
+                "authorization", 
+                "content-type", 
+                "x-auth-token",
+                "x-requested-with",
+                "accept",
+                "origin",
+                "access-control-request-method",
+                "access-control-request-headers"
+            )
+            exposedHeaders = listOf("x-auth-token", "x-total-count")
             allowCredentials = true
-            // Thời gian cache CORS pre-flight request (1 giờ)
             maxAge = 3600L
         }
         

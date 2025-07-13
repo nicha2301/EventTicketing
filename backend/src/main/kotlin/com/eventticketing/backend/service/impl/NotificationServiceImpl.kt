@@ -15,22 +15,6 @@ class NotificationServiceImpl(
     
     private val logger = LoggerFactory.getLogger(NotificationServiceImpl::class.java)
     
-    override fun createNotification(userId: UUID, title: String, content: String, type: String, data: Map<String, String>) {
-        try {
-            // Gửi thông báo đẩy
-            pushNotificationService.sendNotification(
-                userId.toString(),
-                title,
-                content,
-                data
-            )
-            
-            logger.info("Notification sent to user: $userId, type: $type")
-        } catch (e: Exception) {
-            logger.error("Failed to send notification to user $userId: ${e.message}")
-        }
-    }
-    
     override fun sendAccountActivation(userId: UUID, email: String, name: String, token: String) {
         try {
             // Gửi email kích hoạt

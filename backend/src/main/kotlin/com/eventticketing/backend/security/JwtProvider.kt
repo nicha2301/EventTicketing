@@ -1,6 +1,5 @@
 package com.eventticketing.backend.security
 
-import com.eventticketing.backend.config.JwtConfig
 import com.eventticketing.backend.entity.User
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.ExpiredJwtException
@@ -10,6 +9,7 @@ import io.jsonwebtoken.SignatureException
 import io.jsonwebtoken.UnsupportedJwtException
 import io.jsonwebtoken.security.Keys
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.stereotype.Component
@@ -17,17 +17,27 @@ import java.nio.charset.StandardCharsets
 import java.util.Date
 import javax.crypto.SecretKey
 import java.util.UUID
+import java.time.LocalDateTime
 
 @Component
-class JwtProvider(private val jwtConfig: JwtConfig) {
+class JwtProvider {
 
     private val logger = LoggerFactory.getLogger(JwtProvider::class.java)
+
+    @Value("\${app.jwt.secret}")
+    private lateinit var jwtSecret: String
+
+    @Value("\${app.jwt.expiration}")
+    private var jwtExpiration: Int = 0
+
+    @Value("\${app.jwt.refresh-expiration:604800}")
+    private var refreshExpiration: Int = 604800
 
     /**
      * Tạo key từ chuỗi bí mật
      */
     private fun getSigningKey(): SecretKey {
-        val keyBytes = jwtConfig.secret.toByteArray(StandardCharsets.UTF_8)
+        val keyBytes = jwtSecret.toByteArray(StandardCharsets.UTF_8)
         return Keys.hmacShaKeyFor(keyBytes)
     }
 
@@ -42,8 +52,7 @@ class JwtProvider(private val jwtConfig: JwtConfig) {
             return Jwts.builder()
                 .subject(userPrincipal.username)
                 .issuedAt(Date())
-                .expiration(Date(Date().time + jwtConfig.expiration * 1000))
-                // Không thêm userId và role claim vì chúng ta không có thông tin này từ UserDetails
+                .expiration(Date(Date().time + jwtExpiration * 1000))
                 .signWith(getSigningKey())
                 .compact()
         }
@@ -53,7 +62,7 @@ class JwtProvider(private val jwtConfig: JwtConfig) {
             return Jwts.builder()
                 .subject(userPrincipal.email)
                 .issuedAt(Date())
-                .expiration(Date(Date().time + jwtConfig.expiration * 1000))
+                .expiration(Date(Date().time + jwtExpiration * 1000))
                 .claim("userId", userPrincipal.id)
                 .claim("role", userPrincipal.role.name)
                 .signWith(getSigningKey())
@@ -71,7 +80,7 @@ class JwtProvider(private val jwtConfig: JwtConfig) {
         return Jwts.builder()
                 .subject(user.email)
                 .issuedAt(Date())
-                .expiration(Date(Date().time + jwtConfig.expiration * 1000))
+                .expiration(Date(Date().time + jwtExpiration * 1000))
                 .claim("userId", user.id)
                 .claim("role", user.role.name)
                 .claim("type", "access")
@@ -86,7 +95,7 @@ class JwtProvider(private val jwtConfig: JwtConfig) {
         return Jwts.builder()
                 .subject(user.email)
                 .issuedAt(Date())
-                .expiration(Date(Date().time + jwtConfig.refreshExpiration * 1000))
+                .expiration(Date(Date().time + refreshExpiration * 1000))
                 .claim("userId", user.id)
                 .claim("role", user.role.name)
                 .claim("type", "refresh")
@@ -148,6 +157,20 @@ class JwtProvider(private val jwtConfig: JwtConfig) {
     fun getTokenTypeFromJwtToken(token: String): String? {
         val claims = getAllClaimsFromToken(token)
         return claims["type"] as? String
+    }
+
+    /**
+     * Lấy ngày hết hạn từ JWT token
+     */
+    fun getExpirationDateFromJwtToken(token: String): LocalDateTime {
+        val date = Jwts.parser()
+            .verifyWith(getSigningKey())
+            .build()
+            .parseSignedClaims(token)
+            .payload
+            .expiration
+        
+        return date.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
     }
 
     /**

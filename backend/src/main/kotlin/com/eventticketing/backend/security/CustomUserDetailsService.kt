@@ -3,7 +3,6 @@ package com.eventticketing.backend.security
 import com.eventticketing.backend.entity.UserRole
 import com.eventticketing.backend.repository.UserRepository
 import org.springframework.security.core.authority.SimpleGrantedAuthority
-import org.springframework.security.core.userdetails.User
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
@@ -41,14 +40,12 @@ class CustomUserDetailsService(
             }
         }
 
-        return User.builder()
-            .username(user.email)
-            .password(user.password)
-            .authorities(authorities)
-            .disabled(!user.enabled)
-            .accountExpired(false)
-            .credentialsExpired(false)
-            .accountLocked(false)
-            .build()
+        return UserPrincipal(
+            id = user.id!!,
+            email = user.email,
+            password = user.password,
+            authorities = authorities,
+            fullName = user.fullName
+        )
     }
 } 

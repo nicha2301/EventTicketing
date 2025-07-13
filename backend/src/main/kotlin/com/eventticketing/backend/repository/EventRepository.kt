@@ -49,7 +49,7 @@ interface EventRepository : JpaRepository<Event, UUID>, JpaSpecificationExecutor
     /**
      * Tìm sự kiện đang diễn ra (startDate < now < endDate)
      */
-    fun findByStartDateBetweenAndStatus(startDate: LocalDateTime, endDate: LocalDateTime, status: EventStatus, pageable: Pageable): Page<Event>
+    fun findByStartDateBeforeAndEndDateAfterAndStatus(now: LocalDateTime, endTime: LocalDateTime, status: EventStatus, pageable: Pageable): Page<Event>
     
     /**
      * Tìm sự kiện nổi bật
@@ -69,7 +69,7 @@ interface EventRepository : JpaRepository<Event, UUID>, JpaSpecificationExecutor
             "LOWER(e.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(e.shortDescription) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
             "AND e.status = :status")
-    fun searchByKeyword(
+    fun searchByKeywordAndStatus(
         @Param("keyword") keyword: String,
         @Param("status") status: EventStatus,
         pageable: Pageable

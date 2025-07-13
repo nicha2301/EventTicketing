@@ -24,8 +24,8 @@ class UserController(private val userService: UserService) {
     fun getCurrentUser(): ResponseEntity<ApiResponse<UserDto>> {
         val currentUser = userService.getCurrentUser()
         
-        return ResponseEntity.ok(ApiResponse.success(
-            message = "Lấy thông tin người dùng thành công",
+        return ResponseEntity.ok(ApiResponse(
+            success = true,
             data = currentUser
         ))
     }
@@ -36,7 +36,8 @@ class UserController(private val userService: UserService) {
         val currentUser = userService.getCurrentUser()
         val updatedUser = userService.updateUser(currentUser.id!!, userUpdateDto)
         
-        return ResponseEntity.ok(ApiResponse.success(
+        return ResponseEntity.ok(ApiResponse(
+            success = true,
             message = "Thông tin người dùng đã được cập nhật",
             data = updatedUser
         ))
@@ -49,12 +50,14 @@ class UserController(private val userService: UserService) {
         val result = userService.changePassword(currentUser.id!!, passwordChangeDto)
         
         return if (result) {
-            ResponseEntity.ok(ApiResponse.success(
+            ResponseEntity.ok(ApiResponse(
+                success = true,
                 message = "Mật khẩu đã được thay đổi thành công",
                 data = "Thay đổi thành công"
             ))
         } else {
-            ResponseEntity.badRequest().body(ApiResponse.error(
+            ResponseEntity.badRequest().body(ApiResponse(
+                success = false,
                 message = "Không thể thay đổi mật khẩu",
                 data = null
             ))
@@ -67,8 +70,20 @@ class UserController(private val userService: UserService) {
     fun getUserById(@PathVariable id: UUID): ResponseEntity<ApiResponse<UserDto>> {
         val user = userService.getUserById(id)
         
-        return ResponseEntity.ok(ApiResponse.success(
-            message = "Lấy thông tin người dùng thành công",
+        return ResponseEntity.ok(ApiResponse(
+            success = true,
+            data = user
+        ))
+    }
+
+    @GetMapping("/email/{email}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Lấy thông tin người dùng theo email (Admin only)")
+    fun getUserByEmail(@PathVariable email: String): ResponseEntity<ApiResponse<UserDto>> {
+        val user = userService.getUserByEmail(email)
+        
+        return ResponseEntity.ok(ApiResponse(
+            success = true,
             data = user
         ))
     }
@@ -88,8 +103,8 @@ class UserController(private val userService: UserService) {
         val usersPage = userService.getAllUsers(pageable)
         val pagedResponse = PagedResponse.from(usersPage)
         
-        return ResponseEntity.ok(ApiResponse.success(
-            message = "Lấy danh sách người dùng thành công",
+        return ResponseEntity.ok(ApiResponse(
+            success = true,
             data = pagedResponse
         ))
     }
@@ -103,7 +118,8 @@ class UserController(private val userService: UserService) {
     ): ResponseEntity<ApiResponse<UserDto>> {
         val updatedUser = userService.updateUser(id, userUpdateDto)
         
-        return ResponseEntity.ok(ApiResponse.success(
+        return ResponseEntity.ok(ApiResponse(
+            success = true,
             message = "Thông tin người dùng đã được cập nhật",
             data = updatedUser
         ))
@@ -116,16 +132,33 @@ class UserController(private val userService: UserService) {
         val result = userService.deactivateUser(id)
         
         return if (result) {
-            ResponseEntity.ok(ApiResponse.success(
+            ResponseEntity.ok(ApiResponse(
+                success = true,
                 message = "Tài khoản người dùng đã bị vô hiệu hóa",
                 data = "Vô hiệu hóa thành công"
             ))
         } else {
-            ResponseEntity.badRequest().body(ApiResponse.error(
+            ResponseEntity.badRequest().body(ApiResponse(
+                success = false,
                 message = "Không thể vô hiệu hóa tài khoản người dùng",
                 data = null
             ))
         }
+    }
+
+    @PostMapping("/{id}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Kích hoạt tài khoản người dùng (Admin only)")
+    fun activateUser(@PathVariable id: UUID): ResponseEntity<ApiResponse<UserDto>> {
+        val user = userService.getUserById(id)
+        val userUpdateDto = UserUpdateDto(enabled = true)
+        val updatedUser = userService.updateUser(id, userUpdateDto)
+        
+        return ResponseEntity.ok(ApiResponse(
+            success = true,
+            message = "Tài khoản người dùng đã được kích hoạt",
+            data = updatedUser
+        ))
     }
 
     @PostMapping("/{id}/role")
@@ -137,9 +170,31 @@ class UserController(private val userService: UserService) {
     ): ResponseEntity<ApiResponse<UserDto>> {
         val updatedUser = userService.updateUserRole(id, role)
         
-        return ResponseEntity.ok(ApiResponse.success(
+        return ResponseEntity.ok(ApiResponse(
+            success = true,
             message = "Vai trò người dùng đã được cập nhật",
             data = updatedUser
         ))
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Xóa người dùng (Admin only)")
+    fun deleteUser(@PathVariable id: UUID): ResponseEntity<ApiResponse<String>> {
+        val result = userService.deleteUser(id)
+        
+        return if (result) {
+            ResponseEntity.ok(ApiResponse(
+                success = true,
+                message = "Người dùng đã được xóa thành công",
+                data = "Xóa thành công"
+            ))
+        } else {
+            ResponseEntity.badRequest().body(ApiResponse(
+                success = false,
+                message = "Không thể xóa người dùng",
+                data = null
+            ))
+        }
     }
 } 

@@ -3,14 +3,18 @@ package com.eventticketing.backend.util
 import com.eventticketing.backend.entity.User
 import com.eventticketing.backend.entity.UserRole
 import com.eventticketing.backend.repository.UserRepository
+import com.eventticketing.backend.security.JwtProvider
+import com.eventticketing.backend.security.UserPrincipal
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.stereotype.Component
+import org.springframework.util.StringUtils
 import java.util.*
 
 @Component
 class SecurityUtils(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val jwtProvider: JwtProvider
 ) {
 
     /**
@@ -32,19 +36,25 @@ class SecurityUtils(
 
     /**
      * Lấy ID của người dùng hiện tại
-     * Lưu ý: Yêu cầu ID người dùng phải được lưu trong authentication
      */
     fun getCurrentUserId(): UUID? {
+        // Lấy token từ SecurityContextHolder
         val authentication = SecurityContextHolder.getContext().authentication
         
         if (authentication == null || !authentication.isAuthenticated) {
             return null
         }
 
-        // Lấy ID từ claims trong token
-        // Trong thực tế, bạn cần trích xuất từ JWT token
-        val claims = authentication.details as? Map<*, *>
-        return claims?.get("user_id") as? UUID
+        // Nếu principal là UserPrincipal, lấy id từ đó
+        val principal = authentication.principal
+        if (principal is UserPrincipal) {
+            return principal.id
+        }
+        
+        // Nếu không, lấy từ username và truy vấn database
+        val username = getCurrentUsername() ?: return null
+        val user = userRepository.findByEmail(username).orElse(null) ?: return null
+        return user.id
     }
 
     /**

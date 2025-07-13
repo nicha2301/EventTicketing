@@ -18,8 +18,6 @@ import java.util.*
 interface PaymentRepository : JpaRepository<Payment, UUID> {
     fun findByUser(user: User, pageable: Pageable): Page<Payment>
     
-    fun findByUser_Id(userId: UUID, pageable: Pageable): Page<Payment>
-    
     fun findByTicket(ticket: Ticket): Optional<Payment>
     
     fun findByStatus(status: PaymentStatus, pageable: Pageable): Page<Payment>

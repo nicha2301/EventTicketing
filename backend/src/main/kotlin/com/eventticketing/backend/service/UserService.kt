@@ -86,4 +86,9 @@ interface UserService {
      * Phân quyền cho người dùng
      */
     fun updateUserRole(id: UUID, role: String): UserDto
+    
+    /**
+     * Xóa người dùng
+     */
+    fun deleteUser(id: UUID): Boolean
 } 

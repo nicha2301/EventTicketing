@@ -1,21 +1,25 @@
 package com.eventticketing.backend.service.impl
 
 import com.eventticketing.backend.dto.*
+import com.eventticketing.backend.entity.PasswordResetToken
+import com.eventticketing.backend.entity.TokenBlacklist
 import com.eventticketing.backend.entity.User
 import com.eventticketing.backend.entity.UserRole
 import com.eventticketing.backend.exception.BadRequestException
 import com.eventticketing.backend.exception.ResourceAlreadyExistsException
 import com.eventticketing.backend.exception.ResourceNotFoundException
 import com.eventticketing.backend.exception.UnauthorizedException
+import com.eventticketing.backend.repository.PasswordResetTokenRepository
+import com.eventticketing.backend.repository.TokenBlacklistRepository
 import com.eventticketing.backend.repository.UserRepository
 import com.eventticketing.backend.security.JwtProvider
+import com.eventticketing.backend.service.AuthenticationAuditService
 import com.eventticketing.backend.service.UserService
 import com.eventticketing.backend.util.EmailService
+import com.eventticketing.backend.util.RequestUtils
 import com.eventticketing.backend.util.SecurityUtils
+import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
-import org.springframework.cache.annotation.CacheEvict
-import org.springframework.cache.annotation.Cacheable
-import org.springframework.cache.annotation.Caching
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.security.authentication.AuthenticationManager
@@ -24,6 +28,9 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.context.request.RequestContextHolder
+import org.springframework.web.context.request.ServletRequestAttributes
+import java.time.LocalDateTime
 import java.util.*
 
 @Service
@@ -33,10 +40,27 @@ class UserServiceImpl(
     private val authenticationManager: AuthenticationManager,
     private val jwtProvider: JwtProvider,
     private val emailService: EmailService,
-    private val securityUtils: SecurityUtils
+    private val securityUtils: SecurityUtils,
+    private val passwordResetTokenRepository: PasswordResetTokenRepository,
+    private val tokenBlacklistRepository: TokenBlacklistRepository,
+    private val authenticationAuditService: AuthenticationAuditService
 ) : UserService {
 
     private val logger = LoggerFactory.getLogger(UserServiceImpl::class.java)
+
+    /**
+     * Lấy thông tin request hiện tại
+     */
+    private fun getCurrentRequestInfo(): Pair<String?, String?> {
+        val requestAttributes = RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes
+        val request = requestAttributes?.request
+        
+        return if (request != null) {
+            Pair(RequestUtils.getClientIpAddress(request), RequestUtils.getUserAgent(request))
+        } else {
+            Pair(null, null)
+        }
+    }
 
     @Transactional
     override fun registerUser(userCreateDto: UserCreateDto): UserDto {
@@ -67,6 +91,8 @@ class UserServiceImpl(
     }
 
     override fun authenticateUser(loginRequest: LoginRequestDto): UserAuthResponseDto {
+        val (ipAddress, userAgent) = getCurrentRequestInfo()
+        
         try {
             val authentication = authenticationManager.authenticate(
                 UsernamePasswordAuthenticationToken(
@@ -80,11 +106,15 @@ class UserServiceImpl(
                 .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với email ${loginRequest.email}") }
             
             if (!user.enabled) {
+                authenticationAuditService.logFailedLogin(loginRequest.email, ipAddress, userAgent, "Account not activated")
                 throw UnauthorizedException("Tài khoản chưa được kích hoạt")
             }
             
             // Sử dụng trực tiếp đối tượng User từ cơ sở dữ liệu để tạo JWT token
             val tokenPair = jwtProvider.generateTokenPair(user)
+            
+            // Ghi log đăng nhập thành công
+            authenticationAuditService.logSuccessfulLogin(user.id!!, user.email, ipAddress, userAgent)
             
             return UserAuthResponseDto(
                 id = user.id!!,
@@ -97,19 +127,24 @@ class UserServiceImpl(
             )
         } catch (e: Exception) {
             logger.error("Đăng nhập thất bại: ${e.message}")
+            authenticationAuditService.logFailedLogin(loginRequest.email, ipAddress, userAgent, e.message ?: "Unknown error")
             throw UnauthorizedException("Email hoặc mật khẩu không đúng")
         }
     }
 
     override fun refreshToken(refreshToken: String): UserAuthResponseDto {
+        val (ipAddress, userAgent) = getCurrentRequestInfo()
+        
         try {
             // Kiểm tra xem token có phải là refresh token không
             if (!jwtProvider.isRefreshToken(refreshToken)) {
+                authenticationAuditService.logTokenRejection(refreshToken, ipAddress, "Not a refresh token")
                 throw UnauthorizedException("Token không phải là refresh token")
             }
             
             // Validate refresh token
             if (!jwtProvider.validateJwtToken(refreshToken)) {
+                authenticationAuditService.logTokenRejection(refreshToken, ipAddress, "Invalid refresh token")
                 throw UnauthorizedException("Refresh token không hợp lệ hoặc đã hết hạn")
             }
             
@@ -121,11 +156,15 @@ class UserServiceImpl(
                 .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với email $email") }
             
             if (!user.enabled) {
+                authenticationAuditService.logTokenRejection(refreshToken, ipAddress, "Account not activated")
                 throw UnauthorizedException("Tài khoản chưa được kích hoạt")
             }
             
             // Tạo cặp token mới
             val tokenPair = jwtProvider.generateTokenPair(user)
+            
+            // Ghi log refresh token thành công
+            authenticationAuditService.logTokenRefresh(user.id!!, user.email, ipAddress)
             
             return UserAuthResponseDto(
                 id = user.id!!,
@@ -138,18 +177,47 @@ class UserServiceImpl(
             )
         } catch (e: Exception) {
             logger.error("Refresh token thất bại: ${e.message}")
+            authenticationAuditService.logTokenRejection(refreshToken, ipAddress, e.message ?: "Unknown error")
             throw UnauthorizedException("Không thể refresh token: ${e.message}")
         }
     }
 
+    @Transactional
     override fun logout(token: String): Boolean {
+        val (ipAddress, _) = getCurrentRequestInfo()
+        
         try {
-            // Trong thực tế, bạn có thể:
-            // 1. Thêm token vào blacklist
-            // 2. Lưu vào Redis với TTL
-            // 3. Hoặc chỉ đơn giản là trả về true vì JWT là stateless
+            // Kiểm tra xem token có hợp lệ không
+            if (!jwtProvider.validateJwtToken(token)) {
+                return false
+            }
             
-            logger.info("Người dùng đã đăng xuất với token: ${token.take(20)}...")
+            // Kiểm tra xem token đã có trong blacklist chưa
+            if (tokenBlacklistRepository.existsByToken(token)) {
+                // Token đã được blacklist trước đó, vẫn trả về true vì mục đích đã đạt được
+                logger.info("Token đã tồn tại trong blacklist")
+                return true
+            }
+            
+            // Lấy thông tin từ token
+            val username = jwtProvider.getUsernameFromJwtToken(token)
+            val expirationDate = jwtProvider.getExpirationDateFromJwtToken(token)
+            
+            // Thêm token vào blacklist
+            val tokenBlacklist = TokenBlacklist(
+                token = token,
+                username = username,
+                expiryDate = expirationDate
+            )
+            tokenBlacklistRepository.save(tokenBlacklist)
+            
+            // Ghi log đăng xuất
+            val user = userRepository.findByEmail(username).orElse(null)
+            if (user != null) {
+                authenticationAuditService.logLogout(user.id!!, user.email, ipAddress)
+            }
+            
+            logger.info("Người dùng $username đã đăng xuất, token đã được thêm vào blacklist")
             return true
         } catch (e: Exception) {
             logger.error("Logout thất bại: ${e.message}")
@@ -157,35 +225,29 @@ class UserServiceImpl(
         }
     }
 
-    @Cacheable(value = ["users"], key = "#id", unless = "#result == null")
     override fun getUserById(id: UUID): UserDto {
-        logger.debug("Fetching user with ID: $id from database")
         val user = userRepository.findById(id)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với ID $id") }
         return mapToUserDto(user)
     }
 
-    @Cacheable(value = ["users"], key = "#email", unless = "#result == null")
     override fun getUserByEmail(email: String): UserDto {
-        logger.debug("Fetching user with email: $email from database")
         val user = userRepository.findByEmail(email)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với email $email") }
         return mapToUserDto(user)
     }
 
     override fun getCurrentUser(): UserDto {
-        val currentUserId = securityUtils.getCurrentUserId()
+        val username = securityUtils.getCurrentUsername()
             ?: throw UnauthorizedException("Không có người dùng đăng nhập")
-        return getUserById(currentUserId)
+        
+        val user = userRepository.findByEmail(username)
+            .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với email $username") }
+        
+        return mapToUserDto(user)
     }
 
     @Transactional
-    @Caching(
-        evict = [
-            CacheEvict(value = ["users"], key = "#id"),
-            CacheEvict(value = ["users"], allEntries = true)
-        ]
-    )
     override fun updateUser(id: UUID, userUpdateDto: UserUpdateDto): UserDto {
         val user = userRepository.findById(id)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với ID $id") }
@@ -208,13 +270,9 @@ class UserServiceImpl(
     }
 
     @Transactional
-    @Caching(
-        evict = [
-            CacheEvict(value = ["users"], key = "#id"),
-            CacheEvict(value = ["users"], allEntries = true)
-        ]
-    )
     override fun changePassword(id: UUID, passwordChangeDto: PasswordChangeDto): Boolean {
+        val (ipAddress, _) = getCurrentRequestInfo()
+        
         val user = userRepository.findById(id)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với ID $id") }
         
@@ -232,20 +290,40 @@ class UserServiceImpl(
         user.password = passwordEncoder.encode(passwordChangeDto.newPassword)
         userRepository.save(user)
         
+        // Ghi log đổi mật khẩu
+        authenticationAuditService.logPasswordChange(user.id!!, user.email, ipAddress)
+        
         logger.info("Đã đổi mật khẩu cho người dùng: ${user.email}")
         return true
     }
 
     @Transactional
     override fun requestPasswordReset(email: String): Boolean {
+        val (ipAddress, _) = getCurrentRequestInfo()
+        
         val user = userRepository.findByEmail(email)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với email $email") }
         
-        // Tạo reset token
+        // Xóa token cũ nếu có
+        passwordResetTokenRepository.deleteByUser_Id(user.id!!)
+        
+        // Tạo reset token mới
         val resetToken = UUID.randomUUID().toString()
+        val expiryDate = LocalDateTime.now().plusHours(24) // Token có hiệu lực trong 24 giờ
+        
+        // Lưu token vào database
+        val passwordResetToken = PasswordResetToken(
+            token = resetToken,
+            user = user,
+            expiryDate = expiryDate
+        )
+        passwordResetTokenRepository.save(passwordResetToken)
         
         // Gửi email reset mật khẩu
         emailService.sendPasswordResetEmail(user.email, user.fullName, resetToken)
+        
+        // Ghi log yêu cầu đặt lại mật khẩu
+        authenticationAuditService.logPasswordResetRequest(user.email, ipAddress)
         
         logger.info("Đã gửi yêu cầu đặt lại mật khẩu cho: ${user.email}")
         return true
@@ -253,38 +331,42 @@ class UserServiceImpl(
 
     @Transactional
     override fun resetPassword(token: String, newPassword: String): Boolean {
-        // Trong thực tế, token nên được lưu trong database hoặc cache với thời hạn
-        // Ở đây chúng ta giả định rằng token hợp lệ và lấy email từ token
-        val email = "user@example.com" // Giả định lấy từ token
+        val (ipAddress, _) = getCurrentRequestInfo()
         
-        val user = userRepository.findByEmail(email)
-            .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với email $email") }
+        val passwordResetToken = passwordResetTokenRepository.findByToken(token)
+            .orElseThrow { BadRequestException("Token không hợp lệ hoặc đã hết hạn") }
         
+        if (passwordResetToken.isExpired()) {
+            passwordResetTokenRepository.delete(passwordResetToken)
+            throw BadRequestException("Token đã hết hạn")
+        }
+        
+        val user = passwordResetToken.user
         user.password = passwordEncoder.encode(newPassword)
         userRepository.save(user)
+        
+        // Xóa token sau khi sử dụng
+        passwordResetTokenRepository.delete(passwordResetToken)
+        
+        // Ghi log đặt lại mật khẩu thành công
+        authenticationAuditService.logPasswordResetSuccess(user.id!!, user.email, ipAddress)
         
         logger.info("Đã đặt lại mật khẩu cho người dùng: ${user.email}")
         return true
     }
 
-    @Cacheable(value = ["users"], key = "'all_' + #pageable.pageNumber + '_' + #pageable.pageSize", unless = "#result.isEmpty()")
     override fun getAllUsers(pageable: Pageable): Page<UserDto> {
-        logger.debug("Fetching all users from database")
         if (!securityUtils.isAdmin()) {
             throw UnauthorizedException("Chỉ admin mới có quyền xem danh sách người dùng")
         }
         
-        return userRepository.findAll(pageable).map { mapToUserDto(it) }
+        return userRepository.findAll(pageable).map(this::mapToUserDto)
     }
 
     @Transactional
-    @Caching(
-        evict = [
-            CacheEvict(value = ["users"], key = "#activationToken"),
-            CacheEvict(value = ["users"], allEntries = true)
-        ]
-    )
     override fun activateUser(activationToken: String): Boolean {
+        val (ipAddress, _) = getCurrentRequestInfo()
+        
         // This is a simplified implementation for testing purposes
         // In a production environment, you would:
         // 1. Store tokens in a database with associated email and expiry time
@@ -307,17 +389,14 @@ class UserServiceImpl(
         user.enabled = true
         userRepository.save(user)
         
+        // Ghi log kích hoạt tài khoản
+        authenticationAuditService.logAccountActivation(user.id!!, user.email, ipAddress)
+        
         logger.info("Đã kích hoạt tài khoản cho người dùng: ${user.email}")
         return true
     }
 
     @Transactional
-    @Caching(
-        evict = [
-            CacheEvict(value = ["users"], key = "#id"),
-            CacheEvict(value = ["users"], allEntries = true)
-        ]
-    )
     override fun deactivateUser(id: UUID): Boolean {
         if (!securityUtils.isAdmin()) {
             throw UnauthorizedException("Chỉ admin mới có quyền vô hiệu hóa tài khoản")
@@ -334,12 +413,6 @@ class UserServiceImpl(
     }
 
     @Transactional
-    @Caching(
-        evict = [
-            CacheEvict(value = ["users"], key = "#id"),
-            CacheEvict(value = ["users"], allEntries = true)
-        ]
-    )
     override fun updateUserRole(id: UUID, role: String): UserDto {
         if (!securityUtils.isAdmin()) {
             throw UnauthorizedException("Chỉ admin mới có quyền phân quyền người dùng")
@@ -361,12 +434,34 @@ class UserServiceImpl(
     }
 
     @Transactional
-    @Caching(
-        evict = [
-            CacheEvict(value = ["users"], key = "#googleAuthRequest.email"),
-            CacheEvict(value = ["users"], allEntries = true)
-        ]
-    )
+    override fun deleteUser(id: UUID): Boolean {
+        if (!securityUtils.isAdmin()) {
+            throw UnauthorizedException("Chỉ admin mới có quyền xóa người dùng")
+        }
+        
+        val user = userRepository.findById(id)
+            .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với ID $id") }
+        
+        // Kiểm tra xem có phải admin đang cố xóa chính mình không
+        val currentUser = securityUtils.getCurrentUser()
+        if (currentUser?.id == id) {
+            throw BadRequestException("Không thể xóa tài khoản của chính mình")
+        }
+        
+        // Xóa các token reset password liên quan
+        passwordResetTokenRepository.deleteByUser_Id(id)
+        
+        // Xóa các token blacklist liên quan
+        tokenBlacklistRepository.deleteByUsername(user.email)
+        
+        // Xóa user
+        userRepository.delete(user)
+        
+        logger.info("Đã xóa người dùng: ${user.email}")
+        return true
+    }
+
+    @Transactional
     override fun authenticateWithGoogle(googleAuthRequest: GoogleAuthRequestDto): UserAuthResponseDto {
         try {
             // Xác thực token ID từ Google (trong thực tế cần gọi API Google để xác thực)
