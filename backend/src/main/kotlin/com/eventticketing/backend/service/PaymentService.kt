@@ -1,73 +1,38 @@
 package com.eventticketing.backend.service
 
-import com.eventticketing.backend.dto.ApiResponse
 import com.eventticketing.backend.dto.payment.PaymentCreateDto
+import com.eventticketing.backend.dto.payment.PaymentDto
 import com.eventticketing.backend.dto.payment.PaymentResponseDto
-import com.eventticketing.backend.dto.payment.RefundRequestDto
-import com.eventticketing.backend.entity.Payment
-import com.eventticketing.backend.entity.PaymentStatus
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import java.util.UUID
 
 /**
- * Service interface for handling payment operations
+ * Service interface cho xử lý thanh toán
  */
 interface PaymentService {
-
     /**
-     * Create a new payment transaction
-     * @param paymentCreateDto Payment creation data
-     * @return Payment response with payment URL and transaction information
+     * Xử lý yêu cầu thanh toán
      */
-    fun createPayment(paymentCreateDto: PaymentCreateDto): PaymentResponseDto
+    fun processPayment(paymentCreateDto: PaymentCreateDto, userId: UUID): PaymentResponseDto
     
     /**
-     * Process VNPay payment return callback
-     * @param params Map of parameters returned from VNPay
-     * @return API response with payment result
+     * Hoàn thành thanh toán sau khi nhận callback từ cổng thanh toán
      */
-    fun processVnPayReturn(params: Map<String, String>): ApiResponse<PaymentResponseDto>
+    fun completePayment(paymentId: UUID, transactionId: String, params: Map<String, String>): Boolean
     
     /**
-     * Process VNPay IPN (Instant Payment Notification)
-     * @param params Map of parameters sent from VNPay
-     * @return API response with processing result
+     * Hủy thanh toán
      */
-    fun processVnPayIpn(params: Map<String, String>): ApiResponse<String>
+    fun cancelPayment(paymentId: UUID): Boolean
     
     /**
-     * Process Stripe webhook events
-     * @param payload Raw payload from Stripe webhook
-     * @param signature Stripe signature header
-     * @return API response with processing result
+     * Lấy thông tin thanh toán theo ID
      */
-    fun processStripeWebhook(payload: String, signature: String): ApiResponse<String>
+    fun getPaymentById(paymentId: UUID): PaymentDto
     
     /**
-     * Get payment by ID
-     * @param id Payment ID
-     * @return Payment entity
+     * Lấy danh sách thanh toán của người dùng
      */
-    fun getPaymentById(id: UUID): Payment
-    
-    /**
-     * Get payments for current user
-     * @return List of payment response DTOs
-     */
-    fun getCurrentUserPayments(): List<PaymentResponseDto>
-    
-    /**
-     * Process refund request
-     * @param paymentId Payment ID
-     * @param refundRequestDto Refund request data
-     * @return API response with refund result
-     */
-    fun processRefund(paymentId: UUID, refundRequestDto: RefundRequestDto): ApiResponse<PaymentResponseDto>
-    
-    /**
-     * Update payment status
-     * @param paymentId Payment ID
-     * @param status New payment status
-     * @return Updated payment
-     */
-    fun updatePaymentStatus(paymentId: UUID, status: PaymentStatus): Payment
+    fun getPaymentsByUserId(userId: UUID, pageable: Pageable): Page<PaymentDto>
 } 

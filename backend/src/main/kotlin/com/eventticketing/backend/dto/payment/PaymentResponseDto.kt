@@ -10,29 +10,48 @@ import java.util.UUID
  * DTO for payment response
  */
 data class PaymentResponseDto(
-    val id: UUID,
-    val userId: UUID,
-    val userName: String,
-    val ticketId: UUID,
-    val eventId: UUID,
-    val eventTitle: String,
-    val ticketTypeName: String,
-    val amount: BigDecimal,
-    val paymentMethod: String,
-    val transactionId: String?,
-    val status: PaymentStatus,
-    val paymentUrl: String?,
+    val id: UUID? = null,
+    val userId: UUID? = null,
+    val userName: String? = null,
+    val ticketId: UUID? = null,
+    val eventId: UUID? = null,
+    val eventTitle: String? = null,
+    val ticketTypeName: String? = null,
+    val amount: BigDecimal? = null,
+    val paymentMethod: String? = null,
+    val transactionId: String? = null,
+    val status: PaymentStatus? = null,
+    val paymentUrl: String? = null,
     
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    val createdAt: LocalDateTime,
+    val createdAt: LocalDateTime? = null,
     
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    val updatedAt: LocalDateTime,
+    val updatedAt: LocalDateTime? = null,
     
     val refundedAmount: BigDecimal? = null,
     
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     val refundedAt: LocalDateTime? = null,
     
-    val metadata: Map<String, String>? = null
-) 
+    val metadata: Map<String, String>? = null,
+    
+    // Các trường bổ sung cho payment gateway
+    val success: Boolean? = null,
+    val redirectUrl: String? = null,
+    val message: String? = null
+) {
+    // Constructor thứ hai cho payment gateway
+    constructor(
+        success: Boolean,
+        redirectUrl: String,
+        transactionId: String?,
+        message: String
+    ) : this(
+        transactionId = transactionId,
+        paymentUrl = redirectUrl,
+        success = success,
+        redirectUrl = redirectUrl,
+        message = message
+    )
+} 
