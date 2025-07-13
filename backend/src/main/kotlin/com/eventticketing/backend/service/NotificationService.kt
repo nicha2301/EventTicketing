@@ -5,6 +5,11 @@ import java.util.*
 interface NotificationService {
     
     /**
+     * Tạo thông báo mới
+     */
+    fun createNotification(userId: UUID, title: String, content: String, type: String, data: Map<String, String>)
+    
+    /**
      * Gửi thông báo kích hoạt tài khoản
      */
     fun sendAccountActivation(userId: UUID, email: String, name: String, token: String)

@@ -8,6 +8,10 @@ import com.eventticketing.backend.repository.CategoryRepository
 import com.eventticketing.backend.repository.EventRepository
 import com.eventticketing.backend.service.CategoryService
 import org.slf4j.LoggerFactory
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.CachePut
+import org.springframework.cache.annotation.Cacheable
+import org.springframework.cache.annotation.Caching
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -23,20 +27,27 @@ class CategoryServiceImpl(
 
     private val logger = LoggerFactory.getLogger(CategoryServiceImpl::class.java)
 
+    @Cacheable(value = ["categories"], key = "'all_' + #pageable.pageNumber + '_' + #pageable.pageSize", unless = "#result.isEmpty()")
     override fun getAllCategories(pageable: Pageable): Page<CategoryDto> {
+        logger.debug("Fetching all categories from database")
         return categoryRepository.findAll(pageable).map { mapToCategoryDto(it) }
     }
 
+    @Cacheable(value = ["activeCategories"], key = "'active_' + #pageable.pageNumber + '_' + #pageable.pageSize", unless = "#result.isEmpty()")
     override fun getActiveCategories(pageable: Pageable): Page<CategoryDto> {
+        logger.debug("Fetching active categories from database")
         return categoryRepository.findByIsActiveTrue(pageable).map { mapToCategoryDto(it) }
     }
 
+    @Cacheable(value = ["categories"], key = "#id", unless = "#result == null")
     override fun getCategoryById(id: UUID): CategoryDto {
+        logger.debug("Fetching category with ID: $id from database")
         val category = findCategoryById(id)
         return mapToCategoryDto(category)
     }
 
     @Transactional
+    @CacheEvict(value = ["categories", "activeCategories"], allEntries = true)
     override fun createCategory(categoryDto: CategoryDto): CategoryDto {
         // Kiểm tra tên danh mục đã tồn tại chưa
         if (categoryRepository.existsByNameIgnoreCase(categoryDto.name)) {
@@ -57,6 +68,12 @@ class CategoryServiceImpl(
     }
 
     @Transactional
+    @Caching(
+        evict = [
+            CacheEvict(value = ["categories"], key = "#id"),
+            CacheEvict(value = ["categories", "activeCategories"], allEntries = true)
+        ]
+    )
     override fun updateCategory(id: UUID, categoryDto: CategoryDto): CategoryDto {
         val category = findCategoryById(id)
         
@@ -79,6 +96,12 @@ class CategoryServiceImpl(
     }
 
     @Transactional
+    @Caching(
+        evict = [
+            CacheEvict(value = ["categories"], key = "#id"),
+            CacheEvict(value = ["categories", "activeCategories"], allEntries = true)
+        ]
+    )
     override fun deleteCategory(id: UUID): Boolean {
         val category = findCategoryById(id)
         
@@ -95,6 +118,12 @@ class CategoryServiceImpl(
     }
 
     @Transactional
+    @Caching(
+        evict = [
+            CacheEvict(value = ["categories"], key = "#id"),
+            CacheEvict(value = ["categories", "activeCategories"], allEntries = true)
+        ]
+    )
     override fun setActiveStatus(id: UUID, isActive: Boolean): CategoryDto {
         val category = findCategoryById(id)
         

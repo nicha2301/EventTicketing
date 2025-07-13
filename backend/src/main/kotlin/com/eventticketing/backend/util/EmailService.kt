@@ -156,6 +156,24 @@ class EmailService(
         
         sendHtmlEmail(to, subject, "rating-notification", variables)
     }
+    
+    /**
+     * Gửi email với template tùy chỉnh
+     * Được sử dụng bởi EmailConsumer
+     */
+    fun sendTemplateEmail(to: String, subject: String, template: String, model: Map<String, Any>) {
+        try {
+            val context = Context(Locale("vi"))
+            context.setVariables(model)
+            
+            // Chuyển đổi model từ Map<String, Any> sang Map<String, String> nếu cần
+            val stringModel = model.mapValues { it.value.toString() }
+            
+            sendHtmlEmail(to, subject, template, stringModel)
+        } catch (e: Exception) {
+            logger.error("Failed to send template email to $to: ${e.message}")
+        }
+    }
 
     /**
      * Phương thức gửi email HTML với template

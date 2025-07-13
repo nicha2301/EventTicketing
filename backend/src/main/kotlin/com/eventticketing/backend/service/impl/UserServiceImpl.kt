@@ -13,6 +13,9 @@ import com.eventticketing.backend.service.UserService
 import com.eventticketing.backend.util.EmailService
 import com.eventticketing.backend.util.SecurityUtils
 import org.slf4j.LoggerFactory
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.Cacheable
+import org.springframework.cache.annotation.Caching
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.security.authentication.AuthenticationManager
@@ -154,13 +157,17 @@ class UserServiceImpl(
         }
     }
 
+    @Cacheable(value = ["users"], key = "#id", unless = "#result == null")
     override fun getUserById(id: UUID): UserDto {
+        logger.debug("Fetching user with ID: $id from database")
         val user = userRepository.findById(id)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với ID $id") }
         return mapToUserDto(user)
     }
 
+    @Cacheable(value = ["users"], key = "#email", unless = "#result == null")
     override fun getUserByEmail(email: String): UserDto {
+        logger.debug("Fetching user with email: $email from database")
         val user = userRepository.findByEmail(email)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với email $email") }
         return mapToUserDto(user)
@@ -173,6 +180,12 @@ class UserServiceImpl(
     }
 
     @Transactional
+    @Caching(
+        evict = [
+            CacheEvict(value = ["users"], key = "#id"),
+            CacheEvict(value = ["users"], allEntries = true)
+        ]
+    )
     override fun updateUser(id: UUID, userUpdateDto: UserUpdateDto): UserDto {
         val user = userRepository.findById(id)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với ID $id") }
@@ -195,6 +208,12 @@ class UserServiceImpl(
     }
 
     @Transactional
+    @Caching(
+        evict = [
+            CacheEvict(value = ["users"], key = "#id"),
+            CacheEvict(value = ["users"], allEntries = true)
+        ]
+    )
     override fun changePassword(id: UUID, passwordChangeDto: PasswordChangeDto): Boolean {
         val user = userRepository.findById(id)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy người dùng với ID $id") }
@@ -248,15 +267,23 @@ class UserServiceImpl(
         return true
     }
 
+    @Cacheable(value = ["users"], key = "'all_' + #pageable.pageNumber + '_' + #pageable.pageSize", unless = "#result.isEmpty()")
     override fun getAllUsers(pageable: Pageable): Page<UserDto> {
+        logger.debug("Fetching all users from database")
         if (!securityUtils.isAdmin()) {
             throw UnauthorizedException("Chỉ admin mới có quyền xem danh sách người dùng")
         }
         
-        return userRepository.findAll(pageable).map(this::mapToUserDto)
+        return userRepository.findAll(pageable).map { mapToUserDto(it) }
     }
 
     @Transactional
+    @Caching(
+        evict = [
+            CacheEvict(value = ["users"], key = "#activationToken"),
+            CacheEvict(value = ["users"], allEntries = true)
+        ]
+    )
     override fun activateUser(activationToken: String): Boolean {
         // This is a simplified implementation for testing purposes
         // In a production environment, you would:
@@ -285,6 +312,12 @@ class UserServiceImpl(
     }
 
     @Transactional
+    @Caching(
+        evict = [
+            CacheEvict(value = ["users"], key = "#id"),
+            CacheEvict(value = ["users"], allEntries = true)
+        ]
+    )
     override fun deactivateUser(id: UUID): Boolean {
         if (!securityUtils.isAdmin()) {
             throw UnauthorizedException("Chỉ admin mới có quyền vô hiệu hóa tài khoản")
@@ -301,6 +334,12 @@ class UserServiceImpl(
     }
 
     @Transactional
+    @Caching(
+        evict = [
+            CacheEvict(value = ["users"], key = "#id"),
+            CacheEvict(value = ["users"], allEntries = true)
+        ]
+    )
     override fun updateUserRole(id: UUID, role: String): UserDto {
         if (!securityUtils.isAdmin()) {
             throw UnauthorizedException("Chỉ admin mới có quyền phân quyền người dùng")
@@ -322,6 +361,12 @@ class UserServiceImpl(
     }
 
     @Transactional
+    @Caching(
+        evict = [
+            CacheEvict(value = ["users"], key = "#googleAuthRequest.email"),
+            CacheEvict(value = ["users"], allEntries = true)
+        ]
+    )
     override fun authenticateWithGoogle(googleAuthRequest: GoogleAuthRequestDto): UserAuthResponseDto {
         try {
             // Xác thực token ID từ Google (trong thực tế cần gọi API Google để xác thực)
