@@ -21,10 +21,9 @@ class JwtAuthenticationEntryPoint : AuthenticationEntryPoint {
         response.contentType = MediaType.APPLICATION_JSON_VALUE
         response.status = HttpServletResponse.SC_UNAUTHORIZED
         
-        val body = ApiResponse<String>(
-            success = false,
+        val body = ApiResponse.error<String>(
             message = "Không được phép truy cập: ${authException.message}",
-            data = null
+            code = HttpServletResponse.SC_UNAUTHORIZED
         )
         
         val objectMapper = ObjectMapper()

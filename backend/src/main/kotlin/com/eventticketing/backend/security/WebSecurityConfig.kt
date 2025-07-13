@@ -1,5 +1,6 @@
 package com.eventticketing.backend.security
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.AuthenticationManager
@@ -27,6 +28,8 @@ class WebSecurityConfig(
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
     private val jwtAuthenticationEntryPoint: JwtAuthenticationEntryPoint
 ) {
+    @Value("\${app.cors.allowed-origins}")
+    private lateinit var allowedOrigins: String
 
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
@@ -55,10 +58,19 @@ class WebSecurityConfig(
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
-            allowedOrigins = listOf("*") // Trong môi trường production, nên giới hạn các domain được phép
+            // Chuyển chuỗi origins từ application.yml thành list
+            allowedOrigins = this@WebSecurityConfig.allowedOrigins
+                .split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+            
             allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
-            allowedHeaders = listOf("authorization", "content-type", "x-auth-token")
-            exposedHeaders = listOf("x-auth-token")
+            allowedHeaders = listOf("Authorization", "Content-Type", "X-Auth-Token")
+            exposedHeaders = listOf("X-Auth-Token")
+            // Cho phép credentials (cookies, authorization headers)
+            allowCredentials = true
+            // Thời gian cache CORS pre-flight request (1 giờ)
+            maxAge = 3600L
         }
         
         val source = UrlBasedCorsConfigurationSource()
