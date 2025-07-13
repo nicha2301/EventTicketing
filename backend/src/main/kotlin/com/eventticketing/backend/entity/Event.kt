@@ -9,7 +9,19 @@ import java.time.LocalDateTime
 import java.util.*
 
 @Entity
-@Table(name = "events")
+@Table(
+    name = "events",
+    indexes = [
+        Index(name = "idx_event_organizer", columnList = "organizer_id"),
+        Index(name = "idx_event_category", columnList = "category_id"),
+        Index(name = "idx_event_location", columnList = "location_id"),
+        Index(name = "idx_event_status", columnList = "status"),
+        Index(name = "idx_event_start_date", columnList = "start_date"),
+        Index(name = "idx_event_city", columnList = "city"),
+        Index(name = "idx_event_featured", columnList = "is_featured"),
+        Index(name = "idx_event_location_coords", columnList = "latitude, longitude")
+    ]
+)
 @EntityListeners(AuditingEntityListener::class)
 data class Event(
     @Id
@@ -147,7 +159,13 @@ data class Event(
 }
 
 @Entity
-@Table(name = "event_images")
+@Table(
+    name = "event_images",
+    indexes = [
+        Index(name = "idx_event_image_event", columnList = "event_id"),
+        Index(name = "idx_event_image_primary", columnList = "is_primary")
+    ]
+)
 @EntityListeners(AuditingEntityListener::class)
 data class EventImage(
     @Id

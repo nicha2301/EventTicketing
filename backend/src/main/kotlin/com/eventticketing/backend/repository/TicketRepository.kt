@@ -53,6 +53,11 @@ interface TicketRepository : JpaRepository<Ticket, UUID> {
      * Tìm tất cả vé của một sự kiện theo trạng thái (không phân trang)
      */
     fun findByEventIdAndStatus(eventId: UUID, status: TicketStatus): List<Ticket>
+    
+    /**
+     * Tìm tất cả vé theo payment ID
+     */
+    fun findAllByPaymentId(paymentId: UUID): List<Ticket>
 
     /**
      * Đếm số lượng vé đã bán của một sự kiện

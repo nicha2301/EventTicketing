@@ -11,7 +11,14 @@ import java.time.LocalDateTime
 import java.util.*
 
 @Entity
-@Table(name = "users")
+@Table(
+    name = "users",
+    indexes = [
+        Index(name = "idx_user_email", columnList = "email", unique = true),
+        Index(name = "idx_user_role", columnList = "role"),
+        Index(name = "idx_user_enabled", columnList = "enabled")
+    ]
+)
 class User(
     @Id
     @UuidGenerator
