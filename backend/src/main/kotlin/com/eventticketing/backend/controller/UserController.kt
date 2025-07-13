@@ -24,8 +24,8 @@ class UserController(private val userService: UserService) {
     fun getCurrentUser(): ResponseEntity<ApiResponse<UserDto>> {
         val currentUser = userService.getCurrentUser()
         
-        return ResponseEntity.ok(ApiResponse(
-            success = true,
+        return ResponseEntity.ok(ApiResponse.success(
+            message = "Lấy thông tin người dùng thành công",
             data = currentUser
         ))
     }
@@ -36,8 +36,7 @@ class UserController(private val userService: UserService) {
         val currentUser = userService.getCurrentUser()
         val updatedUser = userService.updateUser(currentUser.id!!, userUpdateDto)
         
-        return ResponseEntity.ok(ApiResponse(
-            success = true,
+        return ResponseEntity.ok(ApiResponse.success(
             message = "Thông tin người dùng đã được cập nhật",
             data = updatedUser
         ))
@@ -50,14 +49,12 @@ class UserController(private val userService: UserService) {
         val result = userService.changePassword(currentUser.id!!, passwordChangeDto)
         
         return if (result) {
-            ResponseEntity.ok(ApiResponse(
-                success = true,
+            ResponseEntity.ok(ApiResponse.success(
                 message = "Mật khẩu đã được thay đổi thành công",
                 data = "Thay đổi thành công"
             ))
         } else {
-            ResponseEntity.badRequest().body(ApiResponse(
-                success = false,
+            ResponseEntity.badRequest().body(ApiResponse.error(
                 message = "Không thể thay đổi mật khẩu",
                 data = null
             ))
@@ -70,8 +67,8 @@ class UserController(private val userService: UserService) {
     fun getUserById(@PathVariable id: UUID): ResponseEntity<ApiResponse<UserDto>> {
         val user = userService.getUserById(id)
         
-        return ResponseEntity.ok(ApiResponse(
-            success = true,
+        return ResponseEntity.ok(ApiResponse.success(
+            message = "Lấy thông tin người dùng thành công",
             data = user
         ))
     }
@@ -91,8 +88,8 @@ class UserController(private val userService: UserService) {
         val usersPage = userService.getAllUsers(pageable)
         val pagedResponse = PagedResponse.from(usersPage)
         
-        return ResponseEntity.ok(ApiResponse(
-            success = true,
+        return ResponseEntity.ok(ApiResponse.success(
+            message = "Lấy danh sách người dùng thành công",
             data = pagedResponse
         ))
     }
@@ -106,8 +103,7 @@ class UserController(private val userService: UserService) {
     ): ResponseEntity<ApiResponse<UserDto>> {
         val updatedUser = userService.updateUser(id, userUpdateDto)
         
-        return ResponseEntity.ok(ApiResponse(
-            success = true,
+        return ResponseEntity.ok(ApiResponse.success(
             message = "Thông tin người dùng đã được cập nhật",
             data = updatedUser
         ))
@@ -120,14 +116,12 @@ class UserController(private val userService: UserService) {
         val result = userService.deactivateUser(id)
         
         return if (result) {
-            ResponseEntity.ok(ApiResponse(
-                success = true,
+            ResponseEntity.ok(ApiResponse.success(
                 message = "Tài khoản người dùng đã bị vô hiệu hóa",
                 data = "Vô hiệu hóa thành công"
             ))
         } else {
-            ResponseEntity.badRequest().body(ApiResponse(
-                success = false,
+            ResponseEntity.badRequest().body(ApiResponse.error(
                 message = "Không thể vô hiệu hóa tài khoản người dùng",
                 data = null
             ))
@@ -143,8 +137,7 @@ class UserController(private val userService: UserService) {
     ): ResponseEntity<ApiResponse<UserDto>> {
         val updatedUser = userService.updateUserRole(id, role)
         
-        return ResponseEntity.ok(ApiResponse(
-            success = true,
+        return ResponseEntity.ok(ApiResponse.success(
             message = "Vai trò người dùng đã được cập nhật",
             data = updatedUser
         ))

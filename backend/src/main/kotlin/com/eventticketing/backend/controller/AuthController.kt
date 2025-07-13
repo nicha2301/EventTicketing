@@ -20,8 +20,7 @@ class AuthController(private val userService: UserService) {
     fun registerUser(@Valid @RequestBody userCreateDto: UserCreateDto): ResponseEntity<ApiResponse<UserDto>> {
         val createdUser = userService.registerUser(userCreateDto)
         
-        return ResponseEntity.ok(ApiResponse(
-            success = true,
+        return ResponseEntity.ok(ApiResponse.success(
             message = "Đăng ký thành công. Vui lòng kiểm tra email để kích hoạt tài khoản.",
             data = createdUser
         ))
@@ -33,8 +32,7 @@ class AuthController(private val userService: UserService) {
     fun authenticateUser(@Valid @RequestBody loginRequest: LoginRequestDto): ResponseEntity<ApiResponse<UserAuthResponseDto>> {
         val userAuthResponse = userService.authenticateUser(loginRequest)
         
-        return ResponseEntity.ok(ApiResponse(
-            success = true,
+        return ResponseEntity.ok(ApiResponse.success(
             message = "Đăng nhập thành công",
             data = userAuthResponse
         ))
@@ -46,8 +44,7 @@ class AuthController(private val userService: UserService) {
     fun authenticateWithGoogle(@Valid @RequestBody googleAuthRequest: GoogleAuthRequestDto): ResponseEntity<ApiResponse<UserAuthResponseDto>> {
         val userAuthResponse = userService.authenticateWithGoogle(googleAuthRequest)
         
-        return ResponseEntity.ok(ApiResponse(
-            success = true,
+        return ResponseEntity.ok(ApiResponse.success(
             message = "Đăng nhập bằng Google thành công",
             data = userAuthResponse
         ))
@@ -59,8 +56,7 @@ class AuthController(private val userService: UserService) {
     fun refreshToken(@Valid @RequestBody refreshTokenRequest: RefreshTokenRequest): ResponseEntity<ApiResponse<UserAuthResponseDto>> {
         val userAuthResponse = userService.refreshToken(refreshTokenRequest.refreshToken)
         
-        return ResponseEntity.ok(ApiResponse(
-            success = true,
+        return ResponseEntity.ok(ApiResponse.success(
             message = "Token đã được refresh thành công",
             data = userAuthResponse
         ))
@@ -72,14 +68,12 @@ class AuthController(private val userService: UserService) {
         val result = userService.logout(logoutRequest.token)
         
         return if (result) {
-            ResponseEntity.ok(ApiResponse(
-                success = true,
+            ResponseEntity.ok(ApiResponse.success(
                 message = "Đăng xuất thành công",
                 data = "Đã đăng xuất"
             ))
         } else {
-            ResponseEntity.badRequest().body(ApiResponse(
-                success = false,
+            ResponseEntity.badRequest().body(ApiResponse.error(
                 message = "Không thể đăng xuất",
                 data = null
             ))
@@ -93,14 +87,12 @@ class AuthController(private val userService: UserService) {
         val result = userService.activateUser(token)
         
         return if (result) {
-            ResponseEntity.ok(ApiResponse(
-                success = true,
+            ResponseEntity.ok(ApiResponse.success(
                 message = "Tài khoản đã được kích hoạt thành công",
                 data = "Kích hoạt thành công"
             ))
         } else {
-            ResponseEntity.badRequest().body(ApiResponse(
-                success = false,
+            ResponseEntity.badRequest().body(ApiResponse.error(
                 message = "Không thể kích hoạt tài khoản. Token không hợp lệ hoặc đã hết hạn.",
                 data = null
             ))
@@ -114,14 +106,12 @@ class AuthController(private val userService: UserService) {
         val result = userService.requestPasswordReset(email)
         
         return if (result) {
-            ResponseEntity.ok(ApiResponse(
-                success = true,
+            ResponseEntity.ok(ApiResponse.success(
                 message = "Đã gửi email đặt lại mật khẩu. Vui lòng kiểm tra hộp thư của bạn.",
                 data = "Yêu cầu thành công"
             ))
         } else {
-            ResponseEntity.badRequest().body(ApiResponse(
-                success = false,
+            ResponseEntity.badRequest().body(ApiResponse.error(
                 message = "Không thể gửi yêu cầu đặt lại mật khẩu.",
                 data = null
             ))
@@ -138,14 +128,12 @@ class AuthController(private val userService: UserService) {
         val result = userService.resetPassword(token, newPassword)
         
         return if (result) {
-            ResponseEntity.ok(ApiResponse(
-                success = true,
+            ResponseEntity.ok(ApiResponse.success(
                 message = "Mật khẩu đã được đặt lại thành công",
                 data = "Đặt lại mật khẩu thành công"
             ))
         } else {
-            ResponseEntity.badRequest().body(ApiResponse(
-                success = false,
+            ResponseEntity.badRequest().body(ApiResponse.error(
                 message = "Không thể đặt lại mật khẩu. Token không hợp lệ hoặc đã hết hạn.",
                 data = null
             ))

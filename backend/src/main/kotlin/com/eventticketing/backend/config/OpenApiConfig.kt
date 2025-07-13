@@ -7,46 +7,67 @@ import io.swagger.v3.oas.models.info.Info
 import io.swagger.v3.oas.models.info.License
 import io.swagger.v3.oas.models.security.SecurityRequirement
 import io.swagger.v3.oas.models.security.SecurityScheme
+import io.swagger.v3.oas.models.servers.Server
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.web.servlet.config.annotation.CorsRegistry
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @Configuration
 class OpenApiConfig {
 
+    @Value("\${app.url}")
+    private lateinit var appUrl: String
+    
+    @Value("\${app.cors.allowed-origins}")
+    private lateinit var allowedOrigins: String
+
     @Bean
-    fun customOpenAPI(): OpenAPI {
+    fun openAPI(): OpenAPI {
         return OpenAPI()
-            .info(apiInfo())
+            .addServersItem(Server().url(appUrl))
+            .info(
+                Info()
+                    .title("Event Ticketing API")
+                    .description("API documentation for Event Ticketing System")
+                    .version("v1.0")
+                    .contact(
+                        Contact()
+                            .name("Event Ticketing Team")
+                            .email("support@eventticketing.com")
+                    )
+                    .license(
+                        License()
+                            .name("Private License")
+                    )
+            )
+            .addSecurityItem(SecurityRequirement().addList("bearerAuth"))
             .components(
                 Components()
                     .addSecuritySchemes(
-                        "bearer-jwt",
+                        "bearerAuth",
                         SecurityScheme()
+                            .name("bearerAuth")
                             .type(SecurityScheme.Type.HTTP)
                             .scheme("bearer")
                             .bearerFormat("JWT")
-                            .`in`(SecurityScheme.In.HEADER)
-                            .name("Authorization")
                     )
             )
-            .addSecurityItem(SecurityRequirement().addList("bearer-jwt"))
     }
-
-    private fun apiInfo(): Info {
-        return Info()
-            .title("Event Ticketing API")
-            .description("RESTful API for Event Ticketing System")
-            .version("1.0.0")
-            .contact(
-                Contact()
-                    .name("Event Ticketing Team")
-                    .email("contact@eventticketing.com")
-                    .url("https://eventticketing.com")
-            )
-            .license(
-                License()
-                    .name("Apache 2.0")
-                    .url("https://www.apache.org/licenses/LICENSE-2.0.html")
-            )
+    
+    @Bean
+    fun corsConfigurer(): WebMvcConfigurer {
+        return object : WebMvcConfigurer {
+            override fun addCorsMappings(registry: CorsRegistry) {
+                registry.addMapping("/v3/api-docs/**")
+                    .allowedOrigins(*allowedOrigins.split(",").map { it.trim() }.toTypedArray())
+                    .allowedMethods("GET")
+                
+                registry.addMapping("/swagger-ui/**")
+                    .allowedOrigins(*allowedOrigins.split(",").map { it.trim() }.toTypedArray())
+                    .allowedMethods("GET")
+            }
+        }
     }
 } 
