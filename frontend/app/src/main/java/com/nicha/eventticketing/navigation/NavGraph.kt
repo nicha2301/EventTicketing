@@ -1,0 +1,397 @@
+package com.nicha.eventticketing.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.nicha.eventticketing.ui.screens.auth.ForgotPasswordScreen
+import com.nicha.eventticketing.ui.screens.auth.LoginScreen
+import com.nicha.eventticketing.ui.screens.auth.RegisterScreen
+import com.nicha.eventticketing.ui.screens.auth.ResetPasswordScreen
+import com.nicha.eventticketing.ui.screens.checkin.CheckInScreen
+import com.nicha.eventticketing.ui.screens.demo.NeumorphicDemoScreen
+import com.nicha.eventticketing.ui.screens.event.CreateEventScreen
+import com.nicha.eventticketing.ui.screens.event.EventDetailScreen
+import com.nicha.eventticketing.ui.screens.home.HomeScreen
+import com.nicha.eventticketing.ui.screens.onboarding.OnboardingScreen
+import com.nicha.eventticketing.ui.screens.organizer.EventDashboardScreen
+import com.nicha.eventticketing.ui.screens.payment.PaymentScreen
+import com.nicha.eventticketing.ui.screens.profile.ProfileScreen
+import com.nicha.eventticketing.ui.screens.search.SearchScreen
+import com.nicha.eventticketing.ui.screens.splash.SplashScreen
+import com.nicha.eventticketing.ui.screens.tickets.TicketDetailScreen
+import com.nicha.eventticketing.ui.screens.tickets.TicketWalletScreen
+import com.nicha.eventticketing.ui.screens.profile.EditProfileScreen
+
+@Composable
+fun NavGraph(
+    navController: NavHostController,
+    startDestination: String = NavDestination.Splash.route
+) {
+    NavHost(
+        navController = navController,
+        startDestination = startDestination
+    ) {
+        // Splash Screen
+        composable(route = NavDestination.Splash.route) {
+            SplashScreen(
+                onSplashFinished = {
+                    navController.navigate(NavDestination.Onboarding.route) {
+                        popUpTo(NavDestination.Splash.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Onboarding Screen
+        composable(route = NavDestination.Onboarding.route) {
+            OnboardingScreen(
+                onFinishOnboarding = {
+                    navController.navigate(NavDestination.Login.route) {
+                        popUpTo(NavDestination.Onboarding.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Login Screen
+        composable(route = NavDestination.Login.route) {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate(NavDestination.Home.route) {
+                        popUpTo(NavDestination.Login.route) { inclusive = true }
+                    }
+                },
+                onNavigateToRegister = {
+                    navController.navigate(NavDestination.Register.route)
+                },
+                onNavigateToForgotPassword = {
+                    navController.navigate(NavDestination.ForgotPassword.route)
+                }
+            )
+        }
+        
+        // Register Screen
+        composable(route = NavDestination.Register.route) {
+            RegisterScreen(
+                onRegisterSuccess = {
+                    navController.navigate(NavDestination.Home.route) {
+                        popUpTo(NavDestination.Register.route) { inclusive = true }
+                    }
+                },
+                onNavigateToLogin = {
+                    navController.navigate(NavDestination.Login.route) {
+                        popUpTo(NavDestination.Register.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Forgot Password Screen
+        composable(route = NavDestination.ForgotPassword.route) {
+            ForgotPasswordScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onResetLinkSent = {
+                    // Không chuyển màn hình ngay, chỉ hiển thị thông báo thành công
+                }
+            )
+        }
+        
+        // Reset Password Screen
+        composable(
+            route = NavDestination.ResetPassword.route + "/{token}",
+            arguments = listOf(
+                navArgument("token") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val token = backStackEntry.arguments?.getString("token") ?: ""
+            ResetPasswordScreen(
+                token = token,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onResetSuccess = {
+                    navController.navigate(NavDestination.Login.route) {
+                        popUpTo(NavDestination.ResetPassword.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Home Screen
+        composable(route = NavDestination.Home.route) {
+            HomeScreen(
+                onEventClick = { eventId ->
+                    navController.navigate("event_detail/$eventId")
+                },
+                onSearchClick = {
+                    navController.navigate("search")
+                },
+                onTicketsClick = {
+                    navController.navigate("ticket_wallet")
+                },
+                onProfileClick = {
+                    navController.navigate("profile")
+                },
+                onExploreClick = {
+                    navController.navigate("search")
+                }
+            )
+        }
+        
+        // Event Detail Screen
+        composable(
+            route = NavDestination.EventDetail.route + "/{eventId}",
+            arguments = listOf(
+                navArgument("eventId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            EventDetailScreen(
+                eventId = eventId,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onBuyTicketsClick = { id ->
+                    // Placeholder for ticket purchase navigation
+                    // In a real implementation, we would navigate to the payment screen
+                    // with the selected ticket type and quantity
+                    navController.navigate(NavDestination.Payment.createRoute(id, "Standard", 1))
+                }
+            )
+        }
+        
+        // Search Screen
+        composable(route = NavDestination.Search.route) {
+            SearchScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onEventClick = { eventId ->
+                    navController.navigate(NavDestination.EventDetail.createRoute(eventId))
+                }
+            )
+        }
+        
+        // Profile Screen
+        composable(route = NavDestination.Profile.route) {
+            ProfileScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onEditClick = {
+                    navController.navigate("edit_profile")
+                },
+                onSettingsClick = {
+                    // Show edit profile dialog or navigate to edit screen
+                    // For now, just show a toast or snackbar
+                },
+                onNotificationsClick = {
+                    navController.navigate("notifications")
+                },
+                onSecurityClick = {
+                    navController.navigate("security")
+                },
+                onPrivacyClick = {
+                    navController.navigate("privacy")
+                },
+                onLogoutClick = {
+                    navController.navigate(NavDestination.Login.route) {
+                        popUpTo(NavDestination.Home.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Notifications Screen
+        composable(route = "notifications") {
+            com.nicha.eventticketing.ui.screens.settings.NotificationsScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Security Screen
+        composable(route = "security") {
+            com.nicha.eventticketing.ui.screens.settings.SecurityScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Privacy Screen
+        composable(route = "privacy") {
+            com.nicha.eventticketing.ui.screens.settings.PrivacyScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Edit Profile Screen
+        composable(route = "edit_profile") {
+            EditProfileScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onSaveClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Ticket Wallet Screen
+        composable(route = NavDestination.TicketWallet.route) {
+            TicketWalletScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onTicketClick = { ticketId ->
+                    navController.navigate(NavDestination.TicketDetail.createRoute(ticketId))
+                }
+            )
+        }
+        
+        // Ticket Detail Screen
+        composable(
+            route = NavDestination.TicketDetail.route + "/{ticketId}",
+            arguments = listOf(
+                navArgument("ticketId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val ticketId = backStackEntry.arguments?.getString("ticketId") ?: ""
+            TicketDetailScreen(
+                ticketId = ticketId,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onAddToCalendarClick = {
+                    // Thêm vào lịch
+                },
+                onShareTicketClick = {
+                    // Chia sẻ vé
+                }
+            )
+        }
+        
+        // Payment Screen
+        composable(
+            route = NavDestination.Payment.route + "/{eventId}/{ticketType}/{quantity}",
+            arguments = listOf(
+                navArgument("eventId") { type = NavType.StringType },
+                navArgument("ticketType") { type = NavType.StringType },
+                navArgument("quantity") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val ticketType = backStackEntry.arguments?.getString("ticketType") ?: ""
+            val quantity = backStackEntry.arguments?.getInt("quantity") ?: 1
+            
+            PaymentScreen(
+                eventId = eventId,
+                ticketTypeId = ticketType,
+                quantity = quantity,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onPaymentSuccess = {
+                    navController.navigate(NavDestination.TicketWallet.route) {
+                        popUpTo(NavDestination.Payment.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Check-in Screen
+        composable(route = NavDestination.CheckIn.route) {
+            CheckInScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onScanComplete = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Organizer Dashboard Screen
+        composable(route = NavDestination.OrganizerDashboard.route) {
+            EventDashboardScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onCreateEventClick = {
+                    navController.navigate(NavDestination.CreateEvent.route)
+                },
+                onEventClick = { eventId ->
+                    navController.navigate(NavDestination.EventDetail.createRoute(eventId))
+                },
+                onScanQRClick = {
+                    navController.navigate(NavDestination.CheckIn.route)
+                }
+            )
+        }
+        
+        // Create Event Screen
+        composable(route = NavDestination.CreateEvent.route) {
+            CreateEventScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onEventCreated = { eventId ->
+                    navController.navigate(NavDestination.EventDetail.createRoute(eventId)) {
+                        popUpTo(NavDestination.CreateEvent.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Neumorphic Demo Screen
+        composable(route = NavDestination.NeumorphicDemo.route) {
+            NeumorphicDemoScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+    }
+}
+
+sealed class NavDestination(val route: String) {
+    object Splash : NavDestination("splash")
+    object Onboarding : NavDestination("onboarding")
+    object Login : NavDestination("login")
+    object Register : NavDestination("register")
+    object ForgotPassword : NavDestination("forgot_password")
+    object ResetPassword : NavDestination("reset_password")
+    object Home : NavDestination("home")
+    object EventDetail : NavDestination("event_detail") {
+        fun createRoute(eventId: String) = "$route/$eventId"
+    }
+    object Search : NavDestination("search")
+    object Profile : NavDestination("profile")
+    object TicketWallet : NavDestination("ticket_wallet")
+    object TicketDetail : NavDestination("ticket_detail") {
+        fun createRoute(ticketId: String) = "$route/$ticketId"
+    }
+    object Payment : NavDestination("payment") {
+        fun createRoute(eventId: String, ticketType: String, quantity: Int) = 
+            "$route/$eventId/$ticketType/$quantity"
+    }
+    object CheckIn : NavDestination("check_in")
+    object OrganizerDashboard : NavDestination("organizer_dashboard")
+    object CreateEvent : NavDestination("create_event")
+    object NeumorphicDemo : NavDestination("neumorphic_demo")
+} 
