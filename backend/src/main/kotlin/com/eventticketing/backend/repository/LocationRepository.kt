@@ -16,11 +16,12 @@ interface LocationRepository : JpaRepository<Location, UUID> {
     fun findByNameContainingIgnoreCase(name: String, pageable: Pageable): Page<Location>
     
     @Query(
-        value = "SELECT *, " +
+        value = "SELECT l.*, " +
                 "(6371 * acos(cos(radians(:latitude)) * cos(radians(l.latitude)) * cos(radians(l.longitude) - " +
                 "radians(:longitude)) + sin(radians(:latitude)) * sin(radians(l.latitude)))) as distance " +
                 "FROM locations l " +
-                "HAVING distance < :radius " +
+                "WHERE (6371 * acos(cos(radians(:latitude)) * cos(radians(l.latitude)) * cos(radians(l.longitude) - " +
+                "radians(:longitude)) + sin(radians(:latitude)) * sin(radians(l.latitude)))) < :radius " +
                 "ORDER BY distance",
         nativeQuery = true
     )
