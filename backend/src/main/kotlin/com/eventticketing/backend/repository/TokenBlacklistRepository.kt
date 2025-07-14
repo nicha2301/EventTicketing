@@ -37,11 +37,6 @@ interface TokenBlacklistRepository : JpaRepository<TokenBlacklist, UUID> {
     fun deleteExpiredTokens(@Param("currentTime") currentTime: LocalDateTime = LocalDateTime.now())
     
     /**
-     * Đếm số token trong blacklist
-     */
-    override fun count(): Long
-    
-    /**
      * Đếm số token đã hết hạn
      */
     @Query("SELECT COUNT(t) FROM TokenBlacklist t WHERE t.expiryDate < :currentTime")

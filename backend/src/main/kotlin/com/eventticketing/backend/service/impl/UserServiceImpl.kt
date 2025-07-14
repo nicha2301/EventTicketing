@@ -73,7 +73,7 @@ class UserServiceImpl(
             password = passwordEncoder.encode(userCreateDto.password),
             fullName = userCreateDto.fullName,
             phoneNumber = userCreateDto.phoneNumber,
-            role = userCreateDto.role,
+            role = UserRole.USER, // Luôn gán role USER cho tài khoản mới đăng ký
             enabled = false, // Tài khoản chưa kích hoạt
             notificationPreferences = emptyMap() // Khởi tạo đúng kiểu dữ liệu Map<String, Any>
         )
@@ -460,6 +460,46 @@ class UserServiceImpl(
         logger.info("Đã xóa người dùng: ${user.email}")
         return true
     }
+    
+    @Transactional
+    override fun createUserByAdmin(adminUserCreateDto: AdminUserCreateDto): UserDto {
+        // Kiểm tra quyền admin
+        if (!securityUtils.isAdmin()) {
+            throw UnauthorizedException("Chỉ admin mới có quyền tạo người dùng với role tùy chọn")
+        }
+        
+        // Kiểm tra email đã tồn tại chưa
+        if (userRepository.existsByEmail(adminUserCreateDto.email)) {
+            throw ResourceAlreadyExistsException("Email ${adminUserCreateDto.email} đã được sử dụng")
+        }
+        
+        // Kiểm tra và chuyển đổi role
+        val role = try {
+            UserRole.valueOf(adminUserCreateDto.role.uppercase())
+        } catch (e: IllegalArgumentException) {
+            throw BadRequestException("Vai trò không hợp lệ: ${adminUserCreateDto.role}. Các vai trò hợp lệ: ${UserRole.values().joinToString()}")
+        }
+        
+        // Tạo user mới
+        val user = User(
+            email = adminUserCreateDto.email,
+            password = passwordEncoder.encode(adminUserCreateDto.password),
+            fullName = adminUserCreateDto.fullName,
+            phoneNumber = adminUserCreateDto.phoneNumber,
+            role = role,
+            enabled = adminUserCreateDto.enabled,
+            notificationPreferences = emptyMap()
+        )
+        
+        val savedUser = userRepository.save(user)
+        
+        // Ghi log
+        val (ipAddress, _) = getCurrentRequestInfo()
+        val adminUsername = securityUtils.getCurrentUsername() ?: "unknown"
+        logger.info("Admin $adminUsername đã tạo người dùng mới: ${savedUser.email} với vai trò ${savedUser.role}, IP: $ipAddress")
+        
+        return mapToUserDto(savedUser)
+    }
 
     @Transactional
     override fun authenticateWithGoogle(googleAuthRequest: GoogleAuthRequestDto): UserAuthResponseDto {
@@ -488,7 +528,7 @@ class UserServiceImpl(
                     email = googleAuthRequest.email,
                     password = passwordEncoder.encode(UUID.randomUUID().toString()), // Tạo mật khẩu ngẫu nhiên
                     fullName = googleAuthRequest.name,
-                    role = UserRole.USER,
+                    role = UserRole.USER, // Luôn gán role USER cho tài khoản mới đăng ký
                     enabled = true, // Tài khoản Google đã được xác thực nên kích hoạt luôn
                     profilePictureUrl = googleAuthRequest.profilePictureUrl,
                     notificationPreferences = emptyMap() // Khởi tạo đúng kiểu dữ liệu Map<String, Any>

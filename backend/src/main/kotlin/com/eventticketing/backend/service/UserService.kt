@@ -91,4 +91,9 @@ interface UserService {
      * Xóa người dùng
      */
     fun deleteUser(id: UUID): Boolean
+    
+    /**
+     * Tạo người dùng mới bởi admin với role tùy chọn
+     */
+    fun createUserByAdmin(adminUserCreateDto: AdminUserCreateDto): UserDto
 } 

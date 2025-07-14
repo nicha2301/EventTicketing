@@ -1,5 +1,6 @@
 package com.eventticketing.backend.security
 
+import com.eventticketing.backend.util.Constants.ApiPaths
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.AuthenticationManager
@@ -38,18 +39,18 @@ class WebSecurityConfig(
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers(
-                        "/api/auth/**",
+                        "${ApiPaths.AUTH_BASE}/**",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
                         "/actuator/**",
                         "/error",
-                        "/api/events/public/**",
-                        "/api/events/search",
-                        "/api/events/{id}/public"
+                        "${ApiPaths.EVENTS_BASE}/public/**",
+                        "${ApiPaths.EVENTS_BASE}/search",
+                        "${ApiPaths.EVENTS_BASE}/{id}/public"
                     ).permitAll()
-                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                    .requestMatchers("/api/organizer/**").hasAnyRole("ADMIN", "ORGANIZER")
+                    .requestMatchers("${ApiPaths.ADMIN_BASE}/**").hasRole("ADMIN")
+                    .requestMatchers("${ApiPaths.ORGANIZER_BASE}/**").hasAnyRole("ADMIN", "ORGANIZER")
                     .anyRequest().authenticated()
             }
 

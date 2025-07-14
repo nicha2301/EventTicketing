@@ -197,4 +197,17 @@ class UserController(private val userService: UserService) {
             ))
         }
     }
+    
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Tạo người dùng mới với role tùy chọn (Admin only)")
+    fun createUser(@Valid @RequestBody adminUserCreateDto: AdminUserCreateDto): ResponseEntity<ApiResponse<UserDto>> {
+        val createdUser = userService.createUserByAdmin(adminUserCreateDto)
+        
+        return ResponseEntity.ok(ApiResponse(
+            success = true,
+            message = "Người dùng đã được tạo thành công",
+            data = createdUser
+        ))
+    }
 } 

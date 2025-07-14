@@ -1,5 +1,7 @@
 package com.eventticketing.backend.service.impl
 
+import com.eventticketing.backend.config.RateLimitConfig
+import com.eventticketing.backend.config.RateLimitProperties
 import com.eventticketing.backend.service.RateLimitService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -7,24 +9,17 @@ import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
 
 @Service
-class RateLimitServiceImpl : RateLimitService {
+class RateLimitServiceImpl(
+    private val rateLimitProperties: RateLimitProperties
+) : RateLimitService {
     
     private val logger = LoggerFactory.getLogger(RateLimitServiceImpl::class.java)
     
     // Lưu trữ thông tin rate limit cho từng IP và endpoint
     private val rateLimitMap = ConcurrentHashMap<String, MutableList<LocalDateTime>>()
     
-    // Cấu hình rate limit cho từng endpoint
-    private val rateLimitConfig = mapOf(
-        "/api/auth/login" to RateLimitConfig(5, 60), // 5 requests per minute
-        "/api/auth/register" to RateLimitConfig(3, 60), // 3 requests per minute
-        "/api/auth/password/forgot" to RateLimitConfig(3, 60), // 3 requests per minute
-        "/api/auth/refresh-token" to RateLimitConfig(10, 60), // 10 requests per minute
-        "default" to RateLimitConfig(100, 60) // 100 requests per minute
-    )
-    
     override fun isRateLimited(ipAddress: String, endpoint: String): Boolean {
-        val config = rateLimitConfig[endpoint] ?: rateLimitConfig["default"]!!
+        val config = rateLimitProperties.endpoints[endpoint] ?: rateLimitProperties.endpoints["default"]!!
         val key = "$ipAddress:$endpoint"
         val requests = rateLimitMap[key] ?: mutableListOf()
         
@@ -47,7 +42,7 @@ class RateLimitServiceImpl : RateLimitService {
     }
     
     override fun getRemainingRequests(ipAddress: String, endpoint: String): Int {
-        val config = rateLimitConfig[endpoint] ?: rateLimitConfig["default"]!!
+        val config = rateLimitProperties.endpoints[endpoint] ?: rateLimitProperties.endpoints["default"]!!
         val key = "$ipAddress:$endpoint"
         val requests = rateLimitMap[key] ?: mutableListOf()
         
@@ -63,9 +58,4 @@ class RateLimitServiceImpl : RateLimitService {
         rateLimitMap.remove(key)
         logger.info("Reset rate limit for $ipAddress:$endpoint")
     }
-    
-    private data class RateLimitConfig(
-        val maxRequests: Int,
-        val windowSeconds: Int
-    )
 } 

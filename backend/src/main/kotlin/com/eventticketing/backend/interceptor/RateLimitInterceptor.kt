@@ -3,7 +3,10 @@ package com.eventticketing.backend.interceptor
 import com.eventticketing.backend.annotation.RateLimited
 import com.eventticketing.backend.dto.ApiResponse
 import com.eventticketing.backend.service.RateLimitService
-import com.eventticketing.backend.util.RequestUtils
+import com.eventticketing.backend.util.Constants.Headers
+import com.eventticketing.backend.util.Constants.TimeConstants
+import com.eventticketing.backend.util.ResponseBuilder
+import com.eventticketing.backend.util.getClientIp
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -29,7 +32,7 @@ class RateLimitInterceptor(
             return true
         }
         
-        val ipAddress = RequestUtils.getClientIpAddress(request) ?: "unknown"
+        val ipAddress = request.getClientIp() ?: "unknown"
         val endpoint = request.requestURI
         
         // Kiểm tra rate limit
@@ -52,8 +55,9 @@ class RateLimitInterceptor(
         
         // Thêm header với thông tin rate limit
         val remaining = rateLimitService.getRemainingRequests(ipAddress, endpoint)
-        response.setHeader("X-RateLimit-Remaining", remaining.toString())
-        response.setHeader("X-RateLimit-Reset", (System.currentTimeMillis() / 1000 + rateLimited.windowSeconds).toString())
+        response.setHeader(Headers.X_RATE_LIMIT_LIMIT, rateLimited.maxRequests.toString())
+        response.setHeader(Headers.X_RATE_LIMIT_REMAINING, remaining.toString())
+        response.setHeader(Headers.X_RATE_LIMIT_RESET, (System.currentTimeMillis() / TimeConstants.MILLISECONDS_IN_SECOND + rateLimited.windowSeconds).toString())
         
         return true
     }

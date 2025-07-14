@@ -1,5 +1,6 @@
 package com.eventticketing.backend.util
 
+import com.eventticketing.backend.util.Constants.Headers
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.stereotype.Component
 
@@ -10,29 +11,17 @@ object RequestUtils {
      * Lấy IP address từ request
      */
     fun getClientIpAddress(request: HttpServletRequest): String? {
-        val xForwardedFor = request.getHeader("X-Forwarded-For")
-        if (!xForwardedFor.isNullOrBlank()) {
-            return xForwardedFor.split(",")[0].trim()
-        }
-        
-        val xRealIp = request.getHeader("X-Real-IP")
-        if (!xRealIp.isNullOrBlank()) {
-            return xRealIp
-        }
-        
-        val xClusterClientIp = request.getHeader("X-Cluster-Client-IP")
-        if (!xClusterClientIp.isNullOrBlank()) {
-            return xClusterClientIp
-        }
-        
-        return request.remoteAddr
+        return request.getHeader(Headers.X_FORWARDED_FOR)?.split(",")?.firstOrNull()?.trim()
+            ?: request.getHeader(Headers.X_REAL_IP)
+            ?: request.getHeader(Headers.X_CLUSTER_CLIENT_IP)
+            ?: request.remoteAddr
     }
     
     /**
      * Lấy User Agent từ request
      */
     fun getUserAgent(request: HttpServletRequest): String? {
-        return request.getHeader("User-Agent")
+        return request.getHeader(Headers.USER_AGENT)
     }
     
     /**
@@ -52,7 +41,15 @@ object RequestUtils {
             "userAgent" to (getUserAgent(request) ?: "unknown"),
             "method" to request.method,
             "uri" to request.requestURI,
-            "referer" to (request.getHeader("Referer") ?: "unknown")
+            "referer" to (request.getHeader(Headers.REFERER) ?: "unknown")
         )
     }
-} 
+}
+
+/**
+ * Extension functions cho HttpServletRequest
+ */
+fun HttpServletRequest.getClientIp(): String? = RequestUtils.getClientIpAddress(this)
+fun HttpServletRequest.getUserAgent(): String? = RequestUtils.getUserAgent(this)
+fun HttpServletRequest.isLocalhost(): Boolean = RequestUtils.isLocalhost(this)
+fun HttpServletRequest.getRequestInfo(): Map<String, String> = RequestUtils.getRequestInfo(this) 

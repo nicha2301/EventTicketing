@@ -124,3 +124,27 @@ data class PasswordResetDto(
     @field:Size(min = 6, message = "Mật khẩu mới phải có ít nhất 6 ký tự")
     val newPassword: String
 ) 
+
+/**
+ * DTO cho việc admin tạo người dùng mới với role tùy chọn
+ */
+data class AdminUserCreateDto(
+    @field:NotBlank(message = "Email không được để trống")
+    @field:Email(message = "Email không hợp lệ")
+    val email: String,
+    
+    @field:NotBlank(message = "Mật khẩu không được để trống")
+    @field:Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
+    val password: String,
+    
+    @field:NotBlank(message = "Họ tên không được để trống")
+    val fullName: String,
+    
+    @field:Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Số điện thoại không hợp lệ")
+    val phoneNumber: String? = null,
+    
+    @field:NotBlank(message = "Vai trò không được để trống")
+    val role: String,
+    
+    val enabled: Boolean = true
+) 

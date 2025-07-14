@@ -1,6 +1,8 @@
 package com.eventticketing.backend.security
 
 import com.eventticketing.backend.entity.User
+import com.eventticketing.backend.util.Constants.JWT
+import com.eventticketing.backend.util.Constants.TimeConstants
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.Jwts
@@ -31,7 +33,7 @@ class JwtProvider {
     private var jwtExpiration: Int = 0
 
     @Value("\${app.jwt.refresh-expiration:604800}")
-    private var refreshExpiration: Int = 604800
+    private var refreshExpiration: Int = TimeConstants.SECONDS_IN_WEEK
 
     /**
      * Tạo key từ chuỗi bí mật
@@ -49,24 +51,12 @@ class JwtProvider {
 
         // Kiểm tra xem principal có phải là UserDetails không
         if (userPrincipal is UserDetails) {
-            return Jwts.builder()
-                .subject(userPrincipal.username)
-                .issuedAt(Date())
-                .expiration(Date(Date().time + jwtExpiration * 1000))
-                .signWith(getSigningKey())
-                .compact()
+            return generateToken(userPrincipal.username, null, null, jwtExpiration, JWT.TOKEN_TYPE_ACCESS)
         }
         
-        // Trường hợp principal là User entity của chúng ta (hiếm gặp, nhưng cứ giữ để tương thích ngược)
+        // Trường hợp principal là User entity của chúng ta
         if (userPrincipal is User) {
-            return Jwts.builder()
-                .subject(userPrincipal.email)
-                .issuedAt(Date())
-                .expiration(Date(Date().time + jwtExpiration * 1000))
-                .claim("userId", userPrincipal.id)
-                .claim("role", userPrincipal.role.name)
-                .signWith(getSigningKey())
-                .compact()
+            return generateToken(userPrincipal.email, userPrincipal.id, userPrincipal.role.name, jwtExpiration, JWT.TOKEN_TYPE_ACCESS)
         }
         
         // Fallback nếu principal không phải loại nào trong số đó
@@ -77,30 +67,35 @@ class JwtProvider {
      * Tạo JWT token từ User
      */
     fun generateJwtToken(user: User): String {
-        return Jwts.builder()
-                .subject(user.email)
-                .issuedAt(Date())
-                .expiration(Date(Date().time + jwtExpiration * 1000))
-                .claim("userId", user.id)
-                .claim("role", user.role.name)
-                .claim("type", "access")
-                .signWith(getSigningKey())
-                .compact()
+        return generateToken(user.email, user.id, user.role.name, jwtExpiration, JWT.TOKEN_TYPE_ACCESS)
     }
 
     /**
      * Tạo refresh token từ User
      */
     fun generateRefreshToken(user: User): String {
-        return Jwts.builder()
-                .subject(user.email)
-                .issuedAt(Date())
-                .expiration(Date(Date().time + refreshExpiration * 1000))
-                .claim("userId", user.id)
-                .claim("role", user.role.name)
-                .claim("type", "refresh")
-                .signWith(getSigningKey())
-                .compact()
+        return generateToken(user.email, user.id, user.role.name, refreshExpiration, JWT.TOKEN_TYPE_REFRESH)
+    }
+    
+    /**
+     * Tạo token với các thông tin chung
+     */
+    private fun generateToken(subject: String, userId: UUID?, role: String?, expiration: Int, type: String): String {
+        val builder = Jwts.builder()
+            .subject(subject)
+            .issuedAt(Date())
+            .expiration(Date(Date().time + expiration * TimeConstants.MILLISECONDS_IN_SECOND))
+            .claim("type", type)
+        
+        if (userId != null) {
+            builder.claim("userId", userId)
+        }
+        
+        if (role != null) {
+            builder.claim("role", role)
+        }
+        
+        return builder.signWith(getSigningKey()).compact()
     }
 
     /**
@@ -204,7 +199,7 @@ class JwtProvider {
     fun isRefreshToken(token: String): Boolean {
         return try {
             val tokenType = getTokenTypeFromJwtToken(token)
-            tokenType == "refresh"
+            tokenType == JWT.TOKEN_TYPE_REFRESH
         } catch (e: Exception) {
             false
         }

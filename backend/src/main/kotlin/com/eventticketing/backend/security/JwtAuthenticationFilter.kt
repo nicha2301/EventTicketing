@@ -2,7 +2,8 @@ package com.eventticketing.backend.security
 
 import com.eventticketing.backend.service.AuthenticationAuditService
 import com.eventticketing.backend.service.TokenBlacklistService
-import com.eventticketing.backend.util.RequestUtils
+import com.eventticketing.backend.util.Constants.JWT
+import com.eventticketing.backend.util.getClientIp
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -34,7 +35,7 @@ class JwtAuthenticationFilter(
             if (!jwt.isNullOrBlank()) {
                 if (!jwtProvider.validateJwtToken(jwt)) {
                     // Token không hợp lệ
-                    val ipAddress = RequestUtils.getClientIpAddress(request)
+                    val ipAddress = request.getClientIp()
                     authenticationAuditService.logTokenRejection(jwt, ipAddress, "Invalid JWT token")
                     filterChain.doFilter(request, response)
                     return
@@ -43,7 +44,7 @@ class JwtAuthenticationFilter(
                 // Kiểm tra token có trong blacklist không
                 if (tokenBlacklistService.isTokenBlacklisted(jwt)) {
                     // Token đã bị blacklist
-                    val ipAddress = RequestUtils.getClientIpAddress(request)
+                    val ipAddress = request.getClientIp()
                     authenticationAuditService.logTokenRejection(jwt, ipAddress, "Token is blacklisted")
                     logger.debug("Token đã bị blacklist, bỏ qua xác thực")
                     filterChain.doFilter(request, response)
@@ -61,7 +62,7 @@ class JwtAuthenticationFilter(
             }
         } catch (e: Exception) {
             val jwt = getJwtFromRequest(request)
-            val ipAddress = RequestUtils.getClientIpAddress(request)
+            val ipAddress = request.getClientIp()
             if (!jwt.isNullOrBlank()) {
                 authenticationAuditService.logTokenRejection(jwt, ipAddress, "Exception during authentication: ${e.message}")
             }
@@ -72,10 +73,10 @@ class JwtAuthenticationFilter(
     }
 
     private fun getJwtFromRequest(request: HttpServletRequest): String? {
-        val bearerToken = request.getHeader("Authorization")
+        val bearerToken = request.getHeader(JWT.HEADER_STRING)
 
-        return if (!bearerToken.isNullOrBlank() && bearerToken.startsWith("Bearer ")) {
-            bearerToken.substring(7)
+        return if (!bearerToken.isNullOrBlank() && bearerToken.startsWith(JWT.TOKEN_PREFIX)) {
+            bearerToken.substring(JWT.TOKEN_PREFIX.length)
         } else null
     }
 } 
