@@ -1,24 +1,26 @@
 package com.nicha.eventticketing.data.remote.dto.ticket
 
 /**
- * DTO cho Ticket từ API
+ * DTO cho thông tin vé
  */
 data class TicketDto(
     val id: String,
+    val ticketNumber: String,
+    val userId: String,
+    val userName: String,
     val eventId: String,
     val eventTitle: String,
-    val eventImageUrl: String?,
-    val userId: String,
-    val ticketCode: String,
-    val ticketType: String, // VIP, STANDARD, EARLY_BIRD
+    val ticketTypeId: String,
+    val ticketTypeName: String,
     val price: Double,
-    val purchaseDate: String,
-    val isUsed: Boolean,
-    val usedDate: String?,
-    val expiryDate: String?,
-    val status: String, // ACTIVE, USED, EXPIRED, CANCELLED
-    val createdAt: String,
-    val updatedAt: String
+    val status: String,
+    val qrCodeUrl: String?,
+    val purchaseDate: String?,
+    val eventStartDate: String,
+    val eventEndDate: String,
+    val eventLocation: String,
+    val eventAddress: String,
+    val eventImageUrl: String?
 )
 
 /**
@@ -37,18 +39,4 @@ data class TicketCreateDto(
 data class TicketStatusUpdateDto(
     val isUsed: Boolean,
     val status: String
-)
-
-data class TicketPurchaseDto(
-    val eventId: String,
-    val quantity: Int,
-    val paymentMethod: String // CREDIT_CARD, PAYPAL, etc.
-)
-
-data class TicketPurchaseResponseDto(
-    val ticketIds: List<String>,
-    val totalAmount: Double,
-    val paymentId: String,
-    val paymentStatus: String,
-    val createdAt: String
 )

@@ -1,15 +1,15 @@
-package com.nicha.eventticketing.data.remote.dto.ticket
+package com.nicha.eventticketing.data.model
+
+import java.util.UUID
 
 data class TicketTypeDto(
-    val id: String,
-    val eventId: String,
+    val id: UUID,
     val name: String,
     val description: String?,
     val price: Double,
-    val quantity: Int,
-    val quantitySold: Int,
+    val availableQuantity: Int,
     val maxPerOrder: Int?,
-    val minPerOrder: Int = 1,
+    val eventId: UUID,
     val saleStartDate: String?,
     val saleEndDate: String?
 ) 

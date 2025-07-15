@@ -4,7 +4,7 @@ import com.nicha.eventticketing.config.AppConfig
 import com.nicha.eventticketing.data.remote.dto.ApiResponse
 import com.nicha.eventticketing.data.remote.dto.auth.*
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
-import com.nicha.eventticketing.data.remote.dto.event.Page
+import com.nicha.eventticketing.data.remote.dto.event.PageDto
 import com.nicha.eventticketing.data.remote.dto.category.CategoryDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseDto
@@ -18,6 +18,10 @@ import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.*
 import java.util.UUID
+import com.nicha.eventticketing.data.remote.dto.category.CategoryResponse
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import timber.log.Timber
 
 /**
  * Repository for interacting with the API
@@ -153,12 +157,17 @@ class ApiRepository {
         try {
             val response = apiService.getCategories()
             if (response.isSuccessful && response.body()?.success == true) {
-                Result.success(response.body()?.data ?: emptyList())
+                val categoryResponse = response.body()?.data
+                if (categoryResponse != null) {
+                    val categories = categoryResponse.content ?: emptyList()
+                    return@withContext Result.success(categories)
+                }
+                return@withContext Result.success(emptyList())
             } else {
-                Result.failure(Exception(response.body()?.message ?: "Failed to fetch categories"))
+                return@withContext Result.failure(Exception(response.body()?.message ?: "Failed to fetch categories"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            return@withContext Result.failure(e)
         }
     }
 
@@ -193,7 +202,7 @@ interface EventTicketingApi {
     suspend fun getEvents(
         @Query("page") page: Int,
         @Query("size") size: Int
-    ): Response<ApiResponse<Page<EventDto>>>
+    ): Response<ApiResponse<PageDto<EventDto>>>
     
     @GET("api/events/{id}")
     suspend fun getEventById(@Path("id") eventId: String): Response<ApiResponse<EventDto>>
@@ -204,7 +213,7 @@ interface EventTicketingApi {
         @Query("categoryId") categoryId: String?,
         @Query("page") page: Int,
         @Query("size") size: Int
-    ): Response<ApiResponse<Page<EventDto>>>
+    ): Response<ApiResponse<PageDto<EventDto>>>
     
     // Tickets
     @GET("api/tickets/my-tickets")
@@ -212,7 +221,7 @@ interface EventTicketingApi {
         @Query("status") status: String?,
         @Query("page") page: Int,
         @Query("size") size: Int
-    ): Response<ApiResponse<Page<TicketDto>>>
+    ): Response<ApiResponse<PageDto<TicketDto>>>
     
     @GET("api/tickets/{ticketId}")
     suspend fun getTicketById(@Path("ticketId") ticketId: String): Response<ApiResponse<TicketDto>>
@@ -222,7 +231,7 @@ interface EventTicketingApi {
     
     // Categories
     @GET("api/categories")
-    suspend fun getCategories(): Response<ApiResponse<List<CategoryDto>>>
+    suspend fun getCategories(): Response<ApiResponse<CategoryResponse>>
     
     // User
     @GET("api/users/me")

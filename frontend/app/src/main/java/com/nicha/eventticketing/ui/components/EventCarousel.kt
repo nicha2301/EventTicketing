@@ -2,54 +2,68 @@ package com.nicha.eventticketing.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.nicha.eventticketing.data.model.EventPreview
+import coil.request.ImageRequest
+import com.nicha.eventticketing.data.remote.dto.event.EventDto
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EventCarousel(
-    events: List<EventPreview>,
-    onEventClick: (String) -> Unit
+    events: List<EventDto>,
+    onEventClick: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(pageCount = { events.size })
     
-    Column {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(220.dp)
+    ) {
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.height(220.dp)
+            modifier = Modifier.fillMaxSize()
         ) { page ->
             val event = events[page]
             
-            Card(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                onClick = { onEventClick(event.id) }
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { onEventClick(event.id) }
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                ) {
+                // Event image
                     AsyncImage(
-                        model = event.featuredImageUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(event.featuredImageUrl)
+                        .crossfade(true)
+                        .build(),
                         contentDescription = event.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -60,7 +74,7 @@ fun EventCarousel(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(
-                                androidx.compose.ui.graphics.Brush.verticalGradient(
+                            brush = Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
                                         Color.Black.copy(alpha = 0.7f)
@@ -71,18 +85,19 @@ fun EventCarousel(
                             )
                     )
                     
-                    // Event info
+                // Event details
                     Column(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
+                        .fillMaxWidth()
                             .padding(16.dp)
                     ) {
                         Text(
                             text = event.title,
                             style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                             color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
+                        maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                         
@@ -92,8 +107,8 @@ fun EventCarousel(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = null,
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = "Date",
                                 tint = Color.White,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -101,7 +116,7 @@ fun EventCarousel(
                             Spacer(modifier = Modifier.width(4.dp))
                             
                             Text(
-                                text = event.startDate,
+                            text = formatDate(event.startDate),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.White
                             )
@@ -110,7 +125,7 @@ fun EventCarousel(
                             
                             Icon(
                                 imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
+                            contentDescription = "Location",
                                 tint = Color.White,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -118,39 +133,57 @@ fun EventCarousel(
                             Spacer(modifier = Modifier.width(4.dp))
                             
                             Text(
-                                text = event.address,
+                            text = event.locationName,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.White,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                        }
                     }
                 }
             }
         }
         
-        // Indicator
+        // Page indicators
         Row(
-            Modifier
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.Center
         ) {
-            repeat(events.size) { iteration ->
-                val color = if (pagerState.currentPage == iteration) 
-                    MaterialTheme.colorScheme.primary 
-                else 
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                
+            repeat(events.size) { index ->
                 Box(
                     modifier = Modifier
                         .padding(horizontal = 4.dp)
+                        .size(
+                            width = if (pagerState.currentPage == index) 24.dp else 8.dp,
+                            height = 8.dp
+                        )
                         .clip(CircleShape)
-                        .background(color)
-                        .size(8.dp)
+                        .background(
+                            if (pagerState.currentPage == index) 
+                                MaterialTheme.colorScheme.primary
+                            else 
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        )
                 )
             }
         }
+    }
+}
+
+private fun formatDate(dateString: String): String {
+    return try {
+        val inputFormat = if (dateString.contains("T")) {
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+        } else {
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        }
+        val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        val date = inputFormat.parse(dateString)
+        date?.let { outputFormat.format(it) } ?: dateString.split("T")[0].replace("-", "/")
+    } catch (e: Exception) {
+        dateString.split("T")[0].replace("-", "/")
     }
 } 
