@@ -19,6 +19,9 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.inject.Inject
 import retrofit2.HttpException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * ViewModel để quản lý dữ liệu vé
@@ -65,6 +68,58 @@ class TicketViewModel @Inject constructor(
                         Timber.e("Không thể lấy danh sách vé từ response")
                         _ticketsState.value = ResourceState.Error("Không thể lấy danh sách vé")
                     }
+                } else {
+                    val errorMessage = response.body()?.message ?: "Không thể lấy danh sách vé"
+                    Timber.e("Lấy danh sách vé thất bại: $errorMessage")
+                    _ticketsState.value = ResourceState.Error(errorMessage)
+                }
+            } catch (e: Exception) {
+                handleNetworkError(e, "lấy danh sách vé", _ticketsState)
+            }
+        }
+    }
+    
+    /**
+     * Lấy danh sách vé của người dùng với bộ lọc nâng cao
+     */
+    fun getMyTicketsWithFilter(tabId: String, page: Int = 0, size: Int = 10) {
+        _ticketsState.value = ResourceState.Loading
+        
+        viewModelScope.launch {
+            try {
+                Timber.d("Đang lấy danh sách vé của người dùng với tab: $tabId")
+                
+                // Xác định status dựa trên tab
+                val status = when (tabId) {
+                    "active" -> "PAID"
+                    "expired" -> "EXPIRED"
+                    "cancelled" -> "CANCELLED"
+                    else -> null
+                }
+                
+                val response = apiService.getMyTickets(status, page, size)
+                
+                if (response.isSuccessful && response.body()?.success == true) {
+                    var tickets = response.body()?.data?.content ?: emptyList()
+                    
+                    // Lọc thêm cho tab "active" (chưa sử dụng)
+                    if (tabId == "active") {
+                        // Lọc các vé đã thanh toán, chưa check-in, chưa hết hạn
+                        tickets = tickets.filter { ticket ->
+                            // Kiểm tra ngày hết hạn của vé
+                            val eventEndDate = parseDate(ticket.eventEndDate)
+                            val now = Date()
+                            
+                            // Vé còn hạn nếu ngày kết thúc sự kiện > hiện tại
+                            val isNotExpired = eventEndDate?.after(now) ?: true
+                            
+                            // Vé chưa sử dụng nếu status = PAID và chưa hết hạn
+                            ticket.status == "PAID" && isNotExpired
+                        }
+                    }
+                    
+                    _ticketsState.value = ResourceState.Success(tickets)
+                    Timber.d("Lấy danh sách vé thành công: ${tickets.size} vé")
                 } else {
                     val errorMessage = response.body()?.message ?: "Không thể lấy danh sách vé"
                     Timber.e("Lấy danh sách vé thất bại: $errorMessage")
@@ -314,6 +369,21 @@ class TicketViewModel @Inject constructor(
     fun resetCheckInError() {
         if (_checkInState.value is ResourceState.Error) {
             _checkInState.value = ResourceState.Initial
+        }
+    }
+
+    // Hàm tiện ích để phân tích chuỗi ngày thành đối tượng Date
+    private fun parseDate(dateString: String): Date? {
+        return try {
+            val format = if (dateString.contains("T")) {
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+            } else {
+                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            }
+            format.parse(dateString)
+        } catch (e: Exception) {
+            Timber.e(e, "Lỗi khi phân tích chuỗi ngày: $dateString")
+            null
         }
     }
 } 
