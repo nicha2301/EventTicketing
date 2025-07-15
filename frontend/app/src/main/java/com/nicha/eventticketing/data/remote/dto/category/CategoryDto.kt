@@ -1,15 +1,18 @@
 package com.nicha.eventticketing.data.remote.dto.category
 
 /**
- * DTO cho Category từ API
+ * DTO cho thông tin danh mục
  */
 data class CategoryDto(
     val id: String,
     val name: String,
     val description: String?,
     val iconUrl: String?,
-    val createdAt: String,
-    val updatedAt: String
+    val isActive: Boolean,
+    val parentId: String?,
+    val parentName: String?,
+    val createdAt: String?,
+    val updatedAt: String?
 )
 
 /**

@@ -4,6 +4,8 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,12 +28,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.nicha.eventticketing.ui.theme.GradientEnd
 
 /**
  * Primary button với animation loading và ripple effect
@@ -42,7 +48,9 @@ fun PrimaryButton(
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
     enabled: Boolean = true,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 16.dp)
+    contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+    leadingIcon: ImageVector? = null,
+    useGradient: Boolean = true
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
@@ -50,6 +58,22 @@ fun PrimaryButton(
         animationSpec = tween(durationMillis = 100)
     )
     val haptic = LocalHapticFeedback.current
+    
+    val buttonColors = if (useGradient) {
+        ButtonDefaults.buttonColors(
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = Color.Transparent,
+            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+    } else {
+        ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+    }
     
     Button(
         onClick = {
@@ -72,40 +96,85 @@ fun PrimaryButton(
                 )
             ),
         shape = RoundedCornerShape(28.dp),
-        contentPadding = contentPadding,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-        ),
+        contentPadding = if (useGradient) PaddingValues(0.dp) else contentPadding,
+        colors = buttonColors,
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = 4.dp,
             pressedElevation = 8.dp,
             disabledElevation = 0.dp
         )
     ) {
-        Box(
-            contentAlignment = Alignment.Center
-        ) {
-            if (isLoading) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.5.dp
+        if (useGradient) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = if (enabled && !isLoading) {
+                                listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    GradientEnd
+                                )
+                            } else {
+                                listOf(
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                ButtonContent(text, isLoading, leadingIcon)
+            }
+        } else {
+            ButtonContent(text, isLoading, leadingIcon)
+        }
+    }
+}
+
+@Composable
+private fun ButtonContent(
+    text: String,
+    isLoading: Boolean,
+    leadingIcon: ImageVector? = null
+) {
+    Box(
+        contentAlignment = Alignment.Center
+    ) {
+        if (isLoading) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.5.dp
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Loading...",
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                if (leadingIcon != null) {
+                    Icon(
+                        imageVector = leadingIcon,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Loading...",
-                        style = MaterialTheme.typography.labelLarge,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
-            } else {
                 Text(
                     text = text,
                     style = MaterialTheme.typography.labelLarge,

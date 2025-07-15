@@ -104,7 +104,7 @@ class EventMapper @Inject constructor() {
             address = entity.address,
             latitude = entity.latitude,
             longitude = entity.longitude,
-            location = "", /
+            location = "",
             organizerId = entity.organizerId,
             organizerName = entity.organizerName,
             category = null, 

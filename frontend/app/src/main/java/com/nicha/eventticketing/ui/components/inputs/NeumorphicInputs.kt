@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -24,6 +25,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.nicha.eventticketing.ui.theme.CardBackground
 import com.nicha.eventticketing.ui.theme.LocalNeumorphismStyle
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -190,6 +197,7 @@ fun NeumorphicSearchField(
     modifier: Modifier = Modifier,
     placeholder: String = "Search...",
     onSearch: () -> Unit = {},
+    onKeyboardSearch: () -> Unit = onSearch,
     readOnly: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
@@ -197,38 +205,81 @@ fun NeumorphicSearchField(
     val shape = RoundedCornerShape(24.dp)
     val isDarkTheme = MaterialTheme.colorScheme.background == Color(0xFF121212)
     val bgColor = if (isDarkTheme) CardBackground else Color.White
+    
+    // Theo dõi trạng thái focus
+    var isFocused by remember { mutableStateOf(false) }
+    
+    // Hiệu ứng shadow dựa trên trạng thái focus
+    val elevation = if (isFocused) 8.dp else neumorphismStyle.shadowElevation
+    
+    // Màu border khi focus
+    val borderColor = if (isFocused) 
+        MaterialTheme.colorScheme.primary 
+    else 
+        Color.Transparent
+    
     val modifierWithClick = if (onClick != null && readOnly) {
         modifier.clickable(onClick = onClick)
     } else {
         modifier
     }
+    
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifierWithClick
             .fillMaxWidth()
             .shadow(
-                elevation = neumorphismStyle.shadowElevation,
+                elevation = elevation,
                 shape = shape,
                 spotColor = neumorphismStyle.darkShadowColor,
                 ambientColor = neumorphismStyle.lightShadowColor
             )
-            .background(bgColor, shape),
+            .background(bgColor, shape)
+            .onFocusChanged { isFocused = it.isFocused },
         shape = shape,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-            unfocusedBorderColor = Color.Transparent
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = Color.Transparent,
+            focusedContainerColor = bgColor,
+            unfocusedContainerColor = bgColor,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+            unfocusedLeadingIconColor = if (isDarkTheme) Color.White.copy(alpha = 0.7f) else Color.Gray,
+            focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+            unfocusedTrailingIconColor = if (isDarkTheme) Color.White.copy(alpha = 0.7f) else Color.Gray,
+            focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         ),
         placeholder = { Text(text = placeholder) },
         leadingIcon = { 
             Icon(
                 Icons.Default.Search, 
                 contentDescription = "Search",
-                tint = if (isDarkTheme) Color.White else Color.Gray
+                modifier = Modifier.size(20.dp)
             ) 
+        },
+        trailingIcon = {
+            AnimatedVisibility(
+                visible = value.isNotEmpty() || isFocused,
+                enter = fadeIn() + expandHorizontally(),
+                exit = fadeOut() + shrinkHorizontally()
+            ) {
+                IconButton(onClick = onSearch) {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         },
         keyboardOptions = KeyboardOptions(
             imeAction = ImeAction.Search
+        ),
+        keyboardActions = KeyboardActions(
+            onSearch = { onKeyboardSearch() }
         ),
         singleLine = true,
         readOnly = readOnly

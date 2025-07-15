@@ -47,9 +47,10 @@ import java.util.Date
 import androidx.compose.ui.text.style.TextAlign
 import java.text.SimpleDateFormat
 import java.util.Locale
-import java.text.NumberFormat
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
+import com.nicha.eventticketing.util.FormatUtils
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.graphicsLayer
 
 
 enum class EventStatus {
@@ -277,8 +278,7 @@ fun HomeScreen(
                         
                         Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                                .height(250.dp) // Cố định chiều cao của container
+                            .fillMaxWidth() 
                         ) {
                             when {
                                 isCategoryEventsLoading -> {
@@ -542,60 +542,139 @@ fun CategoryItem(
     val context = LocalContext.current
     val interactionSource = remember { MutableInteractionSource() }
     
+    // Hiệu ứng scale khi được chọn
+    val scale = if (isSelected) 1.05f else 1f
+    
+    // Màu gradient cho nền khi được chọn
+    val backgroundBrush = if (isSelected) {
+        Brush.verticalGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.primary,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surface,
+                MaterialTheme.colorScheme.surface
+            )
+        )
+    }
+    
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(72.dp)
+            .width(80.dp)
+            .padding(vertical = 4.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
     ) {
-        Box(
-                modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(
-                    if (isSelected) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.surfaceVariant
-                )
+        Card(
+            modifier = Modifier
+                .size(64.dp)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = onClick
                 ),
-            contentAlignment = Alignment.Center
+            shape = CircleShape,
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = if (isSelected) 6.dp else 1.dp
+            ),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isSelected) 
+                    MaterialTheme.colorScheme.primary 
+                else 
+                    MaterialTheme.colorScheme.surface
+            ),
+            border = BorderStroke(
+                width = if (isSelected) 0.dp else 0.5.dp,
+                color = if (isSelected) 
+                    MaterialTheme.colorScheme.primary 
+                else 
+                    MaterialTheme.colorScheme.outlineVariant
+            )
         ) {
-            if (category.iconUrl != null) {
-                // Sử dụng iconUrl từ API
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(category.iconUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = category.name,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(32.dp),
-                    error = painterResource(id = R.drawable.ic_category_default)
-                )
-            } else {
-                // Sử dụng biểu tượng fallback nếu không có iconUrl
-                Icon(
-                    imageVector = fallbackIcon,
-                    contentDescription = category.name,
-                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                           else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
-                )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(backgroundBrush),
+                contentAlignment = Alignment.Center
+            ) {
+                if (category.iconUrl != null) {
+                    // Sử dụng iconUrl từ API
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .padding(6.dp)
+                            .background(
+                                color = if (isSelected)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                else
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(category.iconUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = category.name,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .padding(4.dp),
+                            error = painterResource(id = R.drawable.ic_category_default)
+                        )
+                    }
+                } else {
+                    // Sử dụng biểu tượng fallback nếu không có iconUrl
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .padding(6.dp)
+                            .background(
+                                color = if (isSelected)
+                                    MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
+                                else
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = fallbackIcon,
+                            contentDescription = category.name,
+                            tint = if (isSelected) 
+                                MaterialTheme.colorScheme.onPrimary
+                            else 
+                                MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .size(24.dp)
+                        )
+                    }
+                }
             }
         }
                 
-                Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(8.dp))
                 
-                Text(
-                    text = category.name,
-                    style = MaterialTheme.typography.bodySmall,
-            color = if (isSelected) MaterialTheme.colorScheme.primary
-                   else MaterialTheme.colorScheme.onSurface,
+        Text(
+            text = category.name,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isSelected) 
+                MaterialTheme.colorScheme.primary
+            else 
+                MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
         )
     }
 } 
@@ -611,6 +690,7 @@ fun EventListItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp)
             .clip(cardShape)
             .clickable(
                 interactionSource = interactionSource,
@@ -621,19 +701,23 @@ fun EventListItem(
         shape = cardShape,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            width = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(IntrinsicSize.Min)
-                .padding(12.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Event image with overlay gradient
             Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(110.dp)
                     .clip(RoundedCornerShape(12.dp))
             ) {
                 AsyncImage(
@@ -646,20 +730,50 @@ fun EventListItem(
                     modifier = Modifier.fillMaxSize()
                 )
                 
-                // Status indicator
-                val statusColor = when {
-                    event.isFeatured -> MaterialTheme.colorScheme.primary
-                    event.isFree -> MaterialTheme.colorScheme.tertiary
-                    else -> MaterialTheme.colorScheme.secondary
-                }
-                
+                // Gradient overlay
                 Box(
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp)
-                        .size(8.dp)
-                        .background(statusColor, CircleShape)
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.1f),
+                                    Color.Black.copy(alpha = 0.3f)
+                                ),
+                                startY = 0f,
+                                endY = 300f
+                            )
+                        )
                 )
+                
+                // Status indicator
+                if (event.isFeatured || event.isFree) {
+                    Surface(
+                        shape = RoundedCornerShape(bottomEnd = 8.dp),
+                        color = when {
+                            event.isFeatured -> MaterialTheme.colorScheme.tertiary
+                            event.isFree -> MaterialTheme.colorScheme.secondary
+                            else -> MaterialTheme.colorScheme.primary
+                        },
+                        modifier = Modifier.align(Alignment.TopStart)
+                    ) {
+                        Text(
+                            text = when {
+                                event.isFeatured -> "Nổi bật"
+                                event.isFree -> "Miễn phí"
+                                else -> ""
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = when {
+                                event.isFeatured -> MaterialTheme.colorScheme.onTertiary
+                                event.isFree -> MaterialTheme.colorScheme.onSecondary
+                                else -> MaterialTheme.colorScheme.onPrimary
+                            },
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
             }
             
             // Event details
@@ -668,76 +782,68 @@ fun EventListItem(
                     .weight(1f)
                     .padding(start = 16.dp)
             ) {
-                // Title with possible badge
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = event.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    
-                    if (event.isFeatured) {
-                        Box(
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .size(6.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape)
-                        )
-                    }
-                }
+                // Title
+                Text(
+                    text = event.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
                 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 
-                // Date
-                val dateFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-                val outputDateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                
-                val startDate = try {
-                    dateFormatter.parse(event.startDate)
-                } catch (e: Exception) {
-                    null
-                }
-                
-                val formattedDate = startDate?.let { outputDateFormatter.format(it) } ?: event.startDate.split("T")[0]
-                
+                // Date and location
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(vertical = 2.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday,
-                        contentDescription = "Date",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
-                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = "Date",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(3.dp)
+                                .size(14.dp)
+                        )
+                    }
                     
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     
                     Text(
-                        text = formattedDate,
+                        text = FormatUtils.formatDate(event.startDate),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
-                // Location
+                Spacer(modifier = Modifier.height(4.dp))
+                
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(vertical = 2.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Location",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
-                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Location",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(3.dp)
+                                .size(14.dp)
+                        )
+                    }
                     
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     
                     Text(
                         text = event.locationName,
@@ -748,39 +854,25 @@ fun EventListItem(
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 
                 // Price tag
+                val priceText = FormatUtils.formatEventPrice(event.minTicketPrice, event.isFree)
                 
-                val priceText = when {
-                    event.isFree -> "Miễn phí"
-                    event.minTicketPrice != null -> {
-                        formatPrice(event.minTicketPrice)
-                    }
-                    else -> "Chưa có giá"
-                }
-                
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f))
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.align(Alignment.Start)
                 ) {
                     Text(
                         text = priceText,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
             }
         }
     }
-}
-
-private fun formatPrice(price: Double): String {
-    // Sử dụng DecimalFormat để định dạng số theo chuẩn Việt Nam
-    val formatter = DecimalFormat("#,###")
-    formatter.decimalFormatSymbols = DecimalFormatSymbols(Locale("vi", "VN"))
-    return formatter.format(price) + " VNĐ"
 } 

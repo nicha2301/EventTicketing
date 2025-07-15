@@ -38,6 +38,7 @@ object NetworkModule {
     @Singleton
     fun provideMoshi(): Moshi {
         return Moshi.Builder()
+            .add(com.nicha.eventticketing.data.remote.adapter.TicketTypeAdapter())
             .add(KotlinJsonAdapterFactory())
             .build()
     }

@@ -160,11 +160,9 @@ fun NavGraph(
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onBuyTicketsClick = { id ->
-                    // Placeholder for ticket purchase navigation
-                    // In a real implementation, we would navigate to the payment screen
-                    // with the selected ticket type and quantity
-                    navController.navigate(NavDestination.Payment.createRoute(id, "Standard", 1))
+                onBuyTicketsClick = { eventId, ticketTypeId ->
+                    // Chuyển đến màn hình thanh toán với ID sự kiện và ID loại vé
+                    navController.navigate(NavDestination.Payment.createRoute(eventId, ticketTypeId, 1))
                 }
             )
         }
