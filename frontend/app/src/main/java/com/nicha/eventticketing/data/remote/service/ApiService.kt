@@ -33,6 +33,11 @@ import com.nicha.eventticketing.data.remote.dto.promotion.PromotionDto
 import com.nicha.eventticketing.data.remote.dto.promotion.PromotionCreateDto
 import com.nicha.eventticketing.data.remote.dto.promotion.PromotionUpdateDto
 import com.nicha.eventticketing.data.remote.dto.promotion.PromotionValidationDto
+import com.nicha.eventticketing.data.remote.dto.payment.PaymentRequestDto
+import com.nicha.eventticketing.data.remote.dto.payment.PaymentResponseDto
+import com.nicha.eventticketing.data.remote.dto.event.EventImageDto
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeDto
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -41,6 +46,8 @@ import retrofit2.http.PUT
 import retrofit2.http.DELETE
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Multipart
+import retrofit2.http.Part
 
 /**
  * Interface cho các API endpoints
@@ -145,11 +152,51 @@ interface ApiService {
     @PUT("api/events/{id}")
     suspend fun updateEvent(@Path("id") eventId: String, @Body event: EventDto): Response<ApiResponse<EventDto>>
     
+    @DELETE("api/events/{id}")
+    suspend fun deleteEvent(@Path("id") eventId: String): Response<ApiResponse<Boolean>>
+    
     @PUT("api/events/{id}/publish")
     suspend fun publishEvent(@Path("id") eventId: String): Response<ApiResponse<EventDto>>
     
     @PUT("api/events/{id}/cancel")
     suspend fun cancelEvent(@Path("id") eventId: String, @Body reason: Map<String, String>): Response<ApiResponse<EventDto>>
+    
+    // Event Images
+    @GET("api/events/{eventId}/images")
+    suspend fun getEventImages(@Path("eventId") eventId: String): Response<ApiResponse<List<EventImageDto>>>
+    
+    @Multipart
+    @POST("api/events/{id}/images")
+    suspend fun uploadEventImage(
+        @Path("id") eventId: String,
+        @Part image: MultipartBody.Part,
+        @Query("isPrimary") isPrimary: Boolean = false
+    ): Response<ApiResponse<EventImageDto>>
+    
+    @DELETE("api/events/{eventId}/images/{imageId}")
+    suspend fun deleteEventImage(
+        @Path("eventId") eventId: String,
+        @Path("imageId") imageId: String
+    ): Response<ApiResponse<Boolean>>
+    
+    // Ticket Types
+    @GET("api/events/{eventId}/ticket-types")
+    suspend fun getTicketTypes(@Path("eventId") eventId: String): Response<ApiResponse<List<TicketTypeDto>>>
+    
+    @POST("api/events/{eventId}/ticket-types")
+    suspend fun createTicketType(
+        @Path("eventId") eventId: String,
+        @Body ticketType: TicketTypeDto
+    ): Response<ApiResponse<TicketTypeDto>>
+    
+    @PUT("api/ticket-types/{id}")
+    suspend fun updateTicketType(
+        @Path("id") ticketTypeId: String,
+        @Body ticketType: TicketTypeDto
+    ): Response<ApiResponse<TicketTypeDto>>
+    
+    @DELETE("api/ticket-types/{id}")
+    suspend fun deleteTicketType(@Path("id") ticketTypeId: String): Response<ApiResponse<Boolean>>
     
     // Tickets
     @POST("api/tickets/purchase")
@@ -335,8 +382,8 @@ interface ApiService {
     @GET("api/payments/{paymentId}")
     suspend fun getPaymentById(@Path("paymentId") paymentId: String): Response<ApiResponse<PaymentDto>>
     
-    @POST("api/payments")
-    suspend fun createPayment(@Body payment: PaymentCreateDto): Response<ApiResponse<PaymentDto>>
+    @POST("api/payments/create")
+    suspend fun createPayment(@Body payment: PaymentRequestDto): Response<ApiResponse<PaymentResponseDto>>
     
     @PUT("api/payments/{paymentId}/status")
     suspend fun updatePaymentStatus(
@@ -347,19 +394,14 @@ interface ApiService {
     @GET("api/payments/methods")
     suspend fun getPaymentMethods(): Response<ApiResponse<List<PaymentMethodDto>>>
     
-    @GET("api/payments/user/{userId}")
-    suspend fun getUserPayments(
-        @Path("userId") userId: String,
-        @Query("page") page: Int = 0,
-        @Query("size") size: Int = 20
-    ): Response<ApiResponse<PageDto<PaymentDto>>>
+    @GET("api/users/me/payments")
+    suspend fun getCurrentUserPayments(): Response<ApiResponse<List<PaymentResponseDto>>>
     
-    @GET("api/payments/order/{orderId}")
-    suspend fun getOrderPayments(
-        @Path("orderId") orderId: String,
-        @Query("page") page: Int = 0,
-        @Query("size") size: Int = 20
-    ): Response<ApiResponse<PageDto<PaymentDto>>>
+    @POST("api/payments/{id}/refund")
+    suspend fun refundPayment(
+        @Path("id") paymentId: String,
+        @Body refundRequest: Map<String, Any>
+    ): Response<ApiResponse<PaymentResponseDto>>
     
     // Promotions
     @GET("api/promotions")

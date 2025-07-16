@@ -1,35 +1,40 @@
 package com.nicha.eventticketing.data.remote.dto.event
 
-import java.util.Date
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeDto
 
+/**
+ * DTO cho thông tin sự kiện
+ */
 data class EventDto(
     val id: String,
     val title: String,
     val description: String,
-    val startDate: String,
-    val endDate: String,
-    val status: String, // DRAFT, PUBLISHED, CANCELLED, COMPLETED
-    val address: String?,
-    val latitude: Double?,
-    val longitude: Double?,
-    val location: String?,
+    val shortDescription: String?,
     val organizerId: String,
     val organizerName: String,
-    val categoryId: String?,
-    val categoryName: String?,
+    val categoryId: String,
+    val categoryName: String,
+    val locationId: String,
+    val locationName: String,
+    val address: String,
+    val city: String,
+    val latitude: Double?,
+    val longitude: Double?,
+    val status: String,
+    val maxAttendees: Int,
+    val currentAttendees: Int,
     val featuredImageUrl: String?,
-    val imageUrl: String?,
+    val imageUrls: List<String>,
     val minTicketPrice: Double?,
     val maxTicketPrice: Double?,
-    val price: Double?,
-    val ticketsSold: Int,
-    val totalTickets: Int,
-    val availableSeats: Int?,
-    val totalSeats: Int?,
-    val averageRating: Double,
-    val ratingCount: Int,
+    val startDate: String,
+    val endDate: String,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val isPrivate: Boolean,
+    val isFeatured: Boolean,
+    val isFree: Boolean,
+    val ticketTypes: List<TicketTypeDto>?
 )
 
 data class EventCreateDto(
@@ -55,15 +60,4 @@ data class EventUpdateDto(
     val price: Double?,
     val totalSeats: Int?,
     val status: String?
-)
-
-data class PageDto<T>(
-    val content: List<T>,
-    val totalPages: Int,
-    val totalElements: Long,
-    val size: Int,
-    val number: Int,
-    val first: Boolean,
-    val last: Boolean,
-    val empty: Boolean
 ) 

@@ -24,22 +24,18 @@ object QRCodeGenerator {
      */
     fun generateQRCode(content: String, size: Int = 512, margin: Int = 2): Bitmap? {
         return try {
-            // Tạo hints để cấu hình mã QR
             val hints: MutableMap<EncodeHintType, Any> = EnumMap(EncodeHintType::class.java)
             hints[EncodeHintType.CHARACTER_SET] = "UTF-8"
-            hints[EncodeHintType.ERROR_CORRECTION] = ErrorCorrectionLevel.H // Mức độ sửa lỗi cao nhất
+            hints[EncodeHintType.ERROR_CORRECTION] = ErrorCorrectionLevel.H 
             hints[EncodeHintType.MARGIN] = margin
             
-            // Tạo mã QR
             val writer = QRCodeWriter()
             val bitMatrix = writer.encode(content, BarcodeFormat.QR_CODE, size, size, hints)
             
-            // Chuyển đổi ma trận bit thành bitmap
             val width = bitMatrix.width
             val height = bitMatrix.height
             val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             
-            // Đặt màu cho từng điểm ảnh
             for (x in 0 until width) {
                 for (y in 0 until height) {
                     bitmap.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)

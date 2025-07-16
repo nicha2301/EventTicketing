@@ -38,6 +38,15 @@ import java.util.Locale
 import androidx.compose.ui.text.style.TextAlign
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
+import com.nicha.eventticketing.util.FormatUtils
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.CalendarToday
+import coil.request.ImageRequest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -260,79 +269,195 @@ fun SearchResultItem(
     event: EventDto,
     onClick: () -> Unit
 ) {
+    val cardShape = RoundedCornerShape(16.dp)
+    val interactionSource = remember { MutableInteractionSource() }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .clip(cardShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = cardShape,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            width = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
     ) {
         Row(
-            modifier = Modifier.height(IntrinsicSize.Min)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Event image
-            AsyncImage(
-                model = event.featuredImageUrl,
-                contentDescription = event.title,
-                contentScale = ContentScale.Crop,
+            // Event image with overlay gradient
+            Box(
                 modifier = Modifier
-                    .width(120.dp)
-                    .height(120.dp)
-                    .clip(RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
-            )
+                    .size(110.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(event.featuredImageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = event.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                
+                // Gradient overlay
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.1f),
+                                    Color.Black.copy(alpha = 0.3f)
+                                ),
+                                startY = 0f,
+                                endY = 300f
+                            )
+                        )
+                )
+                
+                // Status indicator
+                if (event.isFeatured || event.isFree) {
+                    Surface(
+                        shape = RoundedCornerShape(bottomEnd = 8.dp),
+                        color = when {
+                            event.isFeatured -> MaterialTheme.colorScheme.tertiary
+                            event.isFree -> MaterialTheme.colorScheme.secondary
+                            else -> MaterialTheme.colorScheme.primary
+                        },
+                        modifier = Modifier.align(Alignment.TopStart)
+                    ) {
+                        Text(
+                            text = when {
+                                event.isFeatured -> "Nổi bật"
+                                event.isFree -> "Miễn phí"
+                                else -> ""
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = when {
+                                event.isFeatured -> MaterialTheme.colorScheme.onTertiary
+                                event.isFree -> MaterialTheme.colorScheme.onSecondary
+                                else -> MaterialTheme.colorScheme.onPrimary
+                            },
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
             
-            // Event info
+            // Event details
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(16.dp)
+                    .padding(start = 16.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = event.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 2.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(4.dp))
-                    
+                Column {
                     Text(
-                        text = event.locationName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        maxLines = 1,
+                        text = event.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Date
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarToday,
+                                contentDescription = "Date",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .padding(3.dp)
+                                    .size(14.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.width(6.dp))
+                        
+                        Text(
+                            text = FormatUtils.formatDate(event.startDate),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // Location
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = "Location",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .padding(3.dp)
+                                    .size(14.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.width(6.dp))
+                        
+                        Text(
+                            text = event.locationName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
                 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 
                 // Price
-                Text(
-                    text = if (event.isFree) {
-                        "Miễn phí"
-                    } else if (event.minTicketPrice != null) {
-                        "Từ ${formatPrice(event.minTicketPrice)}"
-                    } else {
-                        "Chưa có giá"
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.align(Alignment.Start)
+                ) {
+                    Text(
+                        text = FormatUtils.formatEventPrice(event.minTicketPrice, event.isFree, "Từ "),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
             }
         }
     }
@@ -456,10 +581,4 @@ fun FilterDialog(
             }
         }
     )
-}
-
-private fun formatPrice(price: Double): String {
-    val formatter = DecimalFormat("#,###")
-    formatter.decimalFormatSymbols = DecimalFormatSymbols(Locale("vi", "VN"))
-    return formatter.format(price) + " VNĐ"
 }

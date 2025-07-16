@@ -47,18 +47,15 @@ fun QRCodeImage(
     var isError by remember { mutableStateOf(false) }
     var qrBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     
-    // Tạo mã QR trong coroutine
     LaunchedEffect(ticketId, ticketNumber) {
         isLoading = true
         isError = false
         
         withContext(Dispatchers.IO) {
             try {
-                // Nếu có qrCodeUrl (chuỗi mã hóa), sử dụng nó
                 val bitmap = if (!qrCodeUrl.isNullOrBlank()) {
                     QRCodeGenerator.generateQRCode(qrCodeUrl)
                 } else {
-                    // Nếu không, tạo mã QR từ thông tin vé
                     QRCodeGenerator.generateTicketQRCode(ticketId, ticketNumber, eventId, userId)
                 }
                 

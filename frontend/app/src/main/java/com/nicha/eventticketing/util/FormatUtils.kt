@@ -20,7 +20,7 @@ object FormatUtils {
     fun formatPrice(price: Double?, includeCurrency: Boolean = true): String {
         if (price == null) return "Chưa có giá"
         
-        val formatter = DecimalFormat("#,###")
+        val formatter = DecimalFormat("#,##0.##")
         formatter.decimalFormatSymbols = DecimalFormatSymbols(Locale("vi", "VN"))
         return formatter.format(price) + (if (includeCurrency) " VNĐ" else "")
     }

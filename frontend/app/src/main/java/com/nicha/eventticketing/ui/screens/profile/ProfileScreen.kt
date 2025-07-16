@@ -88,12 +88,10 @@ fun ProfileScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     
-    // Refresh profile data when screen becomes visible
     LaunchedEffect(Unit) {
         viewModel.fetchUserProfile()
     }
     
-    // Show error message
     LaunchedEffect(profileState) {
         if (profileState is ProfileState.Error) {
             val errorMessage = (profileState as ProfileState.Error).message
@@ -102,10 +100,8 @@ fun ProfileScreen(
         }
     }
     
-    // Dialog state for logout confirmation
     var showLogoutDialog by remember { mutableStateOf(false) }
     
-    // Show loading indicator
     val isLoading = profileState is ProfileState.Loading
     
     if (showLogoutDialog) {
@@ -180,102 +176,102 @@ fun ProfileScreen(
                 CircularProgressIndicator()
             }
         } else {
-            Column(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Avatar
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Avatar
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .shadow(
-                            elevation = 8.dp,
-                            shape = CircleShape,
-                            spotColor = neumorphismStyle.darkShadowColor,
-                            ambientColor = neumorphismStyle.lightShadowColor
-                        )
-                        .clip(CircleShape)
-                        .background(CardBackground)
-                        .border(
-                            width = 4.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // User image or placeholder
-                    AsyncImage(
-                        model = userProfile?.profilePictureUrl ?: "https://picsum.photos/id/64/120/120",
-                        contentDescription = "Avatar",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
+                    .size(120.dp)
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = CircleShape,
+                        spotColor = neumorphismStyle.darkShadowColor,
+                        ambientColor = neumorphismStyle.lightShadowColor
                     )
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // User name
-                Text(
+                    .clip(CircleShape)
+                    .background(CardBackground)
+                    .border(
+                        width = 4.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                    // User image or placeholder
+                AsyncImage(
+                        model = userProfile?.profilePictureUrl ?: "https://picsum.photos/id/64/120/120",
+                    contentDescription = "Avatar",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // User name
+            Text(
                     text = userProfile?.fullName ?: "Đang tải...",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                // Email
-                Text(
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            
+            // Email
+            Text(
                     text = userProfile?.email ?: "",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                // Personal Information Section
-                NeumorphicCard(
-                    modifier = Modifier.fillMaxWidth()
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // Personal Information Section
+            NeumorphicCard(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 16.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Person,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = "Thông tin cá nhân",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        
-                        // Phone number
-                        ProfileInfoItem(
-                            icon = Icons.Filled.Phone,
-                            label = "Số điện thoại",
+                        Icon(
+                            imageVector = Icons.Filled.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = "Thông tin cá nhân",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    // Phone number
+                    ProfileInfoItem(
+                        icon = Icons.Filled.Phone,
+                        label = "Số điện thoại",
                             value = userProfile?.phoneNumber ?: "Chưa cập nhật"
-                        )
-                        
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                        )
-                        
+                    )
+                    
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                    )
+                    
                         // Role
-                        ProfileInfoItem(
+                    ProfileInfoItem(
                             icon = Icons.Filled.Badge,
                             label = "Vai trò",
                             value = when(userProfile?.role) {
@@ -284,112 +280,112 @@ fun ProfileScreen(
                                 "ADMIN" -> "Quản trị viên"
                                 else -> userProfile?.role ?: "Không xác định"
                             }
-                        )
-                        
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                        )
-                        
+                    )
+                    
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                    )
+                    
                         // Created date
-                        ProfileInfoItem(
+                    ProfileInfoItem(
                             icon = Icons.Filled.CalendarToday,
                             label = "Ngày tạo tài khoản",
                             value = userProfile?.createdAt ?: "Không xác định"
-                        )
-                    }
+                    )
                 }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Account Settings Section
-                NeumorphicCard(
-                    modifier = Modifier.fillMaxWidth()
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Account Settings Section
+            NeumorphicCard(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 16.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Settings,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = "Cài đặt tài khoản",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        
-                        // Settings items
-                        ProfileSettingItem(
-                            icon = Icons.Filled.Notifications,
-                            title = "Thông báo",
-                            subtitle = "Quản lý thông báo",
-                            onClick = onNotificationsClick
+                        Icon(
+                            imageVector = Icons.Filled.Settings,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
                         )
-                        
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                        )
-                        
-                        ProfileSettingItem(
-                            icon = Icons.Filled.Security,
-                            title = "Bảo mật",
-                            subtitle = "Đổi mật khẩu, xác thực 2 yếu tố",
-                            onClick = onSecurityClick
-                        )
-                        
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                        )
-                        
-                        ProfileSettingItem(
-                            icon = Icons.Filled.PrivacyTip,
-                            title = "Quyền riêng tư",
-                            subtitle = "Quản lý thông tin cá nhân",
-                            onClick = onPrivacyClick
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = "Cài đặt tài khoản",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
                     }
+                    
+                    // Settings items
+                    ProfileSettingItem(
+                        icon = Icons.Filled.Notifications,
+                        title = "Thông báo",
+                        subtitle = "Quản lý thông báo",
+                        onClick = onNotificationsClick
+                    )
+                    
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                    )
+                    
+                    ProfileSettingItem(
+                        icon = Icons.Filled.Security,
+                        title = "Bảo mật",
+                        subtitle = "Đổi mật khẩu, xác thực 2 yếu tố",
+                        onClick = onSecurityClick
+                    )
+                    
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                    )
+                    
+                    ProfileSettingItem(
+                        icon = Icons.Filled.PrivacyTip,
+                        title = "Quyền riêng tư",
+                        subtitle = "Quản lý thông tin cá nhân",
+                        onClick = onPrivacyClick
+                    )
                 }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Logout button
-                NeumorphicGradientButton(
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Logout button
+            NeumorphicGradientButton(
                     onClick = { showLogoutDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    gradient = Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Red,
-                            Color.Red.copy(alpha = 0.8f)
-                        )
+                modifier = Modifier.fillMaxWidth(),
+                gradient = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color.Red,
+                        Color.Red.copy(alpha = 0.8f)
                     )
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = null,
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                    contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Đăng xuất",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Đăng xuất",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
                 }
             }
         }
