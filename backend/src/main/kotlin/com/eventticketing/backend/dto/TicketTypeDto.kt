@@ -29,6 +29,8 @@ data class TicketTypeDto(
     
     val availableQuantity: Int? = null,
     
+    val quantitySold: Int = 0,
+    
     @field:NotNull(message = "ID sự kiện không được để trống")
     val eventId: UUID? = null,
     

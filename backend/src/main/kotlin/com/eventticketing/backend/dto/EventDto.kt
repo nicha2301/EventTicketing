@@ -50,7 +50,9 @@ data class EventDto(
     
     val isPrivate: Boolean = false,
     val isFeatured: Boolean = false,
-    val isFree: Boolean = false
+    val isFree: Boolean = false,
+    
+    val ticketTypes: List<TicketTypeDto>? = null
 )
 
 /**

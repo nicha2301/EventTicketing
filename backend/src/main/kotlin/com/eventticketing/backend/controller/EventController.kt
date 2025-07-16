@@ -14,7 +14,9 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
+import java.nio.charset.StandardCharsets
 import java.util.*
+import org.slf4j.LoggerFactory
 
 @RestController
 @RequestMapping("/api/events")
@@ -168,9 +170,8 @@ class EventController(
         )
     }
 
-    @PostMapping("/{id}/images")
+    @PostMapping("/{id}/images", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
-    @RequestMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     fun uploadEventImage(
         @PathVariable id: UUID,
         @RequestParam("image") image: MultipartFile,
