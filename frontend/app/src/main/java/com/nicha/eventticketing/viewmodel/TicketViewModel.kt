@@ -355,8 +355,6 @@ class TicketViewModel @Inject constructor(
         _ticketTypeState.value = ResourceState.Loading
         viewModelScope.launch {
             try {
-                // Nếu có API riêng cho ticket type, gọi ở đây. Nếu không, lấy từ vé của user hoặc event.
-                // Tạm thời lấy từ vé của user (nếu đã có trong cache)
                 val response = apiService.getMyTickets(null, 0, 100)
                 if (response.isSuccessful && response.body()?.success == true) {
                     val tickets = response.body()?.data?.content ?: emptyList()
@@ -364,7 +362,6 @@ class TicketViewModel @Inject constructor(
                         .distinctBy { it.first }
                         .find { it.first == ticketTypeId }
                     if (ticketType != null) {
-                        // Tạo TicketTypeDto tạm thời (chỉ có id và name)
                         _ticketTypeState.value = ResourceState.Success(
                             TicketTypeDto(
                                 id = ticketType.first,
@@ -374,10 +371,10 @@ class TicketViewModel @Inject constructor(
                                 price = 0.0,
                                 quantity = 0,
                                 quantitySold = 0,
-                                maxPerOrder = null,
-                                minPerOrder = 1,
-                                saleStartDate = null,
-                                saleEndDate = null
+                                maxTicketsPerCustomer = null,
+                                minTicketsPerOrder = 1,
+                                salesStartDate = null,
+                                salesEndDate = null
                             )
                         )
                     } else {

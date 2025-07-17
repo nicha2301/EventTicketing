@@ -66,29 +66,43 @@ class OrganizerEventViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val userId = preferencesManager.getUserId()
+                Timber.d("Đang lấy danh sách sự kiện của người tổ chức với userId: '$userId'")
+                
                 if (userId.isEmpty()) {
                     _organizerEventsState.value = ResourceState.Error("Không tìm thấy ID người dùng")
+                    Timber.e("Không thể lấy danh sách sự kiện: ID người dùng trống")
                     return@launch
                 }
                 
-                Timber.d("Đang lấy danh sách sự kiện của người tổ chức: $userId")
+                Timber.d("Gọi API getOrganizerEvents với organizerId: $userId, page: $page, size: $size")
                 val response = apiService.getOrganizerEvents(userId, page, size)
                 
-                if (response.isSuccessful && response.body()?.success == true) {
-                    val events = response.body()?.data
-                    if (events != null) {
-                        _organizerEventsState.value = ResourceState.Success(events)
-                        Timber.d("Lấy danh sách sự kiện của người tổ chức thành công: ${events.content.size} sự kiện")
+                if (response.isSuccessful) {
+                    val responseBody = response.body()
+                    Timber.d("API getOrganizerEvents trả về thành công: ${responseBody?.success}, message: ${responseBody?.message}")
+                    
+                    if (responseBody?.success == true) {
+                        val events = responseBody.data
+                        if (events != null) {
+                            _organizerEventsState.value = ResourceState.Success(events)
+                            Timber.d("Lấy danh sách sự kiện của người tổ chức thành công: ${events.content.size} sự kiện")
+                        } else {
+                            Timber.e("Không thể lấy danh sách sự kiện từ response: data là null")
+                            _organizerEventsState.value = ResourceState.Error("Không thể lấy danh sách sự kiện")
+                        }
                     } else {
-                        Timber.e("Không thể lấy danh sách sự kiện từ response")
-                        _organizerEventsState.value = ResourceState.Error("Không thể lấy danh sách sự kiện")
+                        val errorMessage = responseBody?.message ?: "Không thể lấy danh sách sự kiện"
+                        Timber.e("Lấy danh sách sự kiện thất bại: $errorMessage")
+                        _organizerEventsState.value = ResourceState.Error(errorMessage)
                     }
                 } else {
-                    val errorMessage = response.body()?.message ?: "Không thể lấy danh sách sự kiện"
-                    Timber.e("Lấy danh sách sự kiện thất bại: $errorMessage")
-                    _organizerEventsState.value = ResourceState.Error(errorMessage)
+                    val errorCode = response.code()
+                    val errorBody = response.errorBody()?.string() ?: "Unknown error"
+                    Timber.e("API getOrganizerEvents trả về lỗi: $errorCode, body: $errorBody")
+                    _organizerEventsState.value = ResourceState.Error("Lỗi API: $errorCode")
                 }
             } catch (e: Exception) {
+                Timber.e(e, "Exception khi gọi getOrganizerEvents: ${e.message}")
                 handleNetworkError(e, "lấy danh sách sự kiện", _organizerEventsState)
             }
         }

@@ -119,6 +119,15 @@ class AuthViewModel @Inject constructor(
                 return
             }
             
+            // Lưu userId
+            val saveUserIdResult = preferencesManager.saveUserId(userAuth.id)
+            if (!saveUserIdResult) {
+                Timber.e("Không thể lưu userId: ${userAuth.id}")
+                // Không cần dừng luồng vì đây không phải là lỗi nghiêm trọng
+            } else {
+                Timber.d("Đã lưu userId: ${userAuth.id}")
+            }
+            
             // Cập nhật thông tin người dùng
             val userDto = mapToUserDto(userAuth)
             _currentUser.value = userDto
@@ -234,6 +243,19 @@ class AuthViewModel @Inject constructor(
             } else {
                 Timber.e("Không thể xóa token")
             }
+            
+            // Xóa userId
+            try {
+                val saveUserIdResult = preferencesManager.saveUserId("")
+                if (saveUserIdResult) {
+                    Timber.d("Đã xóa userId thành công")
+                } else {
+                    Timber.e("Không thể xóa userId")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Lỗi khi xóa userId")
+            }
+            
             _currentUser.value = null
             _authState.value = AuthState.Unauthenticated
         }

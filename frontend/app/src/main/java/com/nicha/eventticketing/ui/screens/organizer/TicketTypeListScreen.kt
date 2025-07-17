@@ -349,7 +349,7 @@ fun TicketTypeItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${ticketType.quantity - ticketType.quantitySold}/${ticketType.quantity}",
+                        text = "${ticketType.availableQuantity}/${ticketType.quantity}",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -367,7 +367,7 @@ fun TicketTypeItem(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                color = if (ticketType.quantity - ticketType.quantitySold < ticketType.quantity * 0.2)
+                color = if (ticketType.availableQuantity < ticketType.quantity * 0.2)
                     MaterialTheme.colorScheme.error
                 else
                     MaterialTheme.colorScheme.primary
@@ -390,10 +390,10 @@ fun TicketTypeFormDialog(
     var description by remember { mutableStateOf(ticketType?.description ?: "") }
     var price by remember { mutableStateOf(ticketType?.price?.toString() ?: "0") }
     var quantity by remember { mutableStateOf(ticketType?.quantity?.toString() ?: "100") }
-    var saleStartDate by remember { mutableStateOf(ticketType?.saleStartDate ?: "") }
-    var saleEndDate by remember { mutableStateOf(ticketType?.saleEndDate ?: "") }
-    var maxPerOrder by remember { mutableStateOf(ticketType?.maxPerOrder?.toString() ?: "5") }
-    var minPerOrder by remember { mutableStateOf(ticketType?.minPerOrder?.toString() ?: "1") }
+    var salesStartDate by remember { mutableStateOf(ticketType?.salesStartDate ?: "") }
+    var salesEndDate by remember { mutableStateOf(ticketType?.salesEndDate ?: "") }
+    var maxTicketsPerCustomer by remember { mutableStateOf(ticketType?.maxTicketsPerCustomer?.toString() ?: "5") }
+    var minTicketsPerOrder by remember { mutableStateOf(ticketType?.minTicketsPerOrder?.toString() ?: "1") }
     
     // Date pickers
     var showStartDatePicker by remember { mutableStateOf(false) }
@@ -466,7 +466,7 @@ fun TicketTypeFormDialog(
                 
                 // Sales start date
                 OutlinedTextField(
-                    value = saleStartDate,
+                    value = salesStartDate,
                     onValueChange = { },
                     label = { Text("Ngày bắt đầu bán") },
                     modifier = Modifier.fillMaxWidth(),
@@ -485,7 +485,7 @@ fun TicketTypeFormDialog(
                 
                 // Sales end date
                 OutlinedTextField(
-                    value = saleEndDate,
+                    value = salesEndDate,
                     onValueChange = { },
                     label = { Text("Ngày kết thúc bán") },
                     modifier = Modifier.fillMaxWidth(),
@@ -507,8 +507,8 @@ fun TicketTypeFormDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     OutlinedTextField(
-                        value = minPerOrder,
-                        onValueChange = { minPerOrder = it },
+                        value = minTicketsPerOrder,
+                        onValueChange = { minTicketsPerOrder = it },
                         label = { Text("Mua tối thiểu") },
                         modifier = Modifier.weight(1f)
                     )
@@ -516,8 +516,8 @@ fun TicketTypeFormDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     
                     OutlinedTextField(
-                        value = maxPerOrder,
-                        onValueChange = { maxPerOrder = it },
+                        value = maxTicketsPerCustomer,
+                        onValueChange = { maxTicketsPerCustomer = it },
                         label = { Text("Mua tối đa") },
                         modifier = Modifier.weight(1f)
                     )
@@ -545,10 +545,10 @@ fun TicketTypeFormDialog(
                                 price = price.toDoubleOrNull() ?: 0.0,
                                 quantity = quantity.toIntOrNull() ?: 100,
                                 quantitySold = ticketType?.quantitySold ?: 0,
-                                maxPerOrder = maxPerOrder.toIntOrNull(),
-                                minPerOrder = minPerOrder.toIntOrNull() ?: 1,
-                                saleStartDate = saleStartDate,
-                                saleEndDate = saleEndDate
+                                maxTicketsPerCustomer = maxTicketsPerCustomer.toIntOrNull(),
+                                minTicketsPerOrder = minTicketsPerOrder.toIntOrNull() ?: 1,
+                                salesStartDate = salesStartDate,
+                                salesEndDate = salesEndDate
                             )
                             onSave(newTicketType)
                         },
@@ -569,7 +569,7 @@ fun TicketTypeFormDialog(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let {
-                            saleStartDate = dateFormatter.format(Date(it))
+                            salesStartDate = dateFormatter.format(Date(it))
                         }
                         showStartDatePicker = false
                     }
@@ -594,7 +594,7 @@ fun TicketTypeFormDialog(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let {
-                            saleEndDate = dateFormatter.format(Date(it))
+                            salesEndDate = dateFormatter.format(Date(it))
                         }
                         showEndDatePicker = false
                     }

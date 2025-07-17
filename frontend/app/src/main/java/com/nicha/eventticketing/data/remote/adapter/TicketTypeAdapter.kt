@@ -22,42 +22,67 @@ class TicketTypeAdapter {
         var description: String? = null
         var price = 0.0
         var quantity = 0
+        var availableQuantity = 0
         var quantitySold = 0
-        var maxPerOrder: Int? = null
-        var minPerOrder = 1
-        var saleStartDate: String? = null
-        var saleEndDate: String? = null
+        var maxTicketsPerCustomer: Int? = null
+        var minTicketsPerOrder = 1
+        var salesStartDate: String? = null
+        var salesEndDate: String? = null
+        var isEarlyBird = false
+        var isVIP = false
+        var isActive = true
+        var createdAt: String? = null
+        var updatedAt: String? = null
         
         reader.beginObject()
         while (reader.hasNext()) {
-            when (val fieldName = reader.nextName()) {
-                "id" -> id = reader.nextString()
-                "eventId" -> eventId = reader.nextString()
-                "name" -> name = reader.nextString()
+            val peek = reader.peek()
+            if (peek == JsonReader.Token.NULL) {
+                reader.skipValue()
+                continue
+            }
+            
+            val fieldName = reader.nextName()
+            when (fieldName) {
+                "id" -> id = if (reader.peek() == JsonReader.Token.NULL) { reader.nextNull<String>(); "" } else reader.nextString()
+                "eventId" -> eventId = if (reader.peek() == JsonReader.Token.NULL) { reader.nextNull<String>(); "" } else reader.nextString()
+                "name" -> name = if (reader.peek() == JsonReader.Token.NULL) { reader.nextNull<String>(); "" } else reader.nextString()
                 "description" -> description = if (reader.peek() == JsonReader.Token.NULL) reader.nextNull() else reader.nextString()
                 "price" -> {
                     try {
-                        // Đọc giá trị price dưới dạng String để tránh mất độ chính xác
-                        if (reader.peek() == JsonReader.Token.STRING) {
-                            val priceStr = reader.nextString()
-                            // Chuyển đổi từ String sang BigDecimal rồi sang Double để giữ độ chính xác
-                            price = BigDecimal(priceStr).toDouble()
-                            Timber.d("Đọc giá tiền từ String: $priceStr -> $price")
-                        } else {
-                            price = reader.nextDouble()
-                            Timber.d("Đọc giá tiền trực tiếp: $price")
+                        when (reader.peek()) {
+                            JsonReader.Token.NULL -> {
+                                reader.nextNull<String>()
+                                price = 0.0
+                            }
+                            JsonReader.Token.STRING -> {
+                                val priceStr = reader.nextString()
+                                price = try {
+                                    BigDecimal(priceStr).toDouble()
+                                } catch (e: Exception) {
+                                    Timber.e(e, "Lỗi khi chuyển đổi giá tiền từ String: $priceStr")
+                                    0.0
+                                }
+                            }
+                            else -> price = reader.nextDouble()
                         }
                     } catch (e: Exception) {
                         Timber.e(e, "Lỗi khi đọc giá tiền")
                         price = 0.0
                     }
                 }
-                "quantity" -> quantity = reader.nextInt()
-                "quantitySold" -> quantitySold = if (reader.peek() == JsonReader.Token.NULL) 0 else reader.nextInt()
-                "maxPerOrder" -> maxPerOrder = if (reader.peek() == JsonReader.Token.NULL) null else reader.nextInt()
-                "minPerOrder" -> minPerOrder = if (reader.peek() == JsonReader.Token.NULL) 1 else reader.nextInt()
-                "saleStartDate" -> saleStartDate = if (reader.peek() == JsonReader.Token.NULL) null else reader.nextString()
-                "saleEndDate" -> saleEndDate = if (reader.peek() == JsonReader.Token.NULL) null else reader.nextString()
+                "quantity" -> quantity = if (reader.peek() == JsonReader.Token.NULL) { reader.nextNull<Int>(); 0 } else reader.nextInt()
+                "availableQuantity" -> availableQuantity = if (reader.peek() == JsonReader.Token.NULL) { reader.nextNull<Int>(); 0 } else reader.nextInt()
+                "quantitySold" -> quantitySold = if (reader.peek() == JsonReader.Token.NULL) { reader.nextNull<Int>(); 0 } else reader.nextInt()
+                "maxTicketsPerCustomer" -> maxTicketsPerCustomer = if (reader.peek() == JsonReader.Token.NULL) { reader.nextNull<Int>(); null } else reader.nextInt()
+                "minTicketsPerOrder" -> minTicketsPerOrder = if (reader.peek() == JsonReader.Token.NULL) { reader.nextNull<Int>(); 1 } else reader.nextInt()
+                "salesStartDate" -> salesStartDate = if (reader.peek() == JsonReader.Token.NULL) reader.nextNull() else reader.nextString()
+                "salesEndDate" -> salesEndDate = if (reader.peek() == JsonReader.Token.NULL) reader.nextNull() else reader.nextString()
+                "isEarlyBird" -> isEarlyBird = if (reader.peek() == JsonReader.Token.NULL) { reader.nextNull<Boolean>(); false } else reader.nextBoolean()
+                "isVIP" -> isVIP = if (reader.peek() == JsonReader.Token.NULL) { reader.nextNull<Boolean>(); false } else reader.nextBoolean()
+                "isActive" -> isActive = if (reader.peek() == JsonReader.Token.NULL) { reader.nextNull<Boolean>(); true } else reader.nextBoolean()
+                "createdAt" -> createdAt = if (reader.peek() == JsonReader.Token.NULL) reader.nextNull() else reader.nextString()
+                "updatedAt" -> updatedAt = if (reader.peek() == JsonReader.Token.NULL) reader.nextNull() else reader.nextString()
                 else -> {
                     Timber.d("Bỏ qua trường không xác định: $fieldName")
                     reader.skipValue()
@@ -66,7 +91,6 @@ class TicketTypeAdapter {
         }
         reader.endObject()
         
-        Timber.d("Tạo TicketTypeDto với giá: $price")
         return TicketTypeDto(
             id = id,
             eventId = eventId,
@@ -74,11 +98,17 @@ class TicketTypeAdapter {
             description = description,
             price = price,
             quantity = quantity,
+            availableQuantity = availableQuantity,
             quantitySold = quantitySold,
-            maxPerOrder = maxPerOrder,
-            minPerOrder = minPerOrder,
-            saleStartDate = saleStartDate,
-            saleEndDate = saleEndDate
+            maxTicketsPerCustomer = maxTicketsPerCustomer,
+            minTicketsPerOrder = minTicketsPerOrder,
+            salesStartDate = salesStartDate,
+            salesEndDate = salesEndDate,
+            isEarlyBird = isEarlyBird,
+            isVIP = isVIP,
+            isActive = isActive,
+            createdAt = createdAt,
+            updatedAt = updatedAt
         )
     }
     
@@ -91,11 +121,17 @@ class TicketTypeAdapter {
         writer.name("description").value(value.description)
         writer.name("price").value(value.price)
         writer.name("quantity").value(value.quantity)
+        writer.name("availableQuantity").value(value.availableQuantity)
         writer.name("quantitySold").value(value.quantitySold)
-        writer.name("maxPerOrder").value(value.maxPerOrder)
-        writer.name("minPerOrder").value(value.minPerOrder)
-        writer.name("saleStartDate").value(value.saleStartDate)
-        writer.name("saleEndDate").value(value.saleEndDate)
+        writer.name("maxTicketsPerCustomer").value(value.maxTicketsPerCustomer)
+        writer.name("minTicketsPerOrder").value(value.minTicketsPerOrder)
+        writer.name("salesStartDate").value(value.salesStartDate)
+        writer.name("salesEndDate").value(value.salesEndDate)
+        writer.name("isEarlyBird").value(value.isEarlyBird)
+        writer.name("isVIP").value(value.isVIP)
+        writer.name("isActive").value(value.isActive)
+        writer.name("createdAt").value(value.createdAt)
+        writer.name("updatedAt").value(value.updatedAt)
         writer.endObject()
     }
 } 

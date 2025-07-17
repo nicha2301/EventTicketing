@@ -37,6 +37,7 @@ import com.nicha.eventticketing.data.remote.dto.payment.PaymentRequestDto
 import com.nicha.eventticketing.data.remote.dto.payment.PaymentResponseDto
 import com.nicha.eventticketing.data.remote.dto.event.EventImageDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeDto
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeListResponse
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -185,7 +186,7 @@ interface ApiService {
         @Path("eventId") eventId: String,
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 20
-    ): Response<ApiResponse<List<TicketTypeDto>>>
+    ): Response<ApiResponse<TicketTypeListResponse>>
     
     @GET("api/events/{eventId}/ticket-types/{ticketTypeId}")
     suspend fun getTicketTypeById(
@@ -379,7 +380,7 @@ interface ApiService {
         @Body organizer: OrganizerUpdateDto
     ): Response<ApiResponse<OrganizerDto>>
     
-    @GET("api/organizers/{organizerId}/events")
+    @GET("api/events/organizer/{organizerId}")
     suspend fun getOrganizerEvents(
         @Path("organizerId") organizerId: String,
         @Query("page") page: Int = 0,
