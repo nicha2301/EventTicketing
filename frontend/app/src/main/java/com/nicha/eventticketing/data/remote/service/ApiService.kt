@@ -181,7 +181,17 @@ interface ApiService {
     
     // Ticket Types
     @GET("api/events/{eventId}/ticket-types")
-    suspend fun getTicketTypes(@Path("eventId") eventId: String): Response<ApiResponse<List<TicketTypeDto>>>
+    suspend fun getTicketTypes(
+        @Path("eventId") eventId: String,
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 20
+    ): Response<ApiResponse<List<TicketTypeDto>>>
+    
+    @GET("api/events/{eventId}/ticket-types/{ticketTypeId}")
+    suspend fun getTicketTypeById(
+        @Path("eventId") eventId: String,
+        @Path("ticketTypeId") ticketTypeId: String
+    ): Response<ApiResponse<TicketTypeDto>>
     
     @POST("api/events/{eventId}/ticket-types")
     suspend fun createTicketType(
@@ -189,14 +199,18 @@ interface ApiService {
         @Body ticketType: TicketTypeDto
     ): Response<ApiResponse<TicketTypeDto>>
     
-    @PUT("api/ticket-types/{id}")
+    @PUT("api/events/{eventId}/ticket-types/{ticketTypeId}")
     suspend fun updateTicketType(
-        @Path("id") ticketTypeId: String,
+        @Path("eventId") eventId: String,
+        @Path("ticketTypeId") ticketTypeId: String,
         @Body ticketType: TicketTypeDto
     ): Response<ApiResponse<TicketTypeDto>>
     
-    @DELETE("api/ticket-types/{id}")
-    suspend fun deleteTicketType(@Path("id") ticketTypeId: String): Response<ApiResponse<Boolean>>
+    @DELETE("api/events/{eventId}/ticket-types/{ticketTypeId}")
+    suspend fun deleteTicketType(
+        @Path("eventId") eventId: String,
+        @Path("ticketTypeId") ticketTypeId: String
+    ): Response<ApiResponse<Boolean>>
     
     // Tickets
     @POST("api/tickets/purchase")

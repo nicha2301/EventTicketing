@@ -406,16 +406,23 @@ class EventServiceImpl(
         }
         
         // Thêm ảnh mới vào danh sách ảnh của sự kiện
-        event.images.add(eventImage)
+        event.addImage(eventImage)
         
-        // Lưu sự kiện
-        eventRepository.save(event)
+        // Lưu sự kiện và cập nhật eventImage
+        val savedEvent = eventRepository.save(event)
+        
+        // Lấy đối tượng eventImage đã được lưu với ID đã được sinh ra
+        val savedImage = savedEvent.images.find { it.url == filePath }
+            ?: throw RuntimeException("Không thể lưu hình ảnh sự kiện")
+        
         logger.info("Đã tải lên ảnh cho sự kiện: $id, isPrimary: $isPrimary")
         
         return ImageDto(
-            id = eventImage.id!!,
-            url = eventImage.url,
-            isPrimary = eventImage.isPrimary
+            id = savedImage.id,
+            url = savedImage.url,
+            eventId = id,
+            isPrimary = savedImage.isPrimary,
+            createdAt = savedImage.createdAt
         )
     }
 
@@ -449,7 +456,9 @@ class EventServiceImpl(
             ImageDto(
                 id = it.id!!,
                 url = it.url,
-                isPrimary = it.isPrimary
+                eventId = id,
+                isPrimary = it.isPrimary,
+                createdAt = it.createdAt
             )
         }
     }
@@ -522,6 +531,27 @@ class EventServiceImpl(
         val minTicketPrice = if (ticketPrices.isNotEmpty()) ticketPrices.minOrNull() else null
         val maxTicketPrice = if (ticketPrices.isNotEmpty()) ticketPrices.maxOrNull() else null
         
+        // Chuyển đổi danh sách loại vé sang DTO
+        val ticketTypeDtos = event.ticketTypes.map { ticketType ->
+            TicketTypeDto(
+                id = ticketType.id,
+                name = ticketType.name,
+                description = ticketType.description,
+                price = ticketType.price,
+                quantity = ticketType.quantity,
+                availableQuantity = ticketType.availableQuantity,
+                quantitySold = ticketType.quantitySold,
+                eventId = event.id,
+                salesStartDate = ticketType.salesStartDate,
+                salesEndDate = ticketType.salesEndDate,
+                maxTicketsPerCustomer = ticketType.maxTicketsPerCustomer,
+                minTicketsPerOrder = ticketType.minTicketsPerOrder,
+                isEarlyBird = ticketType.isEarlyBird,
+                isVIP = ticketType.isVIP,
+                isActive = ticketType.isActive
+            )
+        }
+        
         return EventDto(
             id = event.id!!,
             title = event.title,
@@ -550,7 +580,8 @@ class EventServiceImpl(
             minTicketPrice = minTicketPrice,
             maxTicketPrice = maxTicketPrice,
             createdAt = event.createdAt,
-            updatedAt = event.updatedAt
+            updatedAt = event.updatedAt,
+            ticketTypes = ticketTypeDtos
         )
     }
 } 

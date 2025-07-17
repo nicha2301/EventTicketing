@@ -21,7 +21,7 @@ data class PaymentResponseDto(
     val paymentMethod: String,
     val transactionId: String?,
     val status: PaymentStatus,
-    val paymentUrl: String?,
+    var paymentUrl: String?, 
     
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     val createdAt: LocalDateTime,

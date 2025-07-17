@@ -29,29 +29,19 @@ class PaymentController(private val paymentService: PaymentService) {
         return ResponseEntity.ok(paymentResponse)
     }
 
-    @PostMapping("/payments/vnpay-return")
-    @Operation(summary = "Process VNPay return", description = "Process VNPay payment return callback")
-    fun processVnPayReturn(request: HttpServletRequest): ResponseEntity<ApiResponse<PaymentResponseDto>> {
+    @PostMapping("/payments/momo-return")
+    @Operation(summary = "Process Momo return", description = "Process Momo payment return callback")
+    fun processMomoReturn(request: HttpServletRequest): ResponseEntity<ApiResponse<PaymentResponseDto>> {
         val params = request.parameterMap.mapValues { it.value[0] }
-        val response = paymentService.processVnPayReturn(params)
+        val response = paymentService.processMomoReturn(params)
         return ResponseEntity.ok(response)
     }
 
-    @PostMapping("/payments/vnpay-ipn")
-    @Operation(summary = "Process VNPay IPN", description = "Process VNPay Instant Payment Notification")
-    fun processVnPayIpn(request: HttpServletRequest): ResponseEntity<ApiResponse<String>> {
+    @PostMapping("/payments/momo-ipn")
+    @Operation(summary = "Process Momo IPN", description = "Process Momo Instant Payment Notification")
+    fun processMomoIpn(request: HttpServletRequest): ResponseEntity<ApiResponse<String>> {
         val params = request.parameterMap.mapValues { it.value[0] }
-        val response = paymentService.processVnPayIpn(params)
-        return ResponseEntity.ok(response)
-    }
-
-    @PostMapping("/payments/stripe-webhook")
-    @Operation(summary = "Process Stripe webhook", description = "Process Stripe webhook events")
-    fun processStripeWebhook(
-        @RequestBody payload: String,
-        @RequestHeader("Stripe-Signature") signature: String
-    ): ResponseEntity<ApiResponse<String>> {
-        val response = paymentService.processStripeWebhook(payload, signature)
+        val response = paymentService.processMomoIpn(params)
         return ResponseEntity.ok(response)
     }
 

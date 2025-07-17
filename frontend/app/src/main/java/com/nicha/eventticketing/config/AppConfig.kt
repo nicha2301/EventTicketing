@@ -23,7 +23,7 @@ object AppConfig {
             // Cấu hình cho máy thật
             Environment.DEVELOPMENT -> "10.211.189.200" // IP thực tế của máy chủ
             // Cấu hình cũ cho Android Emulator
-            // Environment.DEVELOPMENT -> "10.0.2.2" 
+            // Environment.DEVELOPMENT -> "10.73.147.250" 
             Environment.STAGING -> "api-staging.eventticketing.com"
             Environment.PRODUCTION -> "api.eventticketing.com"
         }

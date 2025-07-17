@@ -1,19 +1,17 @@
 package com.nicha.eventticketing.data.remote.dto.payment
 
 /**
- * DTO cho Payment từ API
+ * DTO cho thông tin thanh toán
  */
 data class PaymentDto(
     val id: String,
     val userId: String,
-    val eventId: String,
-    val ticketId: String,
     val amount: Double,
-    val paymentMethod: String, // CREDIT_CARD, BANK_TRANSFER, PAYPAL, MOMO, ZALOPAY, CASH
-    val status: String, // PENDING, COMPLETED, FAILED, CANCELLED, REFUNDED
+    val currency: String,
+    val status: String,
+    val paymentMethod: String,
     val transactionId: String?,
-    val transactionDate: String,
-    val refundStatus: String?, // REQUESTED, APPROVED, REJECTED, COMPLETED
+    val orderId: String,
     val createdAt: String,
     val updatedAt: String
 )
@@ -22,11 +20,10 @@ data class PaymentDto(
  * DTO cho việc tạo Payment mới
  */
 data class PaymentCreateDto(
-    val userId: String,
-    val eventId: String,
-    val ticketId: String,
     val amount: Double,
-    val paymentMethod: String
+    val currency: String = "VND",
+    val paymentMethod: String,
+    val orderId: String
 )
 
 /**
@@ -38,9 +35,12 @@ data class PaymentStatusUpdateDto(
 )
 
 /**
- * DTO cho việc yêu cầu hoàn tiền
+ * DTO cho thông tin phương thức thanh toán
  */
-data class RefundRequestDto(
-    val paymentId: String,
-    val reason: String
+data class PaymentMethodDto(
+    val id: String,
+    val name: String,
+    val code: String,
+    val icon: String?,
+    val isActive: Boolean
 ) 

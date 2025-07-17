@@ -56,52 +56,49 @@ ON CONFLICT (id) DO NOTHING;
 -- Chèn dữ liệu mẫu cho bảng ticket_types
 INSERT INTO ticket_types (id, event_id, name, description, price, quantity, available_quantity, sales_start_date, sales_end_date, max_tickets_per_customer, min_tickets_per_order, is_early_bird, is_vip, is_active, created_at, updated_at)
 VALUES 
-  ('11111111-tttt-tttt-tttt-111111111111', 'aaaaaaaa-1111-2222-3333-444444444444', 'Vé Thường', 'Vé tham dự bình thường', 200000, 300, 300, '2025-07-15 00:00:00', '2025-08-14 23:59:59', 5, 1, false, false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('22222222-tttt-tttt-tttt-222222222222', 'aaaaaaaa-1111-2222-3333-444444444444', 'Vé VIP', 'Vé VIP với chỗ ngồi đẹp và đồ uống miễn phí', 500000, 100, 100, '2025-07-15 00:00:00', '2025-08-14 23:59:59', 3, 1, false, true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('33333333-tttt-tttt-tttt-333333333333', 'aaaaaaaa-1111-2222-3333-444444444444', 'Vé Early Bird', 'Vé giá rẻ cho người đặt sớm', 150000, 100, 100, '2025-07-15 00:00:00', '2025-07-31 23:59:59', 2, 1, true, false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('a1111111-1111-1111-1111-111111111111', 'aaaaaaaa-1111-2222-3333-444444444444', 'Vé Thường', 'Vé tham dự bình thường', 200000, 300, 300, '2025-07-15 00:00:00', '2025-08-14 23:59:59', 5, 1, false, false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('a2222222-2222-2222-2222-222222222222', 'aaaaaaaa-1111-2222-3333-444444444444', 'Vé VIP', 'Vé VIP với chỗ ngồi đẹp và đồ uống miễn phí', 500000, 100, 100, '2025-07-15 00:00:00', '2025-08-14 23:59:59', 3, 1, false, true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('a3333333-3333-3333-3333-333333333333', 'aaaaaaaa-1111-2222-3333-444444444444', 'Vé Early Bird', 'Vé giá rẻ cho người đặt sớm', 150000, 100, 100, '2025-07-15 00:00:00', '2025-07-31 23:59:59', 2, 1, true, false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
-  ('44444444-tttt-tttt-tttt-444444444444', 'bbbbbbbb-1111-2222-3333-444444444444', 'Vé Miễn Phí', 'Vé tham dự miễn phí', 0, 1000, 1000, '2025-08-20 00:00:00', '2025-09-19 23:59:59', 2, 1, false, false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('a4444444-4444-4444-4444-444444444444', 'bbbbbbbb-1111-2222-3333-444444444444', 'Vé Miễn Phí', 'Vé tham dự miễn phí', 0, 1000, 1000, '2025-08-20 00:00:00', '2025-09-19 23:59:59', 2, 1, false, false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
-  ('55555555-tttt-tttt-tttt-555555555555', 'cccccccc-1111-2222-3333-444444444444', 'Vé Thường', 'Vé tham dự bình thường', 300000, 600, 600, '2025-09-10 00:00:00', '2025-10-09 23:59:59', 3, 1, false, false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('66666666-tttt-tttt-tttt-666666666666', 'cccccccc-1111-2222-3333-444444444444', 'Vé VIP', 'Vé VIP với tài liệu và bữa trưa', 700000, 200, 200, '2025-09-10 00:00:00', '2025-10-09 23:59:59', 2, 1, false, true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('a5555555-5555-5555-5555-555555555555', 'cccccccc-1111-2222-3333-444444444444', 'Vé Thường', 'Vé tham dự bình thường', 300000, 600, 600, '2025-09-10 00:00:00', '2025-10-09 23:59:59', 3, 1, false, false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('a6666666-6666-6666-6666-666666666666', 'cccccccc-1111-2222-3333-444444444444', 'Vé VIP', 'Vé VIP với tài liệu và bữa trưa', 700000, 200, 200, '2025-09-10 00:00:00', '2025-10-09 23:59:59', 2, 1, false, true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
-  ('77777777-tttt-tttt-tttt-777777777777', 'dddddddd-1111-2222-3333-444444444444', 'Vé Thường', 'Vé tham quan triển lãm', 100000, 300, 300, '2025-10-05 00:00:00', '2025-11-04 23:59:59', 5, 1, false, false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('a7777777-7777-7777-7777-777777777777', 'dddddddd-1111-2222-3333-444444444444', 'Vé Thường', 'Vé tham quan triển lãm', 100000, 300, 300, '2025-10-05 00:00:00', '2025-11-04 23:59:59', 5, 1, false, false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
-  ('88888888-tttt-tttt-tttt-888888888888', 'eeeeeeee-1111-2222-3333-444444444444', 'Vé Thường', 'Vé tham dự 2 ngày', 500000, 500, 500, '2025-11-01 00:00:00', '2025-11-30 23:59:59', 2, 1, false, false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('99999999-tttt-tttt-tttt-999999999999', 'eeeeeeee-1111-2222-3333-444444444444', 'Vé VIP', 'Vé VIP với quyền tham gia các workshop', 1200000, 200, 200, '2025-11-01 00:00:00', '2025-11-30 23:59:59', 1, 1, false, true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  ('a8888888-8888-8888-8888-888888888888', 'eeeeeeee-1111-2222-3333-444444444444', 'Vé Thường', 'Vé tham dự 2 ngày', 500000, 500, 500, '2025-11-01 00:00:00', '2025-11-30 23:59:59', 2, 1, false, false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('a9999999-9999-9999-9999-999999999999', 'eeeeeeee-1111-2222-3333-444444444444', 'Vé VIP', 'Vé VIP với quyền tham gia các workshop', 1200000, 200, 200, '2025-11-01 00:00:00', '2025-11-30 23:59:59', 1, 1, false, true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
 
 -- Chèn dữ liệu mẫu cho bảng tickets
 INSERT INTO tickets (id, ticket_number, user_id, event_id, ticket_type_id, price, status, qr_code, purchase_date, checked_in_at, cancelled_at, payment_id, created_at, updated_at)
 VALUES
   -- Vé đã mua cho sự kiện Đêm nhạc Trịnh Công Sơn (3 vé)
-  ('11111111-tick-tick-tick-111111111111', 'TCS-VIP-001', '33333333-aaaa-bbbb-cccc-dddddddddddd', 'aaaaaaaa-1111-2222-3333-444444444444', '22222222-tttt-tttt-tttt-222222222222', 500000, 'PAID', 'qr_tcs_vip_001', '2025-07-20 10:15:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('22222222-tick-tick-tick-222222222222', 'TCS-EB-001', '33333333-aaaa-bbbb-cccc-dddddddddddd', 'aaaaaaaa-1111-2222-3333-444444444444', '33333333-tttt-tttt-tttt-333333333333', 150000, 'PAID', 'qr_tcs_eb_001', '2025-07-18 14:30:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('33333333-tick-tick-tick-333333333333', 'TCS-STD-001', '44444444-aaaa-bbbb-cccc-dddddddddddd', 'aaaaaaaa-1111-2222-3333-444444444444', '11111111-tttt-tttt-tttt-111111111111', 200000, 'PAID', 'qr_tcs_std_001', '2025-07-25 09:45:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('b1111111-1111-1111-1111-111111111111', 'TCS-VIP-001', '33333333-aaaa-bbbb-cccc-dddddddddddd', 'aaaaaaaa-1111-2222-3333-444444444444', 'a2222222-2222-2222-2222-222222222222', 500000, 'PAID', 'qr_tcs_vip_001', '2025-07-20 10:15:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('b2222222-2222-2222-2222-222222222222', 'TCS-EB-001', '33333333-aaaa-bbbb-cccc-dddddddddddd', 'aaaaaaaa-1111-2222-3333-444444444444', 'a3333333-3333-3333-3333-333333333333', 150000, 'PAID', 'qr_tcs_eb_001', '2025-07-18 14:30:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('b3333333-3333-3333-3333-333333333333', 'TCS-STD-001', '44444444-aaaa-bbbb-cccc-dddddddddddd', 'aaaaaaaa-1111-2222-3333-444444444444', 'a1111111-1111-1111-1111-111111111111', 200000, 'PAID', 'qr_tcs_std_001', '2025-07-25 09:45:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
   -- Vé đã mua cho sự kiện Giải bóng đá giao hữu (2 vé)
-  ('44444444-tick-tick-tick-444444444444', 'FB-FREE-001', '33333333-aaaa-bbbb-cccc-dddddddddddd', 'bbbbbbbb-1111-2222-3333-444444444444', '44444444-tttt-tttt-tttt-444444444444', 0, 'PAID', 'qr_fb_free_001', '2025-08-25 11:20:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('55555555-tick-tick-tick-555555555555', 'FB-FREE-002', '44444444-aaaa-bbbb-cccc-dddddddddddd', 'bbbbbbbb-1111-2222-3333-444444444444', '44444444-tttt-tttt-tttt-444444444444', 0, 'PAID', 'qr_fb_free_002', '2025-08-26 15:10:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('b4444444-4444-4444-4444-444444444444', 'FB-FREE-001', '33333333-aaaa-bbbb-cccc-dddddddddddd', 'bbbbbbbb-1111-2222-3333-444444444444', 'a4444444-4444-4444-4444-444444444444', 0, 'PAID', 'qr_fb_free_001', '2025-08-25 11:20:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('b5555555-5555-5555-5555-555555555555', 'FB-FREE-002', '44444444-aaaa-bbbb-cccc-dddddddddddd', 'bbbbbbbb-1111-2222-3333-444444444444', 'a4444444-4444-4444-4444-444444444444', 0, 'PAID', 'qr_fb_free_002', '2025-08-26 15:10:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
   -- Vé đã mua cho sự kiện Hội thảo Công nghệ AI (3 vé)
-  ('66666666-tick-tick-tick-666666666666', 'AI-VIP-001', '44444444-aaaa-bbbb-cccc-dddddddddddd', 'cccccccc-1111-2222-3333-444444444444', '66666666-tttt-tttt-tttt-666666666666', 700000, 'PAID', 'qr_ai_vip_001', '2025-09-15 08:30:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('77777777-tick-tick-tick-777777777777', 'AI-STD-001', '33333333-aaaa-bbbb-cccc-dddddddddddd', 'cccccccc-1111-2222-3333-444444444444', '55555555-tttt-tttt-tttt-555555555555', 300000, 'PAID', 'qr_ai_std_001', '2025-09-20 10:45:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('88888888-tick-tick-tick-888888888888', 'AI-STD-002', '55555555-aaaa-bbbb-cccc-dddddddddddd', 'cccccccc-1111-2222-3333-444444444444', '55555555-tttt-tttt-tttt-555555555555', 300000, 'PAID', 'qr_ai_std_002', '2025-09-22 14:15:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('b6666666-6666-6666-6666-666666666666', 'AI-VIP-001', '44444444-aaaa-bbbb-cccc-dddddddddddd', 'cccccccc-1111-2222-3333-444444444444', 'a6666666-6666-6666-6666-666666666666', 700000, 'PAID', 'qr_ai_vip_001', '2025-09-15 08:30:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('b7777777-7777-7777-7777-777777777777', 'AI-STD-001', '33333333-aaaa-bbbb-cccc-dddddddddddd', 'cccccccc-1111-2222-3333-444444444444', 'a5555555-5555-5555-5555-555555555555', 300000, 'PAID', 'qr_ai_std_001', '2025-09-20 10:45:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('b8888888-8888-8888-8888-888888888888', 'AI-STD-002', '55555555-aaaa-bbbb-cccc-dddddddddddd', 'cccccccc-1111-2222-3333-444444444444', 'a5555555-5555-5555-5555-555555555555', 300000, 'PAID', 'qr_ai_std_002', '2025-09-22 14:15:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
   -- Vé đã mua cho sự kiện Triển lãm Nghệ thuật Đương đại (2 vé)
-  ('99999999-tick-tick-tick-999999999999', 'ART-STD-001', '44444444-aaaa-bbbb-cccc-dddddddddddd', 'dddddddd-1111-2222-3333-444444444444', '77777777-tttt-tttt-tttt-777777777777', 100000, 'PAID', 'qr_art_std_001', '2025-10-10 09:30:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('aaaaaaaa-tick-tick-tick-aaaaaaaaaaaa', 'ART-STD-002', '55555555-aaaa-bbbb-cccc-dddddddddddd', 'dddddddd-1111-2222-3333-444444444444', '77777777-tttt-tttt-tttt-777777777777', 100000, 'PAID', 'qr_art_std_002', '2025-10-12 11:20:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('b9999999-9999-9999-9999-999999999999', 'ART-STD-001', '44444444-aaaa-bbbb-cccc-dddddddddddd', 'dddddddd-1111-2222-3333-444444444444', 'a7777777-7777-7777-7777-777777777777', 100000, 'PAID', 'qr_art_std_001', '2025-10-10 09:30:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('c1111111-1111-1111-1111-111111111111', 'ART-STD-002', '55555555-aaaa-bbbb-cccc-dddddddddddd', 'dddddddd-1111-2222-3333-444444444444', 'a7777777-7777-7777-7777-777777777777', 100000, 'PAID', 'qr_art_std_002', '2025-10-12 11:20:00', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
   -- Vé đã đặt chỗ (RESERVED) cho sự kiện Tech Summit 2025 (2 vé)
-  ('bbbbbbbb-tick-tick-tick-bbbbbbbbbbbb', 'TECH-VIP-001', '33333333-aaaa-bbbb-cccc-dddddddddddd', 'eeeeeeee-1111-2222-3333-444444444444', '99999999-tttt-tttt-tttt-999999999999', 1200000, 'RESERVED', NULL, NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('cccccccc-tick-tick-tick-cccccccccccc', 'TECH-STD-001', '55555555-aaaa-bbbb-cccc-dddddddddddd', 'eeeeeeee-1111-2222-3333-444444444444', '88888888-tttt-tttt-tttt-888888888888', 500000, 'RESERVED', NULL, NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('c2222222-2222-2222-2222-222222222222', 'TECH-VIP-001', '33333333-aaaa-bbbb-cccc-dddddddddddd', 'eeeeeeee-1111-2222-3333-444444444444', 'a9999999-9999-9999-9999-999999999999', 1200000, 'RESERVED', NULL, NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('c3333333-3333-3333-3333-333333333333', 'TECH-STD-001', '55555555-aaaa-bbbb-cccc-dddddddddddd', 'eeeeeeee-1111-2222-3333-444444444444', 'a8888888-8888-8888-8888-888888888888', 500000, 'RESERVED', NULL, NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
   -- Vé đã hủy (CANCELLED) (1 vé)
-  ('dddddddd-tick-tick-tick-dddddddddddd', 'TCS-STD-002', '55555555-aaaa-bbbb-cccc-dddddddddddd', 'aaaaaaaa-1111-2222-3333-444444444444', '11111111-tttt-tttt-tttt-111111111111', 200000, 'CANCELLED', NULL, '2025-07-26 10:30:00', NULL, '2025-07-28 15:45:00', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('c4444444-4444-4444-4444-444444444444', 'TCS-STD-002', '55555555-aaaa-bbbb-cccc-dddddddddddd', 'aaaaaaaa-1111-2222-3333-444444444444', 'a1111111-1111-1111-1111-111111111111', 200000, 'CANCELLED', NULL, '2025-07-26 10:30:00', NULL, '2025-07-28 15:45:00', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
-  -- Vé đã sử dụng (USED) (1 vé)
-  ('eeeeeeee-tick-tick-tick-eeeeeeeeeeee', 'AI-STD-003', '44444444-aaaa-bbbb-cccc-dddddddddddd', 'cccccccc-1111-2222-3333-444444444444', '55555555-tttt-tttt-tttt-555555555555', 300000, 'USED', 'qr_ai_std_003', '2025-09-25 08:20:00', '2025-10-10 09:15:00', NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  -- Vé đã check-in (CHECKED_IN) (1 vé)
+  ('c5555555-5555-5555-5555-555555555555', 'AI-STD-003', '44444444-aaaa-bbbb-cccc-dddddddddddd', 'cccccccc-1111-2222-3333-444444444444', 'a5555555-5555-5555-5555-555555555555', 300000, 'CHECKED_IN', 'qr_ai_std_003', '2025-09-25 08:20:00', '2025-10-10 09:15:00', NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
-
--- Mật khẩu mẫu là "password" được mã hóa bằng BCrypt
--- Các dữ liệu mẫu được thiết kế để dễ dàng sử dụng trong môi trường phát triển 

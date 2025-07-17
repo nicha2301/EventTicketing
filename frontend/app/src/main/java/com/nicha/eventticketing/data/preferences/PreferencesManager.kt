@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import javax.inject.Inject
 import java.io.IOException
@@ -72,9 +74,21 @@ interface PreferencesManager {
     fun isOnboardingCompleted(): Flow<Boolean>
     
     /**
+     * Kiểm tra trạng thái onboarding (phương thức đồng bộ)
+     * @return True nếu đã hoàn thành onboarding, false nếu chưa
+     */
+    fun isOnboardingCompletedSync(): Boolean
+    
+    /**
      * Xóa tất cả dữ liệu preferences
      */
     suspend fun clearAllPreferences()
+    
+    /**
+     * Lấy ID người dùng hiện tại
+     * @return ID người dùng hoặc chuỗi rỗng nếu không tìm thấy
+     */
+    fun getUserId(): String
 }
 
 /**
@@ -244,6 +258,19 @@ class PreferencesManagerImpl @Inject constructor(
         }
     }
     
+    override fun isOnboardingCompletedSync(): Boolean {
+        // Sử dụng runBlocking để đọc từ DataStore một cách đồng bộ
+        return kotlinx.coroutines.runBlocking {
+            try {
+                val preferences = dataStore.data.first()
+                preferences[ONBOARDING_COMPLETED] ?: false
+            } catch (e: Exception) {
+                Timber.e(e, "Lỗi khi đọc trạng thái onboarding đồng bộ")
+                false
+            }
+        }
+    }
+    
     override suspend fun clearAllPreferences() {
         try {
             // Xóa DataStore
@@ -254,5 +281,9 @@ class PreferencesManagerImpl @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "Lỗi khi xóa tất cả preferences")
         }
+    }
+
+    override fun getUserId(): String {
+        return encryptedPrefs.getString("user_id", "") ?: ""
     }
 } 

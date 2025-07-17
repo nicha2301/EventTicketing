@@ -1,7 +1,11 @@
 package com.eventticketing.backend.entity
 
+import com.fasterxml.jackson.databind.JsonNode
 import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.annotations.Type
 import org.hibernate.annotations.UuidGenerator
+import org.hibernate.type.SqlTypes
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
@@ -31,7 +35,7 @@ class Payment(
     @Column(name = "transaction_id")
     var transactionId: String? = null,
     
-    @Column(name = "payment_url")
+    @Column(name = "payment_url", columnDefinition = "TEXT")
     var paymentUrl: String? = null,
     
     @Enumerated(EnumType.STRING)
@@ -56,7 +60,8 @@ class Payment(
     @Column(name = "description")
     var description: String? = null,
     
-    @Column(name = "metadata", columnDefinition = "json")
+    @Column(name = "metadata")
+    @JdbcTypeCode(SqlTypes.JSON)
     var metadata: String? = null
 )
 

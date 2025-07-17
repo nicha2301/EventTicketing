@@ -27,9 +27,13 @@ spring:
         order_inserts: true
         order_updates: true
         generate_statistics: false
-  liquibase:
-    change-log: classpath:/db/changelog/db.changelog-master.xml
-    enabled: true
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+      schema: classpath:remove-liquibase.sql,classpath:schema.sql,classpath:update_metadata_column.sql,classpath:update_payment_url_column.sql
+      data: classpath:data.sql
   mail:
     host: smtp.gmail.com
     port: 587
@@ -63,11 +67,22 @@ spring:
 #      password: # Để trống nếu không có mật khẩu
 #      timeout: 2000 # ms
 #      database: 0 # Sử dụng database số 0
+  http:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  main:
+    allow-bean-definition-overriding: true
 
 server:
   port: 8080
   servlet:
     context-path: /
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
   error:
     include-stacktrace: never
   tomcat:
@@ -75,6 +90,7 @@ server:
     max-connections: 10000
     accept-count: 100
     connection-timeout: 5000
+    uri-encoding: UTF-8
 
 app:
   jwt:
@@ -132,7 +148,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,loggers,env,mappings,scheduledtasks,caches,liquibase
+        include: health,info,metrics,prometheus,loggers,env,mappings,scheduledtasks,caches
       base-path: /actuator
       cors:
         allowed-origins: "*"
@@ -171,8 +187,13 @@ management:
 payment:
   vnpay:
     return-url: http://localhost:8080/api/payments/vnpay-return
-    tmn-code: EVENTTICKETING
-    hash-secret: ODJLXUDLKDJFLDJFLJDLFJDLF
-  stripe:
-    secret-key: sk_test_123456789
-    webhook-secret: whsec_123456789 
+    tmn-code: EVL5NZNI
+    hash-secret: 3NKOGRBUWM008DMQ16ZH1YHIUUZ0FEDX
+    payment-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+  momo:
+    return-url: http://localhost:8080/api/payments/momo-return
+    ipn-url: http://localhost:8080/api/payments/momo-ipn
+    partner-code: MOMOXXXX
+    access-key: AccessKeyXXXX
+    secret-key: SecretKeyXXXX
+    api-endpoint: https://test-payment.momo.vn/v2/gateway/api/create

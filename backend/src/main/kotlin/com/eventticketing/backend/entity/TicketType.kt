@@ -65,6 +65,10 @@ data class TicketType(
     @OneToMany(mappedBy = "ticketType", fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
     val tickets: MutableList<Ticket> = mutableListOf()
 ) {
+    @get:Transient
+    val quantitySold: Int
+        get() = quantity - availableQuantity
+
     // Hàm kiểm tra có vé còn trống không
     fun hasAvailableTickets(requestedQuantity: Int): Boolean {
         return isActive && availableQuantity >= requestedQuantity && 

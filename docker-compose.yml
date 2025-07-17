@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: event-ticketing-app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/event-ticketing
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=123
+      - SPRING_REDIS_HOST=redis
+      - JAVA_OPTS=-Xms512m -Xmx1024m
+    volumes:
+      - ./logs:/home/appuser/event-ticketing/logs
+      - ./uploads:/home/appuser/event-ticketing/uploads
+    depends_on:
+      - db
+      - redis
+    networks:
+      - event-ticketing-network
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    container_name: event-ticketing-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=event-ticketing
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - event-ticketing-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: event-ticketing-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - event-ticketing-network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.48.1
+    container_name: event-ticketing-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - event-ticketing-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: event-ticketing-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - event-ticketing-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  event-ticketing-network:
+    driver: bridge 

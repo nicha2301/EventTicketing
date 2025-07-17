@@ -1,6 +1,9 @@
 package com.nicha.eventticketing.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -17,6 +20,10 @@ import com.nicha.eventticketing.ui.screens.event.EventDetailScreen
 import com.nicha.eventticketing.ui.screens.home.HomeScreen
 import com.nicha.eventticketing.ui.screens.onboarding.OnboardingScreen
 import com.nicha.eventticketing.ui.screens.organizer.EventDashboardScreen
+import com.nicha.eventticketing.ui.screens.organizer.OrganizerEventListScreen
+import com.nicha.eventticketing.ui.screens.organizer.OrganizerEventDetailScreen
+import com.nicha.eventticketing.ui.screens.organizer.EventImagesScreen
+import com.nicha.eventticketing.ui.screens.organizer.TicketTypeListScreen
 import com.nicha.eventticketing.ui.screens.payment.PaymentScreen
 import com.nicha.eventticketing.ui.screens.profile.ProfileScreen
 import com.nicha.eventticketing.ui.screens.search.SearchScreen
@@ -24,12 +31,21 @@ import com.nicha.eventticketing.ui.screens.splash.SplashScreen
 import com.nicha.eventticketing.ui.screens.tickets.TicketDetailScreen
 import com.nicha.eventticketing.ui.screens.tickets.TicketWalletScreen
 import com.nicha.eventticketing.ui.screens.profile.EditProfileScreen
+import com.nicha.eventticketing.ui.screens.auth.UnauthorizedScreen
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.nicha.eventticketing.viewmodel.AuthViewModel
+import com.nicha.eventticketing.ui.screens.organizer.EditEventScreen
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    startDestination: String = NavDestination.Splash.route
+    startDestination: String = NavDestination.Splash.route,
+    roleBasedNavigation: RoleBasedNavigation,
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
+    val authState by authViewModel.authState.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
+
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -60,7 +76,9 @@ fun NavGraph(
         composable(route = NavDestination.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate(NavDestination.Home.route) {
+                    // Điều hướng dựa trên vai trò
+                    val homeDestination = roleBasedNavigation.getHomeDestinationForUser(currentUser)
+                    navController.navigate(homeDestination.route) {
                         popUpTo(NavDestination.Login.route) { inclusive = true }
                     }
                 },
@@ -77,7 +95,9 @@ fun NavGraph(
         composable(route = NavDestination.Register.route) {
             RegisterScreen(
                 onRegisterSuccess = {
-                    navController.navigate(NavDestination.Home.route) {
+                    // Điều hướng dựa trên vai trò
+                    val homeDestination = roleBasedNavigation.getHomeDestinationForUser(currentUser)
+                    navController.navigate(homeDestination.route) {
                         popUpTo(NavDestination.Register.route) { inclusive = true }
                     }
                 },
@@ -163,6 +183,9 @@ fun NavGraph(
                 onBuyTicketsClick = { eventId, ticketTypeId ->
                     // Chuyển đến màn hình thanh toán với ID sự kiện và ID loại vé
                     navController.navigate(NavDestination.Payment.createRoute(eventId, ticketTypeId, 1))
+                },
+                onViewTicketClick = { ticketId ->
+                    navController.navigate(NavDestination.TicketDetail.createRoute(ticketId))
                 }
             )
         }
@@ -274,12 +297,6 @@ fun NavGraph(
                 ticketId = ticketId,
                 onBackClick = {
                     navController.popBackStack()
-                },
-                onAddToCalendarClick = {
-                    // Thêm vào lịch
-                },
-                onShareTicketClick = {
-                    // Chia sẻ vé
                 }
             )
         }
@@ -324,8 +341,29 @@ fun NavGraph(
             )
         }
         
+        // Màn hình Unauthorized (thêm mới)
+        composable(route = NavDestination.Unauthorized.route) {
+            UnauthorizedScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onLoginClick = {
+                    navController.navigate(NavDestination.Login.route) {
+                        popUpTo(NavDestination.Unauthorized.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
         // Organizer Dashboard Screen
         composable(route = NavDestination.OrganizerDashboard.route) {
+            // Kiểm tra quyền truy cập
+            LaunchedEffect(currentUser) {
+                if (!roleBasedNavigation.canAccessDestination(NavDestination.OrganizerDashboard, currentUser)) {
+                    navController.navigate(NavDestination.Unauthorized.route)
+                }
+            }
+            
             EventDashboardScreen(
                 onBackClick = {
                     navController.popBackStack()
@@ -334,10 +372,128 @@ fun NavGraph(
                     navController.navigate(NavDestination.CreateEvent.route)
                 },
                 onEventClick = { eventId ->
-                    navController.navigate(NavDestination.EventDetail.createRoute(eventId))
+                    if (eventId == "list") {
+                        navController.navigate(NavDestination.OrganizerEventList.route)
+                    } else {
+                        navController.navigate(NavDestination.OrganizerEventDetail.createRoute(eventId))
+                    }
                 },
                 onScanQRClick = {
                     navController.navigate(NavDestination.CheckIn.route)
+                }
+            )
+        }
+        
+        // Organizer Event List Screen
+        composable(route = NavDestination.OrganizerEventList.route) {
+            // Kiểm tra quyền truy cập
+            LaunchedEffect(currentUser) {
+                if (!roleBasedNavigation.canAccessDestination(NavDestination.OrganizerEventList, currentUser)) {
+                    navController.navigate(NavDestination.Unauthorized.route)
+                }
+            }
+            
+            OrganizerEventListScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onEventClick = { eventId ->
+                    navController.navigate(NavDestination.OrganizerEventDetail.createRoute(eventId))
+                },
+                onCreateEventClick = {
+                    navController.navigate(NavDestination.CreateEvent.route)
+                },
+                onScanQRClick = {
+                    navController.navigate(NavDestination.CheckIn.route)
+                }
+            )
+        }
+        
+        // Organizer Event Detail Screen
+        composable(
+            route = NavDestination.OrganizerEventDetail.route + "/{eventId}",
+            arguments = listOf(
+                navArgument("eventId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            
+            // Kiểm tra quyền truy cập
+            LaunchedEffect(currentUser) {
+                if (!roleBasedNavigation.canAccessDestination(NavDestination.OrganizerEventDetail, currentUser)) {
+                    navController.navigate(NavDestination.Unauthorized.route)
+                }
+            }
+            
+            OrganizerEventDetailScreen(
+                eventId = eventId,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onEditClick = { eventIdToEdit ->
+                    // Thay thế bằng màn hình chỉnh sửa sự kiện khi có
+                    navController.navigate(NavDestination.EditEvent.createRoute(eventIdToEdit))
+                },
+                onManageTicketsClick = { eventIdForTickets ->
+                    navController.navigate(NavDestination.TicketTypeList.createRoute(eventIdForTickets))
+                },
+                onManageImagesClick = { eventIdForImages ->
+                    navController.navigate(NavDestination.EventImages.createRoute(eventIdForImages))
+                }
+            )
+        }
+        
+        // Event Images Screen
+        composable(
+            route = NavDestination.EventImages.route + "/{eventId}",
+            arguments = listOf(
+                navArgument("eventId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            
+            // Kiểm tra quyền truy cập
+            LaunchedEffect(currentUser) {
+                if (!roleBasedNavigation.canAccessDestination(NavDestination.EventImages, currentUser)) {
+                    navController.navigate(NavDestination.Unauthorized.route)
+                }
+            }
+            
+            EventImagesScreen(
+                eventId = eventId,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onSelectImage = { /* Handled in component */ }
+            )
+        }
+        
+        // Ticket Type List Screen
+        composable(
+            route = NavDestination.TicketTypeList.route + "/{eventId}",
+            arguments = listOf(
+                navArgument("eventId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            
+            // Kiểm tra quyền truy cập
+            LaunchedEffect(currentUser) {
+                if (!roleBasedNavigation.canAccessDestination(NavDestination.TicketTypeList, currentUser)) {
+                    navController.navigate(NavDestination.Unauthorized.route)
+                }
+            }
+            
+            TicketTypeListScreen(
+                eventId = eventId,
+                onBackClick = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -351,6 +507,37 @@ fun NavGraph(
                 onEventCreated = { eventId ->
                     navController.navigate(NavDestination.EventDetail.createRoute(eventId)) {
                         popUpTo(NavDestination.CreateEvent.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Edit Event Screen
+        composable(
+            route = NavDestination.EditEvent.route + "/{eventId}",
+            arguments = listOf(
+                navArgument("eventId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            
+            // Kiểm tra quyền truy cập
+            LaunchedEffect(currentUser) {
+                if (!roleBasedNavigation.canAccessDestination(NavDestination.OrganizerEventDetail, currentUser)) {
+                    navController.navigate(NavDestination.Unauthorized.route)
+                }
+            }
+            
+            EditEventScreen(
+                eventId = eventId,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onEventUpdated = { updatedEventId ->
+                    navController.navigate(NavDestination.OrganizerEventDetail.createRoute(updatedEventId)) {
+                        popUpTo(NavDestination.EditEvent.route + "/{eventId}") { inclusive = true }
                     }
                 }
             )
@@ -391,5 +578,23 @@ sealed class NavDestination(val route: String) {
     object CheckIn : NavDestination("check_in")
     object OrganizerDashboard : NavDestination("organizer_dashboard")
     object CreateEvent : NavDestination("create_event")
+    object EditEvent : NavDestination("edit_event") {
+        fun createRoute(eventId: String) = "$route/$eventId"
+    }
     object NeumorphicDemo : NavDestination("neumorphic_demo")
+    
+    // Thêm điểm đến mới cho Organizer
+    object OrganizerEventList : NavDestination("organizer_event_list")
+    object OrganizerEventDetail : NavDestination("organizer_event_detail") {
+        fun createRoute(eventId: String) = "$route/$eventId"
+    }
+    object EventImages : NavDestination("event_images") {
+        fun createRoute(eventId: String) = "$route/$eventId"
+    }
+    object TicketTypeList : NavDestination("ticket_type_list") {
+        fun createRoute(eventId: String) = "$route/$eventId"
+    }
+    
+    // Thêm màn hình Unauthorized
+    object Unauthorized : NavDestination("unauthorized")
 } 

@@ -22,6 +22,7 @@ import retrofit2.HttpException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeDto
 
 /**
  * ViewModel để quản lý dữ liệu vé
@@ -48,6 +49,14 @@ class TicketViewModel @Inject constructor(
     private val _checkInState = MutableStateFlow<ResourceState<TicketDto>>(ResourceState.Initial)
     val checkInState: StateFlow<ResourceState<TicketDto>> = _checkInState.asStateFlow()
     
+    // State cho vé của user theo eventId
+    private val _myTicketForEventState = MutableStateFlow<ResourceState<TicketDto?>>(ResourceState.Initial)
+    val myTicketForEventState: StateFlow<ResourceState<TicketDto?>> = _myTicketForEventState.asStateFlow()
+
+    // State cho loại vé
+    private val _ticketTypeState = MutableStateFlow<ResourceState<TicketTypeDto>>(ResourceState.Initial)
+    val ticketTypeState: StateFlow<ResourceState<TicketTypeDto>> = _ticketTypeState.asStateFlow()
+
     /**
      * Lấy danh sách vé của người dùng
      */
@@ -89,7 +98,6 @@ class TicketViewModel @Inject constructor(
             try {
                 Timber.d("Đang lấy danh sách vé của người dùng với tab: $tabId")
                 
-                // Xác định status dựa trên tab
                 val status = when (tabId) {
                     "active" -> "PAID"
                     "expired" -> "EXPIRED"
@@ -102,18 +110,13 @@ class TicketViewModel @Inject constructor(
                 if (response.isSuccessful && response.body()?.success == true) {
                     var tickets = response.body()?.data?.content ?: emptyList()
                     
-                    // Lọc thêm cho tab "active" (chưa sử dụng)
                     if (tabId == "active") {
-                        // Lọc các vé đã thanh toán, chưa check-in, chưa hết hạn
                         tickets = tickets.filter { ticket ->
-                            // Kiểm tra ngày hết hạn của vé
                             val eventEndDate = parseDate(ticket.eventEndDate)
                             val now = Date()
                             
-                            // Vé còn hạn nếu ngày kết thúc sự kiện > hiện tại
                             val isNotExpired = eventEndDate?.after(now) ?: true
                             
-                            // Vé chưa sử dụng nếu status = PAID và chưa hết hạn
                             ticket.status == "PAID" && isNotExpired
                         }
                     }
@@ -313,6 +316,78 @@ class TicketViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 handleNetworkError(e, "hủy vé", _ticketDetailState)
+            }
+        }
+    }
+    
+    /**
+     * Lấy vé hợp lệ của user cho một event cụ thể
+     */
+    fun getMyTicketsByEventId(eventId: String) {
+        _myTicketForEventState.value = ResourceState.Loading
+        viewModelScope.launch {
+            try {
+                val response = apiService.getMyTickets(null, 0, 100) // lấy nhiều vé để lọc
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val tickets = response.body()?.data?.content ?: emptyList()
+                    val now = Date()
+                    val ticket = tickets.firstOrNull { t ->
+                        t.eventId == eventId &&
+                        t.status.equals("PAID", ignoreCase = true) &&
+                        (parseDate(t.eventEndDate)?.after(now) ?: true) &&
+                        !t.status.equals("CANCELLED", ignoreCase = true)
+                    }
+                    _myTicketForEventState.value = ResourceState.Success(ticket)
+                } else {
+                    val errorMessage = response.body()?.message ?: "Không thể lấy vé"
+                    _myTicketForEventState.value = ResourceState.Error(errorMessage)
+                }
+            } catch (e: Exception) {
+                _myTicketForEventState.value = ResourceState.Error(e.message ?: "Lỗi không xác định")
+            }
+        }
+    }
+
+    /**
+     * Lấy thông tin loại vé theo ID (từ API hoặc local)
+     */
+    fun getTicketTypeById(ticketTypeId: String) {
+        _ticketTypeState.value = ResourceState.Loading
+        viewModelScope.launch {
+            try {
+                // Nếu có API riêng cho ticket type, gọi ở đây. Nếu không, lấy từ vé của user hoặc event.
+                // Tạm thời lấy từ vé của user (nếu đã có trong cache)
+                val response = apiService.getMyTickets(null, 0, 100)
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val tickets = response.body()?.data?.content ?: emptyList()
+                    val ticketType = tickets.mapNotNull { it.ticketTypeId to it.ticketTypeName }
+                        .distinctBy { it.first }
+                        .find { it.first == ticketTypeId }
+                    if (ticketType != null) {
+                        // Tạo TicketTypeDto tạm thời (chỉ có id và name)
+                        _ticketTypeState.value = ResourceState.Success(
+                            TicketTypeDto(
+                                id = ticketType.first,
+                                eventId = "",
+                                name = ticketType.second,
+                                description = null,
+                                price = 0.0,
+                                quantity = 0,
+                                quantitySold = 0,
+                                maxPerOrder = null,
+                                minPerOrder = 1,
+                                saleStartDate = null,
+                                saleEndDate = null
+                            )
+                        )
+                    } else {
+                        _ticketTypeState.value = ResourceState.Error("Không tìm thấy loại vé")
+                    }
+                } else {
+                    _ticketTypeState.value = ResourceState.Error("Không thể lấy loại vé")
+                }
+            } catch (e: Exception) {
+                _ticketTypeState.value = ResourceState.Error(e.message ?: "Lỗi không xác định")
             }
         }
     }

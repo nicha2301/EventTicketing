@@ -1,0 +1,104 @@
+2025-07-12 15:09:48,174 INFO o.h.v.i.u.Version [background-preinit] HV000001: Hibernate Validator 8.0.2.Final
+2025-07-12 15:09:48,292 INFO o.s.b.StartupInfoLogger [main] Starting BackendApplicationKt v0.0.1-SNAPSHOT using Java 17.0.14 with PID 25976 (D:\dev\Code\vscode-workspace\EventTicketing\backend\build\libs\backend-0.0.1-SNAPSHOT.jar started by jonny in D:\dev\Code\vscode-workspace\EventTicketing)
+2025-07-12 15:09:48,294 DEBUG o.s.b.StartupInfoLogger [main] Running with Spring Boot v3.5.3, Spring v6.2.8
+2025-07-12 15:09:48,296 INFO o.s.b.SpringApplication [main] No active profile set, falling back to 1 default profile: "default"
+2025-07-12 15:09:50,890 INFO o.s.d.r.c.RepositoryConfigurationDelegate [main] Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-07-12 15:09:51,179 INFO o.s.d.r.c.RepositoryConfigurationDelegate [main] Finished Spring Data repository scanning in 273 ms. Found 12 JPA repository interfaces.
+2025-07-12 15:09:52,608 INFO o.s.b.w.e.t.TomcatWebServer [main] Tomcat initialized with port 8080 (http)
+2025-07-12 15:09:52,629 INFO o.a.j.l.DirectJDKLog [main] Initializing ProtocolHandler ["http-nio-8080"]
+2025-07-12 15:09:52,646 INFO o.a.j.l.DirectJDKLog [main] Starting service [Tomcat]
+2025-07-12 15:09:52,647 INFO o.a.j.l.DirectJDKLog [main] Starting Servlet engine: [Apache Tomcat/10.1.42]
+2025-07-12 15:09:52,734 INFO o.a.j.l.DirectJDKLog [main] Initializing Spring embedded WebApplicationContext
+2025-07-12 15:09:52,735 INFO o.s.b.w.s.c.ServletWebServerApplicationContext [main] Root WebApplicationContext: initialization completed in 4332 ms
+2025-07-12 15:09:53,142 INFO c.z.h.HikariDataSource [main] HikariPool-1 - Starting...
+2025-07-12 15:09:53,449 INFO c.z.h.p.HikariPool [main] HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@53d2f0ec
+2025-07-12 15:09:53,454 INFO c.z.h.HikariDataSource [main] HikariPool-1 - Start completed.
+2025-07-12 15:09:53,824 INFO l.l.c.JavaLogger [main] Set default schema name to public
+2025-07-12 15:09:54,443 INFO l.l.c.JavaLogger [main] Reading resource: db/changelog/changes/001-initial-schema.xml
+2025-07-12 15:09:54,826 INFO l.l.c.JavaLogger [main] Reading from public.databasechangelog
+2025-07-12 15:09:54,830 INFO l.l.c.JavaLogger [main] Reading resource: db/changelog/changes/002-community-module.xml
+2025-07-12 15:09:54,852 INFO l.l.c.JavaLogger [main] Reading resource: db/changelog/changes/003-notification-system.xml
+2025-07-12 15:09:54,875 INFO l.l.c.JavaLogger [main] Reading resource: db/changelog/changes/004-reporting-analytics.xml
+2025-07-12 15:09:55,010 INFO l.l.c.JavaLogger [main] Database is up to date, no changesets to execute
+2025-07-12 15:09:55,012 INFO l.l.c.JavaLogger [main] Reading from public.databasechangelog
+2025-07-12 15:09:55,029 INFO l.l.c.JavaLogger [main] UPDATE SUMMARY
+2025-07-12 15:09:55,030 INFO l.l.c.JavaLogger [main] Run:                          0
+2025-07-12 15:09:55,031 INFO l.l.c.JavaLogger [main] Previously run:               4
+2025-07-12 15:09:55,031 INFO l.l.c.JavaLogger [main] Filtered out:                 0
+2025-07-12 15:09:55,032 INFO l.l.c.JavaLogger [main] -------------------------------
+2025-07-12 15:09:55,032 INFO l.l.c.JavaLogger [main] Total change sets:            4
+2025-07-12 15:09:55,034 INFO l.l.c.JavaLogger [main] Update summary generated
+2025-07-12 15:09:55,036 INFO l.l.c.JavaLogger [main] Command execution complete
+2025-07-12 15:09:56,737 INFO o.h.j.i.u.LogHelper [main] HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-07-12 15:09:56,847 INFO o.h.Version [main] HHH000412: Hibernate ORM core version 6.6.18.Final
+2025-07-12 15:09:56,920 INFO o.h.c.i.RegionFactoryInitiator [main] HHH000026: Second-level cache disabled
+2025-07-12 15:09:57,554 INFO o.s.o.j.p.SpringPersistenceUnitInfo [main] No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-07-12 15:09:57,642 WARN o.h.e.j.d.i.DialectFactoryImpl [main] HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-07-12 15:09:57,663 INFO o.h.e.j.e.i.JdbcEnvironmentInitiator [main] HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 16.9
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-07-12 15:09:59,307 INFO o.h.e.t.j.p.i.JtaPlatformInitiator [main] HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-07-12 15:10:00,046 INFO o.s.o.j.AbstractEntityManagerFactoryBean [main] Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-07-12 15:10:00,774 DEBUG o.s.w.f.GenericFilterBean [main] Filter 'jwtAuthenticationFilter' configured for use
+2025-07-12 15:10:00,919 INFO o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer [main] Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2025-07-12 15:10:01,217 INFO o.s.d.j.r.q.QueryEnhancerFactory [main] Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-07-12 15:10:05,048 WARN o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration [main] spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-07-12 15:10:05,277 WARN o.s.w.s.m.m.a.RequestMappingHandlerMapping [main] Multiple @RequestMapping annotations found on public org.springframework.http.ResponseEntity com.eventticketing.backend.controller.EventController.uploadEventImage(java.util.UUID,org.springframework.web.multipart.MultipartFile,boolean), but only the first will be used: [@org.springframework.web.bind.annotation.RequestMapping(consumes={"multipart/form-data"}, headers={}, method={}, name="", params={}, path={}, produces={}, value={}), @org.springframework.web.bind.annotation.PostMapping(consumes={}, headers={}, name="", params={}, path={"/{id}/images"}, produces={}, value={"/{id}/images"})]
+2025-07-12 15:10:06,280 INFO o.s.b.a.e.w.EndpointLinksResolver [main] Exposing 10 endpoints beneath base path '/actuator'
+2025-07-12 15:10:08,418 INFO o.a.j.l.DirectJDKLog [main] Starting ProtocolHandler ["http-nio-8080"]
+2025-07-12 15:10:08,521 INFO o.s.b.w.e.t.TomcatWebServer [main] Tomcat started on port 8080 (http) with context path '/'
+2025-07-12 15:10:08,592 INFO o.s.b.StartupInfoLogger [main] Started BackendApplicationKt in 21.451 seconds (process running for 22.257)
+2025-07-12 15:10:08,653 INFO c.e.b.s.TicketScheduler [event-ticketing-scheduler-1] B?t ??u x? lý các vé ??t ch? ?ã h?t h?n
+2025-07-12 15:10:08,872 DEBUG o.h.e.j.s.SqlStatementLogger [event-ticketing-scheduler-1] 
+    select
+        t1_0.id,
+        t1_0.cancelled_at,
+        t1_0.checked_in_at,
+        t1_0.created_at,
+        t1_0.event_id,
+        t1_0.payment_id,
+        t1_0.price,
+        t1_0.purchase_date,
+        t1_0.qr_code,
+        t1_0.status,
+        t1_0.ticket_number,
+        t1_0.ticket_type_id,
+        t1_0.updated_at,
+        t1_0.user_id 
+    from
+        tickets t1_0 
+    where
+        t1_0.status='RESERVED' 
+        and t1_0.created_at<?
+2025-07-12 15:10:08,924 INFO c.e.b.s.TicketScheduler [event-ticketing-scheduler-1] ?ã x? lý 0 vé ??t ch? ?ã h?t h?n
+2025-07-12 15:10:54,524 INFO o.a.j.l.DirectJDKLog [http-nio-8080-exec-2] Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-07-12 15:10:54,525 INFO o.s.w.s.FrameworkServlet [http-nio-8080-exec-2] Initializing Servlet 'dispatcherServlet'
+2025-07-12 15:10:54,527 INFO o.s.w.s.FrameworkServlet [http-nio-8080-exec-2] Completed initialization in 1 ms
+2025-07-12 15:15:08,621 INFO c.e.b.s.TicketScheduler [event-ticketing-scheduler-2] B?t ??u x? lý các vé ??t ch? ?ã h?t h?n
+2025-07-12 15:15:08,698 DEBUG o.h.e.j.s.SqlStatementLogger [event-ticketing-scheduler-2] 
+    select
+        t1_0.id,
+        t1_0.cancelled_at,
+        t1_0.checked_in_at,
+        t1_0.created_at,
+        t1_0.event_id,
+        t1_0.payment_id,
+        t1_0.price,
+        t1_0.purchase_date,
+        t1_0.qr_code,
+        t1_0.status,
+        t1_0.ticket_number,
+        t1_0.ticket_type_id,
+        t1_0.updated_at,
+        t1_0.user_id 
+    from
+        tickets t1_0 
+    where
+        t1_0.status='RESERVED' 
+        and t1_0.created_at<?
+2025-07-12 15:15:08,711 INFO c.e.b.s.TicketScheduler [event-ticketing-scheduler-2] ?ã x? lý 0 vé ??t ch? ?ã h?t h?n

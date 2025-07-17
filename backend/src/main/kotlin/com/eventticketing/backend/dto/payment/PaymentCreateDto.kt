@@ -16,10 +16,9 @@ data class PaymentCreateDto(
     @field:Positive(message = "Amount must be positive")
     val amount: BigDecimal,
     
-    @field:NotNull(message = "Payment method is required")
-    val paymentMethod: String,
+    val paymentMethod: String = "momo",
     
-    val returnUrl: String,
+    val returnUrl: String = "",
     
     // Optional fields
     val description: String? = null,

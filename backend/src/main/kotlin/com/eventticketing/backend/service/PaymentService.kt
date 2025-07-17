@@ -21,26 +21,18 @@ interface PaymentService {
     fun createPayment(paymentCreateDto: PaymentCreateDto): PaymentResponseDto
     
     /**
-     * Process VNPay payment return callback
-     * @param params Map of parameters returned from VNPay
+     * Process Momo payment return callback
+     * @param params Map of parameters returned from Momo
      * @return API response with payment result
      */
-    fun processVnPayReturn(params: Map<String, String>): ApiResponse<PaymentResponseDto>
+    fun processMomoReturn(params: Map<String, String>): ApiResponse<PaymentResponseDto>
     
     /**
-     * Process VNPay IPN (Instant Payment Notification)
-     * @param params Map of parameters sent from VNPay
+     * Process Momo IPN (Instant Payment Notification)
+     * @param params Map of parameters sent from Momo
      * @return API response with processing result
      */
-    fun processVnPayIpn(params: Map<String, String>): ApiResponse<String>
-    
-    /**
-     * Process Stripe webhook events
-     * @param payload Raw payload from Stripe webhook
-     * @param signature Stripe signature header
-     * @return API response with processing result
-     */
-    fun processStripeWebhook(payload: String, signature: String): ApiResponse<String>
+    fun processMomoIpn(params: Map<String, String>): ApiResponse<String>
     
     /**
      * Get payment by ID
