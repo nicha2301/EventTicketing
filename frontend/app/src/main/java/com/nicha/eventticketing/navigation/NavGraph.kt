@@ -467,8 +467,7 @@ fun NavGraph(
                 eventId = eventId,
                 onBackClick = {
                     navController.popBackStack()
-                },
-                onSelectImage = { /* Handled in component */ }
+                }
             )
         }
         

@@ -37,7 +37,7 @@ import com.nicha.eventticketing.data.remote.dto.payment.PaymentRequestDto
 import com.nicha.eventticketing.data.remote.dto.payment.PaymentResponseDto
 import com.nicha.eventticketing.data.remote.dto.event.EventImageDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeDto
-import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeListResponse
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypePageResponse
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -174,6 +174,12 @@ interface ApiService {
         @Query("isPrimary") isPrimary: Boolean = false
     ): Response<ApiResponse<EventImageDto>>
     
+    @PUT("api/events/{eventId}/images/{imageId}/primary")
+    suspend fun setImageAsPrimary(
+        @Path("eventId") eventId: String,
+        @Path("imageId") imageId: String
+    ): Response<ApiResponse<EventImageDto>>
+    
     @DELETE("api/events/{eventId}/images/{imageId}")
     suspend fun deleteEventImage(
         @Path("eventId") eventId: String,
@@ -186,7 +192,7 @@ interface ApiService {
         @Path("eventId") eventId: String,
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 20
-    ): Response<ApiResponse<TicketTypeListResponse>>
+    ): Response<ApiResponse<TicketTypePageResponse>>
     
     @GET("api/events/{eventId}/ticket-types/{ticketTypeId}")
     suspend fun getTicketTypeById(
@@ -200,16 +206,14 @@ interface ApiService {
         @Body ticketType: TicketTypeDto
     ): Response<ApiResponse<TicketTypeDto>>
     
-    @PUT("api/events/{eventId}/ticket-types/{ticketTypeId}")
+    @PUT("api/ticket-types/{ticketTypeId}")
     suspend fun updateTicketType(
-        @Path("eventId") eventId: String,
         @Path("ticketTypeId") ticketTypeId: String,
         @Body ticketType: TicketTypeDto
     ): Response<ApiResponse<TicketTypeDto>>
     
-    @DELETE("api/events/{eventId}/ticket-types/{ticketTypeId}")
+    @DELETE("api/ticket-types/{ticketTypeId}")
     suspend fun deleteTicketType(
-        @Path("eventId") eventId: String,
         @Path("ticketTypeId") ticketTypeId: String
     ): Response<ApiResponse<Boolean>>
     

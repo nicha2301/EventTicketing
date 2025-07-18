@@ -89,6 +89,13 @@ interface PreferencesManager {
      * @return ID người dùng hoặc chuỗi rỗng nếu không tìm thấy
      */
     fun getUserId(): String
+    
+    /**
+     * Lưu ID người dùng
+     * @param userId ID người dùng để lưu trữ
+     * @return True nếu lưu thành công, false nếu thất bại
+     */
+    suspend fun saveUserId(userId: String): Boolean
 }
 
 /**
@@ -284,6 +291,23 @@ class PreferencesManagerImpl @Inject constructor(
     }
 
     override fun getUserId(): String {
-        return encryptedPrefs.getString("user_id", "") ?: ""
+        val userId = encryptedPrefs.getString("user_id", "") ?: ""
+        Timber.d("Đang lấy userId từ preferences: '$userId'")
+        return userId
+    }
+
+    override suspend fun saveUserId(userId: String): Boolean {
+        return try {
+            val result = encryptedPrefs.edit().putString("user_id", userId).commit()
+            if (result) {
+                Timber.d("UserId đã được lưu thành công: $userId")
+            } else {
+                Timber.e("Không thể lưu userId: $userId")
+            }
+            result
+        } catch (e: Exception) {
+            Timber.e(e, "Lỗi khi lưu userId: $userId")
+            false
+        }
     }
 } 
