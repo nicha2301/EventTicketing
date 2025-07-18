@@ -215,7 +215,7 @@ fun EventDetailScreen(
                     ) { page ->
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(imageUrls[page])
+                                        .data(imageUrls[page])
                                 .crossfade(true)
                                 .build(),
                             contentDescription = "Event image ${page + 1}",

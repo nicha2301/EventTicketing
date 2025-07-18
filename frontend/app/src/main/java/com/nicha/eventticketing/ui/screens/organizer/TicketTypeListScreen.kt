@@ -25,6 +25,13 @@ import com.nicha.eventticketing.viewmodel.TicketTypeManagementViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.Date
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
+import java.util.Calendar
+import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
+import com.nicha.eventticketing.ui.theme.LocalNeumorphismStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,7 +79,14 @@ fun TicketTypeListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Quản lý loại vé") },
+                title = { 
+                    Text(
+                        "Quản lý loại vé",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -80,13 +94,20 @@ fun TicketTypeListScreen(
                             contentDescription = "Quay lại"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreateDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 8.dp
+                )
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
@@ -119,12 +140,26 @@ fun TicketTypeListScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = errorMessage,
-                                style = MaterialTheme.typography.bodyLarge,
+                                text = "Không thể tải danh sách loại vé",
+                                style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.error
                             )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = errorMessage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { viewModel.getTicketTypes(eventId) }) {
+                            Button(
+                                onClick = { viewModel.getTicketTypes(eventId) },
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Refresh,
+                                    contentDescription = null
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text("Thử lại")
                             }
                         }
@@ -273,11 +308,8 @@ fun TicketTypeItem(
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    NeumorphicCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -287,11 +319,45 @@ fun TicketTypeItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = ticketType.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = ticketType.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (ticketType.isActive) 
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            else 
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                        ) {
+                            Text(
+                                text = if (ticketType.isActive) "Đang bán" else "Ngừng bán",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (ticketType.isActive) 
+                                    MaterialTheme.colorScheme.primary
+                                else 
+                                    MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        Text(
+                            text = "Còn ${ticketType.availableQuantity}/${ticketType.quantity} vé",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 
                 Row {
                     IconButton(onClick = onEditClick) {
@@ -312,31 +378,32 @@ fun TicketTypeItem(
                 }
             }
             
-            if (!ticketType.description.isNullOrBlank()) {
-                Text(
-                    text = ticketType.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.surfaceVariant
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
             
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
                     Text(
-                        text = "Giá",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = "Giá vé",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    
                     Text(
-                        text = "${ticketType.price} VND",
-                        style = MaterialTheme.typography.titleSmall,
+                        text = if (ticketType.price > 0) 
+                            FormatUtils.formatPrice(ticketType.price)
+                        else 
+                            "Miễn phí",
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -344,34 +411,63 @@ fun TicketTypeItem(
                 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "Số lượng",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = "Đã bán",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    
                     Text(
-                        text = "${ticketType.availableQuantity}/${ticketType.quantity}",
-                        style = MaterialTheme.typography.titleSmall,
+                        text = "${ticketType.quantitySold} vé",
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
+            if (ticketType.description?.isNotBlank() == true) {
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Mô tả",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Text(
+                    text = ticketType.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             
-            // Thêm thanh tiến trình hiển thị số lượng vé đã bán
-            LinearProgressIndicator(
-                progress = { 
-                    if (ticketType.quantity > 0) 
-                        ticketType.quantitySold.toFloat() / ticketType.quantity
-                    else 0f
-                },
-                modifier = Modifier.fillMaxWidth(),
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                color = if (ticketType.availableQuantity < ticketType.quantity * 0.2)
-                    MaterialTheme.colorScheme.error
-                else
-                    MaterialTheme.colorScheme.primary
-            )
+            if (ticketType.salesStartDate != null || ticketType.salesEndDate != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Thời gian bán",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                val startDate = ticketType.salesStartDate?.let { 
+                    try { FormatUtils.formatDate(it) } catch (e: Exception) { null } 
+                }
+                val endDate = ticketType.salesEndDate?.let { 
+                    try { FormatUtils.formatDate(it) } catch (e: Exception) { null } 
+                }
+                
+                Text(
+                    text = when {
+                        startDate != null && endDate != null -> "Từ $startDate đến $endDate"
+                        startDate != null -> "Từ $startDate"
+                        endDate != null -> "Đến $endDate"
+                        else -> "Không giới hạn"
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }
@@ -394,12 +490,95 @@ fun TicketTypeFormDialog(
     var salesEndDate by remember { mutableStateOf(ticketType?.salesEndDate ?: "") }
     var maxTicketsPerCustomer by remember { mutableStateOf(ticketType?.maxTicketsPerCustomer?.toString() ?: "5") }
     var minTicketsPerOrder by remember { mutableStateOf(ticketType?.minTicketsPerOrder?.toString() ?: "1") }
+    var isEarlyBird by remember { mutableStateOf(ticketType?.isEarlyBird ?: false) }
+    var isVIP by remember { mutableStateOf(ticketType?.isVIP ?: false) }
+    var isActive by remember { mutableStateOf(ticketType?.isActive ?: true) }
+    
+    // Error states
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var priceError by remember { mutableStateOf<String?>(null) }
+    var quantityError by remember { mutableStateOf<String?>(null) }
+    var dateError by remember { mutableStateOf<String?>(null) }
+    var minMaxError by remember { mutableStateOf<String?>(null) }
     
     // Date pickers
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
     val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val currentDate = remember { Calendar.getInstance() }
+    
+    // Validate function
+    val validateForm = {
+        var isValid = true
+        
+        // Validate name
+        if (name.isBlank()) {
+            nameError = "Tên loại vé không được để trống"
+            isValid = false
+        } else {
+            nameError = null
+        }
+        
+        // Validate price
+        val priceValue = price.toDoubleOrNull()
+        if (priceValue == null) {
+            priceError = "Giá vé phải là số"
+            isValid = false
+        } else if (priceValue < 0) {
+            priceError = "Giá vé không được âm"
+            isValid = false
+        } else {
+            priceError = null
+        }
+        
+        // Validate quantity
+        val quantityValue = quantity.toIntOrNull()
+        if (quantityValue == null) {
+            quantityError = "Số lượng phải là số nguyên"
+            isValid = false
+        } else if (quantityValue <= 0) {
+            quantityError = "Số lượng phải lớn hơn 0"
+            isValid = false
+        } else {
+            quantityError = null
+        }
+        
+        // Validate dates
+        if (salesStartDate.isNotEmpty() && salesEndDate.isNotEmpty()) {
+            try {
+                val startDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).parse(salesStartDate)
+                val endDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).parse(salesEndDate)
+                
+                if (startDate != null && endDate != null) {
+                    if (startDate.after(endDate)) {
+                        dateError = "Ngày bắt đầu không thể sau ngày kết thúc"
+                        isValid = false
+                    } else {
+                        dateError = null
+                    }
+                }
+            } catch (e: Exception) {
+                dateError = "Định dạng ngày không hợp lệ"
+                isValid = false
+            }
+        }
+        
+        // Validate min/max tickets
+        val minTickets = minTicketsPerOrder.toIntOrNull()
+        val maxTickets = maxTicketsPerCustomer.toIntOrNull()
+        
+        if (minTickets != null && maxTickets != null) {
+            if (minTickets > maxTickets) {
+                minMaxError = "Số vé tối thiểu không thể lớn hơn số vé tối đa"
+                isValid = false
+            } else {
+                minMaxError = null
+            }
+        }
+        
+        isValid
+    }
     
     Dialog(
         onDismissRequest = onDismiss
@@ -414,6 +593,7 @@ fun TicketTypeFormDialog(
                 modifier = Modifier
                     .padding(16.dp)
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
             ) {
                 Text(
                     text = if (isEditing) "Chỉnh sửa loại vé" else "Tạo loại vé mới",
@@ -425,10 +605,12 @@ fun TicketTypeFormDialog(
                 
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = { name = it; nameError = null },
                     label = { Text("Tên loại vé") },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Nhập tên loại vé") }
+                    placeholder = { Text("Nhập tên loại vé") },
+                    isError = nameError != null,
+                    supportingText = { nameError?.let { Text(it, color = MaterialTheme.colorScheme.error) } }
                 )
                 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -445,28 +627,36 @@ fun TicketTypeFormDialog(
                 
                 OutlinedTextField(
                     value = price,
-                    onValueChange = { price = it },
+                    onValueChange = { price = it; priceError = null },
                     label = { Text("Giá vé") },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Nhập giá vé") },
-                    trailingIcon = { Text("VND", modifier = Modifier.padding(end = 8.dp)) }
+                    trailingIcon = { Text("VNĐ", modifier = Modifier.padding(end = 8.dp)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = priceError != null,
+                    supportingText = { priceError?.let { Text(it, color = MaterialTheme.colorScheme.error) } }
                 )
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 OutlinedTextField(
                     value = quantity,
-                    onValueChange = { quantity = it },
+                    onValueChange = { quantity = it; quantityError = null },
                     label = { Text("Số lượng") },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Nhập số lượng vé") }
+                    placeholder = { Text("Nhập số lượng vé") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = quantityError != null,
+                    supportingText = { quantityError?.let { Text(it, color = MaterialTheme.colorScheme.error) } }
                 )
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 // Sales start date
                 OutlinedTextField(
-                    value = salesStartDate,
+                    value = if (salesStartDate.isNotEmpty()) 
+                        FormatUtils.formatDate(salesStartDate) 
+                    else "",
                     onValueChange = { },
                     label = { Text("Ngày bắt đầu bán") },
                     modifier = Modifier.fillMaxWidth(),
@@ -478,14 +668,17 @@ fun TicketTypeFormDialog(
                                 contentDescription = "Chọn ngày"
                             )
                         }
-                    }
+                    },
+                    isError = dateError != null
                 )
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 // Sales end date
                 OutlinedTextField(
-                    value = salesEndDate,
+                    value = if (salesEndDate.isNotEmpty()) 
+                        FormatUtils.formatDate(salesEndDate) 
+                    else "",
                     onValueChange = { },
                     label = { Text("Ngày kết thúc bán") },
                     modifier = Modifier.fillMaxWidth(),
@@ -497,8 +690,18 @@ fun TicketTypeFormDialog(
                                 contentDescription = "Chọn ngày"
                             )
                         }
-                    }
+                    },
+                    isError = dateError != null
                 )
+                
+                if (dateError != null) {
+                    Text(
+                        text = dateError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                    )
+                }
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
@@ -508,18 +711,76 @@ fun TicketTypeFormDialog(
                 ) {
                     OutlinedTextField(
                         value = minTicketsPerOrder,
-                        onValueChange = { minTicketsPerOrder = it },
+                        onValueChange = { minTicketsPerOrder = it; minMaxError = null },
                         label = { Text("Mua tối thiểu") },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        isError = minMaxError != null
                     )
                     
                     Spacer(modifier = Modifier.width(8.dp))
                     
                     OutlinedTextField(
                         value = maxTicketsPerCustomer,
-                        onValueChange = { maxTicketsPerCustomer = it },
+                        onValueChange = { maxTicketsPerCustomer = it; minMaxError = null },
                         label = { Text("Mua tối đa") },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        isError = minMaxError != null
+                    )
+                }
+                
+                if (minMaxError != null) {
+                    Text(
+                        text = minMaxError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Checkboxes for additional options
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = isEarlyBird,
+                        onCheckedChange = { isEarlyBird = it }
+                    )
+                    Text(
+                        text = "Vé Early Bird",
+                        modifier = Modifier.clickable { isEarlyBird = !isEarlyBird }
+                    )
+                }
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = isVIP,
+                        onCheckedChange = { isVIP = it }
+                    )
+                    Text(
+                        text = "Vé VIP",
+                        modifier = Modifier.clickable { isVIP = !isVIP }
+                    )
+                }
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = isActive,
+                        onCheckedChange = { isActive = it }
+                    )
+                    Text(
+                        text = "Kích hoạt",
+                        modifier = Modifier.clickable { isActive = !isActive }
                     )
                 }
                 
@@ -537,20 +798,26 @@ fun TicketTypeFormDialog(
                     
                     Button(
                         onClick = {
-                            val newTicketType = TicketTypeDto(
-                                id = ticketType?.id ?: "",
-                                eventId = eventId,
-                                name = name,
-                                description = description,
-                                price = price.toDoubleOrNull() ?: 0.0,
-                                quantity = quantity.toIntOrNull() ?: 100,
-                                quantitySold = ticketType?.quantitySold ?: 0,
-                                maxTicketsPerCustomer = maxTicketsPerCustomer.toIntOrNull(),
-                                minTicketsPerOrder = minTicketsPerOrder.toIntOrNull() ?: 1,
-                                salesStartDate = salesStartDate,
-                                salesEndDate = salesEndDate
-                            )
-                            onSave(newTicketType)
+                            if (validateForm()) {
+                                val newTicketType = TicketTypeDto(
+                                    id = ticketType?.id ?: "",
+                                    eventId = eventId,
+                                    name = name,
+                                    description = description,
+                                    price = price.toDoubleOrNull() ?: 0.0,
+                                    quantity = quantity.toIntOrNull() ?: 100,
+                                    availableQuantity = ticketType?.availableQuantity ?: quantity.toIntOrNull() ?: 100,
+                                    quantitySold = ticketType?.quantitySold ?: 0,
+                                    maxTicketsPerCustomer = maxTicketsPerCustomer.toIntOrNull(),
+                                    minTicketsPerOrder = minTicketsPerOrder.toIntOrNull() ?: 1,
+                                    salesStartDate = salesStartDate,
+                                    salesEndDate = salesEndDate,
+                                    isEarlyBird = isEarlyBird,
+                                    isVIP = isVIP,
+                                    isActive = isActive
+                                )
+                                onSave(newTicketType)
+                            }
                         },
                         enabled = name.isNotBlank() && price.isNotBlank() && quantity.isNotBlank()
                     ) {
@@ -569,7 +836,17 @@ fun TicketTypeFormDialog(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let {
-                            salesStartDate = dateFormatter.format(Date(it))
+                            val selectedDate = Calendar.getInstance().apply {
+                                timeInMillis = it
+                            }
+                            
+                            // Add validation for start date
+                            if (selectedDate.before(currentDate)) {
+                                dateError = "Ngày bắt đầu không thể trước ngày hiện tại"
+                            } else {
+                                salesStartDate = dateFormatter.format(Date(it)) + "T00:00:00"
+                                dateError = null
+                            }
                         }
                         showStartDatePicker = false
                     }
@@ -594,7 +871,29 @@ fun TicketTypeFormDialog(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let {
-                            salesEndDate = dateFormatter.format(Date(it))
+                            val selectedDate = Calendar.getInstance().apply {
+                                timeInMillis = it
+                            }
+                            
+                            // Add validation for end date
+                            if (selectedDate.before(currentDate)) {
+                                dateError = "Ngày kết thúc không thể trước ngày hiện tại"
+                            } else if (salesStartDate.isNotEmpty()) {
+                                try {
+                                    val startDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).parse(salesStartDate)
+                                    if (startDate != null && selectedDate.time.before(startDate)) {
+                                        dateError = "Ngày kết thúc không thể trước ngày bắt đầu"
+                                    } else {
+                                        salesEndDate = dateFormatter.format(Date(it)) + "T23:59:59"
+                                        dateError = null
+                                    }
+                                } catch (e: Exception) {
+                                    salesEndDate = dateFormatter.format(Date(it)) + "T23:59:59"
+                                }
+                            } else {
+                                salesEndDate = dateFormatter.format(Date(it)) + "T23:59:59"
+                                dateError = null
+                            }
                         }
                         showEndDatePicker = false
                     }

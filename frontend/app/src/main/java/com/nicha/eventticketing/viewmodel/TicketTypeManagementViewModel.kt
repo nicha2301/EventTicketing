@@ -51,8 +51,9 @@ class TicketTypeManagementViewModel @Inject constructor(
                 val response = apiService.getTicketTypes(eventId)
                 
                 if (response.isSuccessful && response.body()?.success == true) {
-                    val ticketTypes = response.body()?.data
-                    if (ticketTypes != null) {
+                    val pageResponse = response.body()?.data
+                    if (pageResponse != null) {
+                        val ticketTypes = pageResponse.content
                         _ticketTypesState.value = ResourceState.Success(ticketTypes)
                         Timber.d("Lấy danh sách loại vé thành công: ${ticketTypes.size} loại vé")
                     } else {
@@ -110,7 +111,7 @@ class TicketTypeManagementViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 Timber.d("Đang cập nhật loại vé: ${ticketType.id}")
-                val response = apiService.updateTicketType(ticketType.eventId, ticketType.id, ticketType)
+                val response = apiService.updateTicketType(ticketType.id, ticketType)
                 
                 if (response.isSuccessful && response.body()?.success == true) {
                     val updatedTicketType = response.body()?.data
@@ -141,7 +142,7 @@ class TicketTypeManagementViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 Timber.d("Đang xóa loại vé: $ticketTypeId")
-                val response = apiService.deleteTicketType(eventId, ticketTypeId)
+                val response = apiService.deleteTicketType(ticketTypeId)
                 
                 if (response.isSuccessful && response.body()?.success == true) {
                     val result = response.body()?.data

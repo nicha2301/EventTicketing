@@ -26,7 +26,8 @@ class RoleBasedNavigation @Inject constructor(
             NavDestination.OrganizerEventList,
             NavDestination.OrganizerEventDetail,
             NavDestination.EventImages,
-            NavDestination.TicketTypeList
+            NavDestination.TicketTypeList,
+            NavDestination.OrganizerProfile
         )
         
         // Nếu điểm đến không dành riêng cho người tổ chức, cho phép truy cập

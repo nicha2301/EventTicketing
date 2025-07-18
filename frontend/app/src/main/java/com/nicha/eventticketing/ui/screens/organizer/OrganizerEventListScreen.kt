@@ -20,16 +20,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.domain.model.ResourceState
+import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
+import com.nicha.eventticketing.ui.theme.CardBackground
+import com.nicha.eventticketing.ui.theme.LocalNeumorphismStyle
 import com.nicha.eventticketing.viewmodel.OrganizerEventViewModel
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import com.nicha.eventticketing.ui.components.EventCard
 
 enum class EventStatusFilter {
     ALL, DRAFT, PUBLISHED, CANCELLED, COMPLETED
@@ -55,7 +61,14 @@ fun OrganizerEventListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Sự kiện của tôi") },
+                title = { 
+                    Text(
+                        "Sự kiện của tôi",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -71,13 +84,20 @@ fun OrganizerEventListScreen(
                             contentDescription = "Quét mã QR"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCreateEventClick,
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 8.dp
+                )
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
@@ -95,7 +115,15 @@ fun OrganizerEventListScreen(
             // Status filter tabs
             ScrollableTabRow(
                 selectedTabIndex = selectedStatusFilter.ordinal,
-                edgePadding = 16.dp
+                edgePadding = 16.dp,
+                containerColor = MaterialTheme.colorScheme.background,
+                contentColor = MaterialTheme.colorScheme.primary,
+                divider = {
+                    HorizontalDivider(
+                        thickness = 2.dp,
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                }
             ) {
                 EventStatusFilter.values().forEachIndexed { index, filter ->
                     Tab(
@@ -111,7 +139,9 @@ fun OrganizerEventListScreen(
                                     EventStatusFilter.COMPLETED -> "Đã kết thúc"
                                 }
                             )
-                        }
+                        },
+                        selectedContentColor = MaterialTheme.colorScheme.primary,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
             }
@@ -134,12 +164,26 @@ fun OrganizerEventListScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = errorMessage,
-                                style = MaterialTheme.typography.bodyLarge,
+                                text = "Không thể tải danh sách sự kiện",
+                                style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.error
                             )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = errorMessage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { viewModel.getOrganizerEvents() }) {
+                            Button(
+                                onClick = { viewModel.getOrganizerEvents() },
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Refresh,
+                                    contentDescription = null
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text("Thử lại")
                             }
                         }
@@ -162,23 +206,32 @@ fun OrganizerEventListScreen(
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(
-                                    imageVector = Icons.Default.Category,
+                                    imageVector = Icons.Default.Event,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                                     modifier = Modifier.size(64.dp)
                                 )
                                 
                                 Spacer(modifier = Modifier.height(16.dp))
                                 
                                 Text(
-                                    text = "Không có sự kiện nào",
+                                    text = when (selectedStatusFilter) {
+                                        EventStatusFilter.ALL -> "Không có sự kiện nào"
+                                        EventStatusFilter.DRAFT -> "Không có bản nháp sự kiện"
+                                        EventStatusFilter.PUBLISHED -> "Không có sự kiện đang diễn ra"
+                                        EventStatusFilter.CANCELLED -> "Không có sự kiện đã hủy"
+                                        EventStatusFilter.COMPLETED -> "Không có sự kiện đã kết thúc"
+                                    },
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
                                 
-                                Button(onClick = onCreateEventClick) {
+                                Button(
+                                    onClick = onCreateEventClick,
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
                                     Icon(
                                         imageVector = Icons.Default.Add,
                                         contentDescription = null,
@@ -196,7 +249,7 @@ fun OrganizerEventListScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             items(filteredEvents) { event ->
-                                OrganizerEventItem(
+                                EventCard(
                                     event = event,
                                     onEventClick = { onEventClick(event.id) }
                                 )
@@ -204,157 +257,8 @@ fun OrganizerEventListScreen(
                         }
                     }
                 }
-                else -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "Không có dữ liệu",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
+                else -> {}
             }
         }
-    }
-}
-
-@Composable
-fun OrganizerEventItem(
-    event: EventDto,
-    onEventClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onEventClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier.height(IntrinsicSize.Min)
-        ) {
-            // Event image
-            AsyncImage(
-                model = event.featuredImageUrl,
-                contentDescription = event.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .width(120.dp)
-                    .height(120.dp)
-                    .clip(RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
-            )
-            
-            // Event info
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = event.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    
-                    EventStatusChip(status = event.status)
-                }
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.CalendarToday,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(4.dp))
-                    
-                    Text(
-                        text = event.startDate,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.LocationOn,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(4.dp))
-                    
-                    Text(
-                        text = event.address ?: event.locationName ?: "Chưa cập nhật địa điểm",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.PeopleAlt,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(4.dp))
-                    
-                    Text(
-                        text = "${event.currentAttendees ?: 0}/${event.maxAttendees ?: 0} người tham dự",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun EventStatusChip(status: String?) {
-    val (backgroundColor, contentColor, text) = when (status?.uppercase()) {
-        "DRAFT" -> Triple(Color(0xFFE3F2FD), Color(0xFF1976D2), "Bản nháp")
-        "PUBLISHED" -> Triple(Color(0xFFE8F5E9), Color(0xFF388E3C), "Đã đăng")
-        "CANCELLED" -> Triple(Color(0xFFFFEBEE), Color(0xFFD32F2F), "Đã hủy")
-        "COMPLETED" -> Triple(Color(0xFFF3E5F5), Color(0xFF7B1FA2), "Đã kết thúc")
-        else -> Triple(Color(0xFFEEEEEE), Color(0xFF757575), "Không xác định")
-    }
-    
-    Surface(
-        color = backgroundColor,
-        contentColor = contentColor,
-        shape = RoundedCornerShape(4.dp),
-        modifier = Modifier.padding(start = 8.dp)
-    ) {
-        Text(
-            text = text,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
     }
 } 

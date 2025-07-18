@@ -26,6 +26,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.nicha.eventticketing.data.remote.dto.event.EventImageDto
 import com.nicha.eventticketing.domain.model.ResourceState
+import com.nicha.eventticketing.util.ImagePickerUtil
 import com.nicha.eventticketing.viewmodel.EventImageViewModel
 import java.io.File
 
@@ -34,16 +35,22 @@ import java.io.File
 fun EventImagesScreen(
     eventId: String,
     onBackClick: () -> Unit,
-    onSelectImage: () -> Unit = {},
     viewModel: EventImageViewModel = hiltViewModel()
 ) {
     val eventImagesState by viewModel.eventImagesState.collectAsState()
     val uploadImageState by viewModel.uploadImageState.collectAsState()
     val deleteImageState by viewModel.deleteImageState.collectAsState()
     val uploadProgress by viewModel.uploadProgress.collectAsState()
+    val setPrimaryImageState by viewModel.setPrimaryImageState.collectAsState()
     
     var selectedImageFile by remember { mutableStateOf<File?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf<EventImageDto?>(null) }
+    var showSetPrimaryDialog by remember { mutableStateOf<EventImageDto?>(null) }
+    
+    // Image picker launcher
+    val imagePickerLauncher = ImagePickerUtil.rememberImagePicker { file ->
+        selectedImageFile = file
+    }
     
     // Fetch images when the screen is first displayed
     LaunchedEffect(Unit) {
@@ -54,12 +61,21 @@ fun EventImagesScreen(
     LaunchedEffect(uploadImageState) {
         if (uploadImageState is ResourceState.Success) {
             viewModel.resetUploadImageState()
+            viewModel.getEventImages(eventId)
         }
     }
     
     LaunchedEffect(deleteImageState) {
         if (deleteImageState is ResourceState.Success) {
             viewModel.resetDeleteImageState()
+            viewModel.getEventImages(eventId)
+        }
+    }
+    
+    LaunchedEffect(setPrimaryImageState) {
+        if (setPrimaryImageState is ResourceState.Success) {
+            viewModel.resetSetPrimaryImageState()
+            viewModel.getEventImages(eventId)
         }
     }
     
@@ -76,7 +92,7 @@ fun EventImagesScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onSelectImage) {
+                    IconButton(onClick = { ImagePickerUtil.launchImagePicker(imagePickerLauncher) }) {
                         Icon(
                             imageVector = Icons.Default.AddPhotoAlternate,
                             contentDescription = "Thêm ảnh"
@@ -143,7 +159,7 @@ fun EventImagesScreen(
                                 
                                 Spacer(modifier = Modifier.height(8.dp))
                                 
-                                Button(onClick = onSelectImage) {
+                                Button(onClick = { ImagePickerUtil.launchImagePicker(imagePickerLauncher) }) {
                                     Icon(
                                         imageVector = Icons.Default.AddPhotoAlternate,
                                         contentDescription = null,
@@ -162,11 +178,11 @@ fun EventImagesScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(images) { image ->
+                            items(images) { imageItem ->
                                 EventImageItem(
-                                    image = image,
-                                    onSetAsPrimary = { imageId ->
-                                        // Implement set as primary functionality
+                                    image = imageItem,
+                                    onSetAsPrimary = { image ->
+                                        showSetPrimaryDialog = image
                                     },
                                     onDelete = { imageToDelete ->
                                         showDeleteConfirmDialog = imageToDelete
@@ -230,7 +246,7 @@ fun EventImagesScreen(
             // Handle selected image file for upload
             selectedImageFile?.let { file ->
                 LaunchedEffect(file) {
-                    // TODO: Implement logic to determine if this should be primary
+                    // Determine if this should be primary
                     val isPrimary = eventImagesState !is ResourceState.Success || 
                                     (eventImagesState as? ResourceState.Success<List<EventImageDto>>)?.data?.isEmpty() == true
                     
@@ -265,6 +281,30 @@ fun EventImagesScreen(
                     }
                 )
             }
+            
+            // Set primary confirmation dialog
+            showSetPrimaryDialog?.let { imageToSetPrimary ->
+                AlertDialog(
+                    onDismissRequest = { showSetPrimaryDialog = null },
+                    title = { Text("Đặt làm ảnh chính") },
+                    text = { Text("Bạn có chắc chắn muốn đặt hình ảnh này làm ảnh chính không?") },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                viewModel.setAsPrimaryImage(eventId, imageToSetPrimary.id)
+                                showSetPrimaryDialog = null
+                            }
+                        ) {
+                            Text("Đồng ý")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showSetPrimaryDialog = null }) {
+                            Text("Hủy")
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -272,7 +312,7 @@ fun EventImagesScreen(
 @Composable
 fun EventImageItem(
     image: EventImageDto,
-    onSetAsPrimary: (String) -> Unit,
+    onSetAsPrimary: (EventImageDto) -> Unit,
     onDelete: (EventImageDto) -> Unit
 ) {
     val context = LocalContext.current
@@ -289,7 +329,7 @@ fun EventImageItem(
     ) {
         AsyncImage(
             model = ImageRequest.Builder(context)
-                .data("/api/files/${image.url}")
+                .data(image.url) // Use the full URL directly from the API
                 .crossfade(true)
                 .build(),
             contentDescription = null,
@@ -332,7 +372,7 @@ fun EventImageItem(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             IconButton(
-                onClick = { onSetAsPrimary(image.id) },
+                onClick = { onSetAsPrimary(image) },
                 enabled = !image.isPrimary
             ) {
                 Icon(

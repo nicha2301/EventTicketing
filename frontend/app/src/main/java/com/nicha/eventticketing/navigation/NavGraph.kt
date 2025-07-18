@@ -15,7 +15,6 @@ import com.nicha.eventticketing.ui.screens.auth.RegisterScreen
 import com.nicha.eventticketing.ui.screens.auth.ResetPasswordScreen
 import com.nicha.eventticketing.ui.screens.checkin.CheckInScreen
 import com.nicha.eventticketing.ui.screens.demo.NeumorphicDemoScreen
-import com.nicha.eventticketing.ui.screens.event.CreateEventScreen
 import com.nicha.eventticketing.ui.screens.event.EventDetailScreen
 import com.nicha.eventticketing.ui.screens.home.HomeScreen
 import com.nicha.eventticketing.ui.screens.onboarding.OnboardingScreen
@@ -35,6 +34,8 @@ import com.nicha.eventticketing.ui.screens.auth.UnauthorizedScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nicha.eventticketing.viewmodel.AuthViewModel
 import com.nicha.eventticketing.ui.screens.organizer.EditEventScreen
+import com.nicha.eventticketing.ui.screens.organizer.CreateEventScreen
+import com.nicha.eventticketing.ui.screens.organizer.OrganizerProfileScreen
 
 @Composable
 fun NavGraph(
@@ -232,6 +233,45 @@ fun NavGraph(
             )
         }
         
+        // Organizer Profile Screen
+        composable(route = NavDestination.OrganizerProfile.route) {
+            // Kiểm tra quyền truy cập
+            LaunchedEffect(currentUser) {
+                if (!roleBasedNavigation.canAccessDestination(NavDestination.OrganizerProfile, currentUser)) {
+                    navController.navigate(NavDestination.Unauthorized.route)
+                }
+            }
+            
+            OrganizerProfileScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onEditClick = {
+                    navController.navigate("edit_profile")
+                },
+                onSettingsClick = {
+                    navController.navigate("notifications")
+                },
+                onMyEventsClick = {
+                    navController.navigate(NavDestination.OrganizerEventList.route)
+                },
+                onCreateEventClick = {
+                    navController.navigate(NavDestination.CreateEvent.route)
+                },
+                onEventDashboardClick = {
+                    navController.navigate(NavDestination.OrganizerDashboard.route)
+                },
+                onScanQRClick = {
+                    navController.navigate(NavDestination.CheckIn.route)
+                },
+                onLogoutClick = {
+                    navController.navigate(NavDestination.Login.route) {
+                        popUpTo(NavDestination.OrganizerDashboard.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
         // Notifications Screen
         composable(route = "notifications") {
             com.nicha.eventticketing.ui.screens.settings.NotificationsScreen(
@@ -372,6 +412,9 @@ fun NavGraph(
                     navController.navigate(NavDestination.CreateEvent.route)
                 },
                 onEventClick = { eventId ->
+                    if (eventId == "profile") {
+                        navController.navigate(NavDestination.OrganizerProfile.route)
+                    } else
                     if (eventId == "list") {
                         navController.navigate(NavDestination.OrganizerEventList.route)
                     } else {
@@ -566,6 +609,7 @@ sealed class NavDestination(val route: String) {
     }
     object Search : NavDestination("search")
     object Profile : NavDestination("profile")
+    object OrganizerProfile : NavDestination("organizer_profile")
     object TicketWallet : NavDestination("ticket_wallet")
     object TicketDetail : NavDestination("ticket_detail") {
         fun createRoute(ticketId: String) = "$route/$ticketId"

@@ -56,7 +56,7 @@ class TicketTypeAdapter {
                                 price = 0.0
                             }
                             JsonReader.Token.STRING -> {
-                                val priceStr = reader.nextString()
+                            val priceStr = reader.nextString()
                                 price = try {
                                     BigDecimal(priceStr).toDouble()
                                 } catch (e: Exception) {
