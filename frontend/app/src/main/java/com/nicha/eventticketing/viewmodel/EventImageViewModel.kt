@@ -39,6 +39,10 @@ class EventImageViewModel @Inject constructor(
     private val _deleteImageState = MutableStateFlow<ResourceState<Boolean>>(ResourceState.Initial)
     val deleteImageState: StateFlow<ResourceState<Boolean>> = _deleteImageState.asStateFlow()
     
+    // State cho việc đặt ảnh làm ảnh chính
+    private val _setPrimaryImageState = MutableStateFlow<ResourceState<EventImageDto>>(ResourceState.Initial)
+    val setPrimaryImageState: StateFlow<ResourceState<EventImageDto>> = _setPrimaryImageState.asStateFlow()
+    
     // State cho tỷ lệ tải lên
     private val _uploadProgress = MutableStateFlow(0f)
     val uploadProgress: StateFlow<Float> = _uploadProgress.asStateFlow()
@@ -151,6 +155,41 @@ class EventImageViewModel @Inject constructor(
     }
     
     /**
+     * Đặt hình ảnh làm ảnh chính
+     */
+    fun setAsPrimaryImage(eventId: String, imageId: String) {
+        _setPrimaryImageState.value = ResourceState.Loading
+        
+        viewModelScope.launch {
+            try {
+                Timber.d("Đang đặt hình ảnh: $imageId làm ảnh chính cho sự kiện: $eventId")
+                
+                val response = apiService.setImageAsPrimary(eventId, imageId)
+                
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val updatedImage = response.body()?.data
+                    if (updatedImage != null) {
+                        _setPrimaryImageState.value = ResourceState.Success(updatedImage)
+                        Timber.d("Đặt hình ảnh làm ảnh chính thành công: ${updatedImage.id}")
+                        
+                        // Cập nhật lại danh sách hình ảnh
+                        getEventImages(eventId)
+                    } else {
+                        Timber.e("Không thể lấy thông tin hình ảnh đã cập nhật từ response")
+                        _setPrimaryImageState.value = ResourceState.Error("Không thể đặt hình ảnh làm ảnh chính")
+                    }
+                } else {
+                    val errorMessage = response.body()?.message ?: "Không thể đặt hình ảnh làm ảnh chính"
+                    Timber.e("Đặt hình ảnh làm ảnh chính thất bại: $errorMessage")
+                    _setPrimaryImageState.value = ResourceState.Error(errorMessage)
+                }
+            } catch (e: Exception) {
+                handleNetworkError(e, "đặt hình ảnh làm ảnh chính", _setPrimaryImageState)
+            }
+        }
+    }
+    
+    /**
      * Reset states
      */
     fun resetUploadImageState() {
@@ -160,6 +199,10 @@ class EventImageViewModel @Inject constructor(
     
     fun resetDeleteImageState() {
         _deleteImageState.value = ResourceState.Initial
+    }
+    
+    fun resetSetPrimaryImageState() {
+        _setPrimaryImageState.value = ResourceState.Initial
     }
     
     /**
