@@ -114,7 +114,7 @@ fun EventDashboardScreen(
                             imageVector = Icons.Filled.Person,
                             contentDescription = "Hồ sơ nhà tổ chức"
                         )
-                    }
+                }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
@@ -411,8 +411,8 @@ fun DashboardStat(
         
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 } 

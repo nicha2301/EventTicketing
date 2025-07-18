@@ -7,5 +7,7 @@ data class EventImageDto(
     @SerializedName("url") val url: String,
     @SerializedName("eventId") val eventId: String,
     @SerializedName("isPrimary") val isPrimary: Boolean,
-    @SerializedName("createdAt") val createdAt: String
+    @SerializedName("createdAt") val createdAt: String,
+    @SerializedName("width") val width: Int = 1080,
+    @SerializedName("height") val height: Int = 720
 ) 
