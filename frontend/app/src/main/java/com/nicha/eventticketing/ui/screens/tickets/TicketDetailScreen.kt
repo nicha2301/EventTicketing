@@ -292,7 +292,7 @@ fun TicketDetailScreen(
                             
                             Box(
                                 modifier = Modifier
-                                    .size(200.dp)
+                                    .size(300.dp)
                                     .background(
                                         color = Color.White,
                                         shape = RoundedCornerShape(8.dp)
@@ -310,32 +310,7 @@ fun TicketDetailScreen(
                                 )
                             }
                             
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            // Hiển thị mã vé dưới dạng văn bản
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            ) {
-                                SelectionContainer {
-                                    Text(
-                                        text = ticket.ticketNumber,
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                                        ),
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                            
-                            Text(
-                                text = "Nhấn để sao chép",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
+                            Spacer(modifier = Modifier.height(8.dp))                            
                             
                             HorizontalDivider(
                                 modifier = Modifier.padding(vertical = 16.dp),

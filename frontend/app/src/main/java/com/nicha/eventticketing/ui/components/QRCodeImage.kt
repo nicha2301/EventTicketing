@@ -47,23 +47,19 @@ fun QRCodeImage(
     var isError by remember { mutableStateOf(false) }
     var qrBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     
-    LaunchedEffect(ticketId, ticketNumber) {
+    LaunchedEffect(ticketId, ticketNumber, eventId, userId) {
         isLoading = true
         isError = false
-        
+
         withContext(Dispatchers.IO) {
-            try {
-                val bitmap = if (!qrCodeUrl.isNullOrBlank()) {
-                    QRCodeGenerator.generateQRCode(qrCodeUrl)
-                } else {
-                    QRCodeGenerator.generateTicketQRCode(ticketId, ticketNumber, eventId, userId)
-                }
-                
+            runCatching {
+                QRCodeGenerator.generateTicketQRCode(ticketId, ticketNumber, eventId, userId)
+            }.onSuccess { bitmap ->
                 qrBitmap = bitmap
-                isError = (bitmap == null)
-            } catch (e: Exception) {
+                isError = bitmap == null
+            }.onFailure {
                 isError = true
-            } finally {
+            }.also {
                 isLoading = false
             }
         }

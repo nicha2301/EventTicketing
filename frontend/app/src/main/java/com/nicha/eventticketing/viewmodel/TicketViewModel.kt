@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeDto
+import com.nicha.eventticketing.data.remote.dto.ticket.CheckInRequestDto
 
 /**
  * ViewModel để quản lý dữ liệu vé
@@ -230,44 +231,18 @@ class TicketViewModel @Inject constructor(
     /**
      * Check-in vé
      */
-    fun checkInTicket(ticketId: String) {
+    fun checkInTicket(ticketId: String, eventId: String, userId: String) {
         _checkInState.value = ResourceState.Loading
         
         viewModelScope.launch {
             try {
                 Timber.d("Đang check-in vé: $ticketId")
-                val response = apiService.checkInTicket(ticketId)
-                
-                if (response.isSuccessful && response.body()?.success == true) {
-                    val ticket = response.body()?.data
-                    if (ticket != null) {
-                        _checkInState.value = ResourceState.Success(ticket)
-                        Timber.d("Check-in vé thành công: ${ticket.ticketNumber}")
-                    } else {
-                        Timber.e("Không thể lấy thông tin vé đã check-in từ response")
-                        _checkInState.value = ResourceState.Error("Không thể hoàn tất việc check-in vé")
-                    }
-                } else {
-                    val errorMessage = response.body()?.message ?: "Không thể check-in vé"
-                    Timber.e("Check-in vé thất bại: $errorMessage")
-                    _checkInState.value = ResourceState.Error(errorMessage)
-                }
-            } catch (e: Exception) {
-                handleNetworkError(e, "check-in vé", _checkInState)
-            }
-        }
-    }
-    
-    /**
-     * Check-in vé bằng mã vé
-     */
-    fun checkInTicketByNumber(ticketNumber: String) {
-        _checkInState.value = ResourceState.Loading
-        
-        viewModelScope.launch {
-            try {
-                Timber.d("Đang check-in vé theo mã: $ticketNumber")
-                val response = apiService.checkInTicketByNumber(ticketNumber)
+                val request = CheckInRequestDto(
+                    ticketId = ticketId,
+                    eventId = eventId,
+                    userId = userId
+                )
+                val response = apiService.checkInTicket(request)
                 
                 if (response.isSuccessful && response.body()?.success == true) {
                     val ticket = response.body()?.data

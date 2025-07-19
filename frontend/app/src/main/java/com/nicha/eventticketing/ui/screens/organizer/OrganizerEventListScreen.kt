@@ -36,12 +36,25 @@ import com.nicha.eventticketing.viewmodel.OrganizerEventViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import com.nicha.eventticketing.ui.components.EventCard
+import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import com.nicha.eventticketing.R
+import com.nicha.eventticketing.ui.components.EventStatusChip
 
 enum class EventStatusFilter {
     ALL, DRAFT, PUBLISHED, CANCELLED, COMPLETED
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun OrganizerEventListScreen(
     onBackClick: () -> Unit,
@@ -52,6 +65,7 @@ fun OrganizerEventListScreen(
 ) {
     val organizerEventsState by viewModel.organizerEventsState.collectAsState()
     var selectedStatusFilter by remember { mutableStateOf(EventStatusFilter.ALL) }
+    var searchQuery by remember { mutableStateOf("") }
     
     // Fetch events when component is first displayed
     LaunchedEffect(Unit) {
@@ -60,35 +74,79 @@ fun OrganizerEventListScreen(
     
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        "Sự kiện của tôi",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        )
-                    ) 
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Quay lại"
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onScanQRClick) {
-                        Icon(
-                            imageVector = Icons.Filled.QrCode2,
-                            contentDescription = "Quét mã QR"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+            Column {
+                TopAppBar(
+                    title = { 
+                        Text(
+                            "Sự kiện của tôi",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        ) 
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Quay lại"
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onScanQRClick) {
+                            Icon(
+                                imageVector = Icons.Filled.QrCode2,
+                                contentDescription = "Quét mã QR"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.primary
+                    )
                 )
-            )
+                
+                NeumorphicCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .height(56.dp)
+                ) {
+                    TextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Tìm kiếm sự kiện...") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Tìm kiếm",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "Xóa",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            cursorColor = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -97,15 +155,28 @@ fun OrganizerEventListScreen(
                 elevation = FloatingActionButtonDefaults.elevation(
                     defaultElevation = 6.dp,
                     pressedElevation = 8.dp
-                )
+                ),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = "Tạo sự kiện mới",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Tạo sự kiện mới",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Tạo sự kiện",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -155,36 +226,47 @@ fun OrganizerEventListScreen(
                 is ResourceState.Error -> {
                     val errorMessage = (organizerEventsState as ResourceState.Error).message
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.Error,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Không thể tải danh sách sự kiện",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = errorMessage,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(
-                                onClick = { viewModel.getOrganizerEvents() },
-                                shape = RoundedCornerShape(8.dp)
+                        NeumorphicCard(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .width(300.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
-                                    imageVector = Icons.Filled.Refresh,
-                                    contentDescription = null
+                                    imageVector = Icons.Default.Error,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.error
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Thử lại")
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Không thể tải danh sách sự kiện",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.error,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = errorMessage,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = { viewModel.getOrganizerEvents() },
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Refresh,
+                                        contentDescription = null
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Thử lại")
+                                }
                             }
                         }
                     }
@@ -193,52 +275,76 @@ fun OrganizerEventListScreen(
                     val events = (organizerEventsState as ResourceState.Success<*>).data as? com.nicha.eventticketing.data.remote.dto.event.PageDto<EventDto>
                     
                     val filteredEvents = events?.content?.filter { event ->
-                        when (selectedStatusFilter) {
+                        val matchesStatus = when (selectedStatusFilter) {
                             EventStatusFilter.ALL -> true
                             EventStatusFilter.DRAFT -> event.status == "DRAFT"
                             EventStatusFilter.PUBLISHED -> event.status == "PUBLISHED"
                             EventStatusFilter.CANCELLED -> event.status == "CANCELLED"
                             EventStatusFilter.COMPLETED -> event.status == "COMPLETED"
                         }
+                        
+                        val matchesSearch = if (searchQuery.isEmpty()) {
+                            true
+                        } else {
+                            event.title.contains(searchQuery, ignoreCase = true) ||
+                            event.description.contains(searchQuery, ignoreCase = true) ||
+                            event.locationName.contains(searchQuery, ignoreCase = true)
+                        }
+                        
+                        matchesStatus && matchesSearch
                     } ?: emptyList()
                     
                     if (filteredEvents.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.Event,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(64.dp)
-                                )
-                                
-                                Spacer(modifier = Modifier.height(16.dp))
-                                
-                                Text(
-                                    text = when (selectedStatusFilter) {
-                                        EventStatusFilter.ALL -> "Không có sự kiện nào"
-                                        EventStatusFilter.DRAFT -> "Không có bản nháp sự kiện"
-                                        EventStatusFilter.PUBLISHED -> "Không có sự kiện đang diễn ra"
-                                        EventStatusFilter.CANCELLED -> "Không có sự kiện đã hủy"
-                                        EventStatusFilter.COMPLETED -> "Không có sự kiện đã kết thúc"
-                                    },
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                
-                                Spacer(modifier = Modifier.height(16.dp))
-                                
-                                Button(
-                                    onClick = onCreateEventClick,
-                                    shape = RoundedCornerShape(8.dp)
+                            NeumorphicCard(
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .width(300.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Add,
+                                        imageVector = Icons.Default.Event,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(64.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Tạo sự kiện mới")
+                                    
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    
+                                    Text(
+                                        text = if (searchQuery.isNotEmpty()) {
+                                            "Không tìm thấy sự kiện phù hợp"
+                                        } else {
+                                            when (selectedStatusFilter) {
+                                                EventStatusFilter.ALL -> "Không có sự kiện nào"
+                                                EventStatusFilter.DRAFT -> "Không có bản nháp sự kiện"
+                                                EventStatusFilter.PUBLISHED -> "Không có sự kiện đang diễn ra"
+                                                EventStatusFilter.CANCELLED -> "Không có sự kiện đã hủy"
+                                                EventStatusFilter.COMPLETED -> "Không có sự kiện đã kết thúc"
+                                            }
+                                        },
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    
+                                    Button(
+                                        onClick = onCreateEventClick,
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Tạo sự kiện mới")
+                                    }
                                 }
                             }
                         }
@@ -248,11 +354,19 @@ fun OrganizerEventListScreen(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            items(filteredEvents) { event ->
+                            items(
+                                items = filteredEvents,
+                                key = { it.id }
+                            ) { event ->
                                 EventCard(
                                     event = event,
                                     onEventClick = { onEventClick(event.id) }
                                 )
+                            }
+                            
+                            // Thêm khoảng trống ở cuối để tránh FAB che nội dung
+                            item {
+                                Spacer(modifier = Modifier.height(80.dp))
                             }
                         }
                     }

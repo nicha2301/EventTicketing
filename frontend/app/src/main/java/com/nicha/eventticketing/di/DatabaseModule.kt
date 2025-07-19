@@ -24,7 +24,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "event_ticketing_db"
         )
-        .fallbackToDestructiveMigration() // Chỉ sử dụng trong quá trình phát triển
+        .fallbackToDestructiveMigration() 
         .build()
     }
 

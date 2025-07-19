@@ -38,6 +38,7 @@ import com.nicha.eventticketing.data.remote.dto.payment.PaymentResponseDto
 import com.nicha.eventticketing.data.remote.dto.event.EventImageDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypePageResponse
+import com.nicha.eventticketing.data.remote.dto.ticket.CheckInRequestDto
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -234,11 +235,8 @@ interface ApiService {
         @Query("size") size: Int = 10
     ): Response<ApiResponse<PageDto<TicketDto>>>
     
-    @POST("api/tickets/{ticketId}/check-in")
-    suspend fun checkInTicket(@Path("ticketId") ticketId: String): Response<ApiResponse<TicketDto>>
-    
-    @POST("api/tickets/check-in/{ticketNumber}")
-    suspend fun checkInTicketByNumber(@Path("ticketNumber") ticketNumber: String): Response<ApiResponse<TicketDto>>
+    @POST("api/tickets/check-in")
+    suspend fun checkInTicket(@Body request: CheckInRequestDto): Response<ApiResponse<TicketDto>>
     
     @POST("api/tickets/{ticketId}/cancel")
     suspend fun cancelTicket(@Path("ticketId") ticketId: String): Response<ApiResponse<TicketDto>>

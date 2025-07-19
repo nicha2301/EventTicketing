@@ -1,5 +1,7 @@
 package com.nicha.eventticketing.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nicha.eventticketing.data.remote.dto.ApiResponse
@@ -8,22 +10,29 @@ import com.nicha.eventticketing.data.remote.dto.category.CategoryResponse
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.data.remote.dto.location.LocationDto
 import com.nicha.eventticketing.data.remote.service.ApiService
+import com.nicha.eventticketing.util.ImagePickerUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.ResponseBody
 import org.json.JSONObject
 import retrofit2.HttpException
 import timber.log.Timber
+import java.io.File
 import java.io.IOException
 import java.lang.IllegalStateException
 import javax.inject.Inject
 
 @HiltViewModel
 class CreateEventViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     
     // UI state
@@ -120,29 +129,30 @@ class CreateEventViewModel @Inject constructor(
         endDate: String,
         isPrivate: Boolean = false,
         isDraft: Boolean = true,
-        isFree: Boolean = false
+        isFree: Boolean = false,
+        featuredImageUri: Uri? = null,
+        bannerImageUri: Uri? = null
     ) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
                 _error.value = null
                 
-                // Create event DTO
                 val eventDto = EventDto(
-                    id = "",  // ID sẽ được server tạo
+                    id = "",  
                     title = title,
                     description = description,
                     shortDescription = shortDescription,
-                    organizerId = "",  // Sẽ được lấy từ token người dùng trên server
-                    organizerName = "",  // Sẽ được lấy từ token người dùng trên server
+                    organizerId = "", 
+                    organizerName = "", 
                     categoryId = categoryId,
-                    categoryName = "",  // Sẽ được server điền
+                    categoryName = "", 
                     locationId = locationId,
-                    locationName = "",  // Sẽ được server điền
+                    locationName = "", 
                     address = address,
                     city = city,
-                    latitude = null,  // Có thể lấy từ location
-                    longitude = null,  // Có thể lấy từ location
+                    latitude = null, 
+                    longitude = null,  
                     status = if (isDraft) "DRAFT" else "PUBLISHED",
                     maxAttendees = maxAttendees,
                     currentAttendees = 0,
@@ -152,8 +162,8 @@ class CreateEventViewModel @Inject constructor(
                     maxTicketPrice = null,
                     startDate = startDate,
                     endDate = endDate,
-                    createdAt = "",  // Sẽ được server điền
-                    updatedAt = "",  // Sẽ được server điền
+                    createdAt = "", 
+                    updatedAt = "", 
                     isPrivate = isPrivate,
                     isFeatured = false,
                     isFree = isFree,
@@ -166,6 +176,8 @@ class CreateEventViewModel @Inject constructor(
                     val eventResponse = response.body()!!
                     if (eventResponse.success) {
                         eventResponse.data?.id?.let { eventId ->
+                            // Tải ảnh lên nếu có
+                            uploadEventImages(eventId, featuredImageUri, bannerImageUri)
                             _uiState.value = UiState.Success(eventId)
                         }
                     } else {
@@ -204,6 +216,48 @@ class CreateEventViewModel @Inject constructor(
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+    
+    /**
+     * Tải ảnh sự kiện lên
+     */
+    private suspend fun uploadEventImages(eventId: String, featuredImageUri: Uri?, bannerImageUri: Uri?) {
+        try {
+            // Tải ảnh đại diện
+            featuredImageUri?.let { uri ->
+                ImagePickerUtil.uriToFile(context, uri)?.let { file ->
+                    uploadEventImage(eventId, file, true)
+                }
+            }
+            
+            // Tải ảnh banner
+            bannerImageUri?.let { uri ->
+                ImagePickerUtil.uriToFile(context, uri)?.let { file ->
+                    uploadEventImage(eventId, file, false)
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Lỗi khi tải ảnh sự kiện")
+            // Không throw exception ở đây để không ảnh hưởng đến luồng tạo sự kiện
+        }
+    }
+    
+    /**
+     * Tải một ảnh sự kiện lên
+     */
+    private suspend fun uploadEventImage(eventId: String, imageFile: File, isPrimary: Boolean) {
+        try {
+            val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
+            val imagePart = MultipartBody.Part.createFormData("image", imageFile.name, requestFile)
+            
+            val response = apiService.uploadEventImage(eventId, imagePart, isPrimary)
+            
+            if (!response.isSuccessful || response.body() == null || !response.body()!!.success) {
+                Timber.e("Lỗi khi tải ảnh: ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Lỗi khi tải ảnh")
         }
     }
     

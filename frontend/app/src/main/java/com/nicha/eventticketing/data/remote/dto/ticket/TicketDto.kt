@@ -16,6 +16,7 @@ data class TicketDto(
     val status: String,
     val qrCodeUrl: String?,
     val purchaseDate: String?,
+    val checkedInAt: String?,
     val eventStartDate: String,
     val eventEndDate: String,
     val eventLocation: String,

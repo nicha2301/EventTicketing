@@ -374,9 +374,6 @@ fun NavGraph(
             CheckInScreen(
                 onBackClick = {
                     navController.popBackStack()
-                },
-                onScanComplete = {
-                    navController.popBackStack()
                 }
             )
         }

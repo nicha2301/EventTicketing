@@ -1,5 +1,6 @@
 package com.nicha.eventticketing.ui.screens.organizer
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ShortText
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +28,12 @@ import coil.compose.AsyncImage
 import com.nicha.eventticketing.data.remote.dto.category.CategoryDto
 import com.nicha.eventticketing.data.remote.dto.location.LocationDto
 import com.nicha.eventticketing.ui.components.LoadingDialog
+import com.nicha.eventticketing.ui.components.StyledTextField
+import com.nicha.eventticketing.ui.components.StyledDatePicker
+import com.nicha.eventticketing.ui.components.StyledTimePicker
+import com.nicha.eventticketing.ui.components.StyledDropdown
+import com.nicha.eventticketing.ui.components.ImageUploader
+import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.util.FormatUtils
 import com.nicha.eventticketing.viewmodel.CreateEventViewModel
 import java.text.SimpleDateFormat
@@ -60,24 +68,16 @@ fun CreateEventScreen(
     var isPrivate by remember { mutableStateOf(false) }
     var isDraft by remember { mutableStateOf(true) }
     var isFree by remember { mutableStateOf(false) }
+    var featuredImageUri by remember { mutableStateOf<Uri?>(null) }
+    var bannerImageUri by remember { mutableStateOf<Uri?>(null) }
     
     // Form validation errors
     var startDateError by remember { mutableStateOf<String?>(null) }
     var endDateError by remember { mutableStateOf<String?>(null) }
     
     // Dialog states
-    var showCategoryDropdown by remember { mutableStateOf(false) }
-    var showLocationDropdown by remember { mutableStateOf(false) }
-    var showStartDatePicker by remember { mutableStateOf(false) }
-    var showStartTimePicker by remember { mutableStateOf(false) }
-    var showEndDatePicker by remember { mutableStateOf(false) }
-    var showEndTimePicker by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
-    
-    // Date pickers
-    val datePickerState = rememberDatePickerState()
-    val timePickerState = rememberTimePickerState()
     
     // Validate form
     val isFormValid = title.isNotBlank() && description.isNotBlank() && 
@@ -88,7 +88,6 @@ fun CreateEventScreen(
                      endDate != null && endTime != null &&
                      startDateError == null && endDateError == null
     
-    // Hàm kết hợp ngày và giờ
     fun combineDateTime(date: Date, time: Date): Date {
         val calendar1 = Calendar.getInstance()
         calendar1.time = date
@@ -103,7 +102,6 @@ fun CreateEventScreen(
         return calendar1.time
     }
     
-    // Kiểm tra ngày tháng
     fun validateDates() {
         val now = Calendar.getInstance().time
         
@@ -115,7 +113,6 @@ fun CreateEventScreen(
                 } else {
                     startDateError = null
                     
-                    // Kiểm tra ngày kết thúc
                     endDate?.let { eDate ->
                         endTime?.let { eTime ->
                             val endDateTime = combineDateTime(eDate, eTime)
@@ -131,7 +128,6 @@ fun CreateEventScreen(
         }
     }
     
-    // Validate ngày mỗi khi thay đổi
     LaunchedEffect(startDate, startTime, endDate, endTime) {
         validateDates()
     }
@@ -139,11 +135,9 @@ fun CreateEventScreen(
     // Handle form submission
     fun submitForm() {
         if (isFormValid) {
-            // Kết hợp ngày và giờ bắt đầu
             val startDateTime = combineDateTime(startDate!!, startTime!!)
             val endDateTime = combineDateTime(endDate!!, endTime!!)
             
-            // Định dạng ngày tháng theo yêu cầu của server (không có 'T')
             val startDateString = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(startDateTime)
             val endDateString = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(endDateTime)
             
@@ -160,7 +154,9 @@ fun CreateEventScreen(
                 endDate = endDateString,
                 isPrivate = isPrivate,
                 isDraft = isDraft,
-                isFree = isFree
+                isFree = isFree,
+                featuredImageUri = featuredImageUri,
+                bannerImageUri = bannerImageUri
             )
         }
     }
@@ -170,7 +166,7 @@ fun CreateEventScreen(
         when (uiState) {
             is CreateEventViewModel.UiState.Success -> {
                 val eventId = (uiState as CreateEventViewModel.UiState.Success).eventId
-                showSuccessDialog = true
+            showSuccessDialog = true
                 onEventCreated(eventId)
             }
             is CreateEventViewModel.UiState.Error -> {
@@ -189,7 +185,14 @@ fun CreateEventScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tạo sự kiện mới") },
+                title = { 
+                    Text(
+                        "Tạo sự kiện mới",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -197,7 +200,10 @@ fun CreateEventScreen(
                             contentDescription = "Quay lại"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         }
     ) { paddingValues ->
@@ -209,380 +215,253 @@ fun CreateEventScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Event image (placeholder until image upload is implemented)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                    .clickable { /* Open image picker */ },
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = "Add image",
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Text(
-                            text = "Tải lên ảnh sự kiện",
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
-            }
             
-            // Event title
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("Tên sự kiện") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Title,
-                        contentDescription = null
-                    )
-                },
-                placeholder = { Text("Nhập tên sự kiện") }
-            )
-            
-            // Short description
-            OutlinedTextField(
-                value = shortDescription,
-                onValueChange = { shortDescription = it },
-                label = { Text("Mô tả ngắn") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.ShortText,
-                        contentDescription = null
-                    )
-                },
-                placeholder = { Text("Nhập mô tả ngắn gọn về sự kiện") }
-            )
-            
-            // Event description
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Mô tả chi tiết") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Description,
-                        contentDescription = null
-                    )
-                },
-                placeholder = { Text("Nhập mô tả chi tiết về sự kiện") }
-            )
-            
-            // Category selection
-            OutlinedTextField(
-                value = selectedCategoryId?.let { categoryId ->
-                    categories.find { it.id == categoryId }?.name ?: ""
-                } ?: "",
-                onValueChange = { },
-                label = { Text("Danh mục") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Category,
-                        contentDescription = null
-                    )
-                },
-                placeholder = { Text("Chọn danh mục sự kiện") },
-                readOnly = true,
-                trailingIcon = {
-                    IconButton(onClick = { showCategoryDropdown = true }) {
-                        Icon(
-                            imageVector = if (showCategoryDropdown) 
-                                Icons.Default.KeyboardArrowUp 
-                            else 
-                                Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Chọn danh mục"
-                        )
-                    }
-                }
-            )
-            
-            // Category dropdown
-            DropdownMenu(
-                expanded = showCategoryDropdown,
-                onDismissRequest = { showCategoryDropdown = false },
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .heightIn(max = 300.dp)
-            ) {
-                categories.forEach { category ->
-                    DropdownMenuItem(
-                        text = { Text(category.name) },
-                        onClick = {
-                            selectedCategoryId = category.id
-                            showCategoryDropdown = false
-                        }
-                    )
-                }
-            }
-            
-            // Location selection
-            OutlinedTextField(
-                value = selectedLocationId?.let { locationId ->
-                    locations.find { it.id.toString() == locationId }?.name ?: ""
-                } ?: "",
-                onValueChange = { },
-                label = { Text("Địa điểm") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Place,
-                        contentDescription = null
-                    )
-                },
-                placeholder = { Text("Chọn địa điểm tổ chức") },
-                readOnly = true,
-                trailingIcon = {
-                    IconButton(onClick = { showLocationDropdown = true }) {
-                        Icon(
-                            imageVector = if (showLocationDropdown) 
-                                Icons.Default.KeyboardArrowUp 
-                            else 
-                                Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Chọn địa điểm"
-                        )
-                    }
-                }
-            )
-            
-            // Location dropdown
-            DropdownMenu(
-                expanded = showLocationDropdown,
-                onDismissRequest = { showLocationDropdown = false },
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .heightIn(max = 300.dp)
-            ) {
-                locations.forEach { location ->
-                    DropdownMenuItem(
-                        text = { 
-                            Column {
-                                Text(location.name)
-                                Text(
-                                    text = location.address,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        onClick = {
-                            selectedLocationId = location.id.toString()
-                            address = location.address
-                            location.city?.let { city = it }
-                            showLocationDropdown = false
-                        }
-                    )
-                }
-            }
-            
-            // Address
-            OutlinedTextField(
-                value = address,
-                onValueChange = { address = it },
-                label = { Text("Địa chỉ cụ thể") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null
-                    )
-                },
-                placeholder = { Text("Nhập địa chỉ chi tiết") }
-            )
-            
-            // City
-            OutlinedTextField(
-                value = city,
-                onValueChange = { city = it },
-                label = { Text("Thành phố") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.LocationCity,
-                        contentDescription = null
-                    )
-                },
-                placeholder = { Text("Nhập tên thành phố") }
-            )
-
-            // Max attendees
-            OutlinedTextField(
-                value = maxAttendees,
-                onValueChange = { maxAttendees = it },
-                label = { Text("Số lượng người tối đa") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Group,
-                        contentDescription = null
-                    )
-                },
-                placeholder = { Text("Nhập số lượng người tham gia tối đa") }
-            )
-            
-            // Event date and time
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Start date
-                OutlinedTextField(
-                    value = startDate?.let { FormatUtils.formatDate(it) } ?: "",
-                    onValueChange = { },
-                    label = { Text("Ngày bắt đầu") },
-                    modifier = Modifier.weight(1f),
-                    isError = startDateError != null,
-                    supportingText = startDateError?.let { 
-                        { Text(it, color = MaterialTheme.colorScheme.error) }
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.CalendarToday,
-                            contentDescription = null
-                        )
-                    },
-                    placeholder = { Text("Chọn ngày") },
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showStartDatePicker = true }) {
-                            Icon(
-                                imageVector = Icons.Default.CalendarToday,
-                                contentDescription = "Chọn ngày"
-                            )
-                        }
-                    }
-                )
-                
-                // Start time
-                OutlinedTextField(
-                    value = startTime?.let { FormatUtils.formatDate(it, "HH:mm") } ?: "",
-                    onValueChange = { },
-                    label = { Text("Giờ bắt đầu") },
-                    modifier = Modifier.weight(1f),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.AccessTime,
-                            contentDescription = null
-                        )
-                    },
-                    placeholder = { Text("Chọn giờ") },
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showStartTimePicker = true }) {
-                            Icon(
-                                imageVector = Icons.Default.AccessTime,
-                                contentDescription = "Chọn giờ"
-                            )
-                        }
-                    }
-                )
-            }
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // End date
-                OutlinedTextField(
-                    value = endDate?.let { FormatUtils.formatDate(it) } ?: "",
-                    onValueChange = { },
-                    label = { Text("Ngày kết thúc") },
-                    modifier = Modifier.weight(1f),
-                    isError = endDateError != null,
-                    supportingText = endDateError?.let { 
-                        { Text(it, color = MaterialTheme.colorScheme.error) }
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.CalendarToday,
-                            contentDescription = null
-                        )
-                    },
-                    placeholder = { Text("Chọn ngày") },
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showEndDatePicker = true }) {
-                            Icon(
-                                imageVector = Icons.Default.CalendarToday,
-                                contentDescription = "Chọn ngày"
-                            )
-                        }
-                    }
-                )
-                
-                // End time
-                OutlinedTextField(
-                    value = endTime?.let { FormatUtils.formatDate(it, "HH:mm") } ?: "",
-                    onValueChange = { },
-                    label = { Text("Giờ kết thúc") },
-                    modifier = Modifier.weight(1f),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.AccessTime,
-                            contentDescription = null
-                        )
-                    },
-                    placeholder = { Text("Chọn giờ") },
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showEndTimePicker = true }) {
-                            Icon(
-                                imageVector = Icons.Default.AccessTime,
-                                contentDescription = "Chọn giờ"
-                            )
-                        }
-                    }
-                )
-            }
-            
-            // Event options
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
+            NeumorphicCard(
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Tùy chọn sự kiện",
+                        text = "Thông tin cơ bản",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    StyledTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = "Tên sự kiện",
+                        placeholder = "Nhập tên sự kiện",
+                        leadingIcon = Icons.Default.Event,
+                        singleLine = true
+                    )
+                    
+                    StyledTextField(
+                        value = shortDescription,
+                        onValueChange = { shortDescription = it },
+                        label = "Mô tả ngắn",
+                        placeholder = "Nhập mô tả ngắn",
+                        leadingIcon = Icons.AutoMirrored.Filled.ShortText,
+                        singleLine = true
+                    )
+                    
+                    StyledTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = "Mô tả chi tiết",
+                        placeholder = "Nhập mô tả chi tiết",
+                        leadingIcon = Icons.Default.Description,
+                        maxLines = 5
+                    )
+                    
+                    StyledDropdown(
+                        label = "Danh mục",
+                        items = categories,
+                        selectedItem = categories.find { it.id == selectedCategoryId },
+                        onItemSelected = { selectedCategoryId = it.id },
+                        itemToString = { it.name },
+                        leadingIcon = Icons.Default.Category,
+                        placeholder = "Chọn danh mục"
+                    )
+                }
+            }
+            
+            // Hình ảnh sự kiện
+            NeumorphicCard(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Hình ảnh sự kiện",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    ImageUploader(
+                        imageUri = featuredImageUri,
+                        onImageSelected = { featuredImageUri = it },
+                        onImageRemoved = { featuredImageUri = null },
+                        label = "Ảnh đại diện",
+                        placeholder = "Nhấn để chọn ảnh đại diện cho sự kiện"
+                    )
+                    
+                    ImageUploader(
+                        imageUri = bannerImageUri,
+                        onImageSelected = { bannerImageUri = it },
+                        onImageRemoved = { bannerImageUri = null },
+                        label = "Ảnh banner",
+                        placeholder = "Nhấn để chọn ảnh banner cho sự kiện",
+                        aspectRatio = 21f / 9f
+                    )
+                }
+            }
+            
+            // Thời gian và địa điểm
+            NeumorphicCard(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Thời gian và địa điểm",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Sự kiện riêng tư")
+                        StyledDatePicker(
+                            label = "Ngày bắt đầu",
+                            selectedDate = startDate,
+                            onDateSelected = { 
+                                startDate = it
+                                validateDates()
+                            },
+                    modifier = Modifier.weight(1f),
+                            isError = startDateError != null,
+                            errorMessage = startDateError
+                        )
+                        
+                        StyledTimePicker(
+                            label = "Giờ bắt đầu",
+                            selectedTime = startTime,
+                            onTimeSelected = { 
+                                startTime = it
+                                validateDates()
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        StyledDatePicker(
+                            label = "Ngày kết thúc",
+                            selectedDate = endDate,
+                            onDateSelected = { 
+                                endDate = it
+                                validateDates()
+                            },
+                    modifier = Modifier.weight(1f),
+                            isError = endDateError != null,
+                            errorMessage = endDateError
+                        )
+                        
+                        StyledTimePicker(
+                            label = "Giờ kết thúc",
+                            selectedTime = endTime,
+                            onTimeSelected = { 
+                                endTime = it
+                                validateDates()
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    
+                    StyledDropdown(
+                        label = "Địa điểm",
+                        items = locations,
+                        selectedItem = locations.find { it.id == selectedLocationId },
+                        onItemSelected = { 
+                            selectedLocationId = it.id
+                            address = it.address
+                            city = it.city
+                        },
+                        itemToString = { it.name },
+                        leadingIcon = Icons.Default.LocationOn,
+                        placeholder = "Chọn địa điểm"
+                    )
+                    
+                    StyledTextField(
+                        value = address,
+                        onValueChange = { address = it },
+                        label = "Địa chỉ chi tiết",
+                        placeholder = "Nhập địa chỉ chi tiết",
+                        leadingIcon = Icons.Default.Home,
+                        singleLine = true
+                    )
+                    
+                    StyledTextField(
+                        value = city,
+                        onValueChange = { city = it },
+                        label = "Thành phố",
+                        placeholder = "Nhập tên thành phố",
+                        leadingIcon = Icons.Default.LocationCity,
+                        singleLine = true
+                    )
+                }
+            }
+            
+            // Cấu hình bổ sung
+            NeumorphicCard(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Cấu hình bổ sung",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    StyledTextField(
+                        value = maxAttendees,
+                        onValueChange = { 
+                            // Chỉ cho phép nhập số
+                            if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                                maxAttendees = it
+                            }
+                        },
+                        label = "Số lượng người tham dự tối đa",
+                        placeholder = "Nhập số lượng người tối đa",
+                        leadingIcon = Icons.Default.PeopleAlt,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Sự kiện miễn phí",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        
+                        Switch(
+                            checked = isFree,
+                            onCheckedChange = { isFree = it }
+                        )
+                    }
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Sự kiện riêng tư",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        
                         Switch(
                             checked = isPrivate,
                             onCheckedChange = { isPrivate = it }
@@ -590,279 +469,48 @@ fun CreateEventScreen(
                     }
                     
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Lưu nháp (Không công khai)")
+                    Text(
+                            text = "Lưu dưới dạng bản nháp",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        
                         Switch(
                             checked = isDraft,
                             onCheckedChange = { isDraft = it }
                         )
                     }
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Sự kiện miễn phí")
-                        Switch(
-                            checked = isFree,
-                            onCheckedChange = { isFree = it }
-                        )
-                    }
                 }
             }
             
-            // Submit button
+            // Nút tạo sự kiện
             Button(
                 onClick = { submitForm() },
+                enabled = isFormValid,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 16.dp),
-                enabled = isFormValid && !isLoading
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    imageVector = Icons.Default.Save,
                     contentDescription = null
                 )
+                
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Tạo sự kiện")
+                
+                Text(
+                    text = if (isDraft) "Lưu bản nháp" else "Tạo sự kiện",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
-    }
-    
-    // Date picker dialogs
-    if (showStartDatePicker) {
-        val today = Calendar.getInstance()
-        
-        DatePickerDialog(
-            onDismissRequest = { showStartDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let {
-                            val selectedDate = Date(it)
-                            // Kiểm tra ngày đã chọn
-                            val calendar = Calendar.getInstance()
-                            calendar.time = selectedDate
-                            calendar.set(Calendar.HOUR_OF_DAY, 0)
-                            calendar.set(Calendar.MINUTE, 0)
-                            calendar.set(Calendar.SECOND, 0)
-                            calendar.set(Calendar.MILLISECOND, 0)
-                            
-                            val todayCal = Calendar.getInstance()
-                            todayCal.set(Calendar.HOUR_OF_DAY, 0)
-                            todayCal.set(Calendar.MINUTE, 0)
-                            todayCal.set(Calendar.SECOND, 0)
-                            todayCal.set(Calendar.MILLISECOND, 0)
-                            
-                            if (calendar.before(todayCal)) {
-                                startDateError = "Ngày bắt đầu phải là ngày trong tương lai"
-                            } else {
-                                startDate = selectedDate
-                                startDateError = null
-                            }
-                        }
-                        showStartDatePicker = false
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showStartDatePicker = false }) {
-                    Text("Hủy")
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-    
-    // Time picker dialog
-    if (showStartTimePicker) {
-        AlertDialog(
-            onDismissRequest = { showStartTimePicker = false },
-            title = { Text("Chọn giờ bắt đầu") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    TimePicker(state = timePickerState)
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val calendar = Calendar.getInstance()
-                        calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                        calendar.set(Calendar.MINUTE, timePickerState.minute)
-                        calendar.set(Calendar.SECOND, 0)
-                        startTime = calendar.time
-                       
-                        // Kiểm tra thời gian bắt đầu phải trong tương lai
-                        startDate?.let { sDate ->
-                            val now = Calendar.getInstance()
-                            val startCal = Calendar.getInstance()
-                            startCal.time = sDate
-                            startCal.set(Calendar.HOUR_OF_DAY, calendar.get(Calendar.HOUR_OF_DAY))
-                            startCal.set(Calendar.MINUTE, calendar.get(Calendar.MINUTE))
-                            
-                            // Nếu là ngày hôm nay, kiểm tra giờ
-                            val todayCal = Calendar.getInstance()
-                            todayCal.set(Calendar.HOUR_OF_DAY, 0)
-                            todayCal.set(Calendar.MINUTE, 0)
-                            todayCal.set(Calendar.SECOND, 0)
-                            todayCal.set(Calendar.MILLISECOND, 0)
-                            
-                            if (FormatUtils.formatDate(sDate) == FormatUtils.formatDate(now.time) && 
-                                startCal.before(now)) {
-                                startDateError = "Thời gian bắt đầu phải là thời gian trong tương lai"
-                            } else {
-                                startDateError = null
-                                
-                                // Kiểm tra thời gian kết thúc nếu cùng ngày
-                                endDate?.let { eDate ->
-                                    endTime?.let { eTime ->
-                                        if (FormatUtils.formatDate(sDate) == FormatUtils.formatDate(eDate)) {
-                                            val endCal = Calendar.getInstance()
-                                            endCal.time = eTime
-                                            
-                                            if (endCal.before(startCal) || endCal.timeInMillis == startCal.timeInMillis) {
-                                                endDateError = "Thời gian kết thúc phải sau thời gian bắt đầu"
-                                            } else {
-                                                endDateError = null
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        showStartTimePicker = false
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showStartTimePicker = false }) {
-                    Text("Hủy")
-                }
-            }
-        )
-    }
-    
-    // End date picker dialog
-    if (showEndDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showEndDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let {
-                            val selectedDate = Date(it)
-                            // Kiểm tra ngày đã chọn với ngày bắt đầu
-                            startDate?.let { sDate ->
-                                val startCal = Calendar.getInstance()
-                                startCal.time = sDate
-                                startCal.set(Calendar.HOUR_OF_DAY, 0)
-                                startCal.set(Calendar.MINUTE, 0)
-                                startCal.set(Calendar.SECOND, 0)
-                                startCal.set(Calendar.MILLISECOND, 0)
-                                
-                                val selectedCal = Calendar.getInstance()
-                                selectedCal.time = selectedDate
-                                selectedCal.set(Calendar.HOUR_OF_DAY, 0)
-                                selectedCal.set(Calendar.MINUTE, 0)
-                                selectedCal.set(Calendar.SECOND, 0)
-                                selectedCal.set(Calendar.MILLISECOND, 0)
-                                
-                                if (selectedCal.before(startCal)) {
-                                    endDateError = "Ngày kết thúc phải từ ngày bắt đầu trở đi"
-                                } else {
-                                    endDate = selectedDate
-                                    endDateError = null
-                                }
-                            } ?: run {
-                                endDate = selectedDate
-                            }
-                        }
-                        showEndDatePicker = false
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEndDatePicker = false }) {
-                    Text("Hủy")
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-    
-    // End time picker dialog
-    if (showEndTimePicker) {
-        AlertDialog(
-            onDismissRequest = { showEndTimePicker = false },
-            title = { Text("Chọn giờ kết thúc") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    TimePicker(state = timePickerState)
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val calendar = Calendar.getInstance()
-                        calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                        calendar.set(Calendar.MINUTE, timePickerState.minute)
-                        calendar.set(Calendar.SECOND, 0)
-                        endTime = calendar.time
-                        
-                        // Kiểm tra thời gian kết thúc phải sau thời gian bắt đầu nếu cùng ngày
-                        startDate?.let { sDate ->
-                            startTime?.let { sTime ->
-                                endDate?.let { eDate ->
-                                    // Nếu cùng ngày, kiểm tra giờ
-                                    if (FormatUtils.formatDate(sDate) == FormatUtils.formatDate(eDate)) {
-                                        val startCal = Calendar.getInstance()
-                                        startCal.time = sTime
-                                        
-                                        val endCal = Calendar.getInstance()
-                                        endCal.time = calendar.time
-                                        
-                                        if (endCal.before(startCal) || endCal.timeInMillis == startCal.timeInMillis) {
-                                            endDateError = "Thời gian kết thúc phải sau thời gian bắt đầu"
-                                        } else {
-                                            endDateError = null
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        showEndTimePicker = false
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEndTimePicker = false }) {
-                    Text("Hủy")
-                }
-            }
-        )
     }
     
     // Success dialog
@@ -882,7 +530,7 @@ fun CreateEventScreen(
             }
         )
     }
-
+    
     // Error dialog
     if (showErrorDialog) {
         AlertDialog(

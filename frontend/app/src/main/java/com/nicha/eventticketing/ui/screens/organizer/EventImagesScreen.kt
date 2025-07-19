@@ -16,18 +16,32 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.nicha.eventticketing.data.remote.dto.event.EventImageDto
 import com.nicha.eventticketing.domain.model.ResourceState
+import com.nicha.eventticketing.ui.components.ImageUploader
+import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.util.ImagePickerUtil
 import com.nicha.eventticketing.viewmodel.EventImageViewModel
+import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,16 +55,12 @@ fun EventImagesScreen(
     val uploadImageState by viewModel.uploadImageState.collectAsState()
     val deleteImageState by viewModel.deleteImageState.collectAsState()
     val uploadProgress by viewModel.uploadProgress.collectAsState()
-    val setPrimaryImageState by viewModel.setPrimaryImageState.collectAsState()
     
-    var selectedImageFile by remember { mutableStateOf<File?>(null) }
+    val context = LocalContext.current
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf<EventImageDto?>(null) }
-    var showSetPrimaryDialog by remember { mutableStateOf<EventImageDto?>(null) }
-    
-    // Image picker launcher
-    val imagePickerLauncher = ImagePickerUtil.rememberImagePicker { file ->
-        selectedImageFile = file
-    }
+    var showAddImageDialog by remember { mutableStateOf(false) }
+    var selectedViewImage by remember { mutableStateOf<EventImageDto?>(null) }
     
     // Fetch images when the screen is first displayed
     LaunchedEffect(Unit) {
@@ -72,10 +82,17 @@ fun EventImagesScreen(
         }
     }
     
-    LaunchedEffect(setPrimaryImageState) {
-        if (setPrimaryImageState is ResourceState.Success) {
-            viewModel.resetSetPrimaryImageState()
-            viewModel.getEventImages(eventId)
+    // Handle selected image URI for upload
+    LaunchedEffect(selectedImageUri) {
+        selectedImageUri?.let { uri ->
+            ImagePickerUtil.uriToFile(context, uri)?.let { file ->
+                // Tự động đặt ảnh đầu tiên làm ảnh chính
+                val isPrimary = eventImagesState !is ResourceState.Success || 
+                                (eventImagesState as? ResourceState.Success<List<EventImageDto>>)?.data?.isEmpty() == true
+                
+                viewModel.uploadEventImage(eventId, file, isPrimary)
+                selectedImageUri = null
+            }
         }
     }
     
@@ -92,20 +109,26 @@ fun EventImagesScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { ImagePickerUtil.launchImagePicker(imagePickerLauncher) }) {
+                    IconButton(onClick = { showAddImageDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.AddPhotoAlternate,
                             contentDescription = "Thêm ảnh"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.primary
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .padding(horizontal = 16.dp)
         ) {
             when (eventImagesState) {
                 is ResourceState.Loading -> {
@@ -116,22 +139,34 @@ fun EventImagesScreen(
                 is ResourceState.Error -> {
                     val errorMessage = (eventImagesState as ResourceState.Error).message
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.Error,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = errorMessage,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { viewModel.getEventImages(eventId) }) {
-                                Text("Thử lại")
+                        NeumorphicCard(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .width(300.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Error,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = errorMessage,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = { viewModel.getEventImages(eventId) },
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Thử lại")
+                                }
                             }
                         }
                     }
@@ -141,53 +176,75 @@ fun EventImagesScreen(
                     
                     if (images.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.ImageNotSupported,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(64.dp)
-                                )
-                                
-                                Spacer(modifier = Modifier.height(16.dp))
-                                
-                                Text(
-                                    text = "Chưa có hình ảnh nào",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
-                                Button(onClick = { ImagePickerUtil.launchImagePicker(imagePickerLauncher) }) {
+                            NeumorphicCard(
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .width(300.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Icon(
-                                        imageVector = Icons.Default.AddPhotoAlternate,
+                                        imageVector = Icons.Default.ImageNotSupported,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(64.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Thêm hình ảnh")
+                                    
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    
+                                    Text(
+                                        text = "Chưa có hình ảnh nào",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    
+                                    Button(
+                                        onClick = { showAddImageDialog = true },
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.AddPhotoAlternate,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Thêm hình ảnh")
+                                    }
                                 }
                             }
                         }
                     } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = 160.dp),
-                            contentPadding = PaddingValues(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(images) { imageItem ->
-                                EventImageItem(
-                                    image = imageItem,
-                                    onSetAsPrimary = { image ->
-                                        showSetPrimaryDialog = image
-                                    },
-                                    onDelete = { imageToDelete ->
-                                        showDeleteConfirmDialog = imageToDelete
-                                    }
-                                )
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Text(
+                                text = "Hình ảnh sự kiện (${images.size})",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(minSize = 160.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(images) { imageItem ->
+                                    EventImageItem(
+                                        image = imageItem,
+                                        onClick = { selectedViewImage = imageItem },
+                                        onDelete = { imageToDelete ->
+                                            showDeleteConfirmDialog = imageToDelete
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -210,48 +267,41 @@ fun EventImagesScreen(
                         .background(Color.Black.copy(alpha = 0.7f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Card(
+                    NeumorphicCard(
                         modifier = Modifier
                             .padding(16.dp)
                             .width(300.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier.padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
                                 text = "Đang tải lên hình ảnh...",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            
+                            LinearProgressIndicator(
+                                progress = { uploadProgress },
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                             
                             Spacer(modifier = Modifier.height(16.dp))
                             
-                            LinearProgressIndicator(
-                                progress = { uploadProgress },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
                             Text(
                                 text = "${(uploadProgress * 100).toInt()}%",
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
-                }
-            }
-            
-            // Handle selected image file for upload
-            selectedImageFile?.let { file ->
-                LaunchedEffect(file) {
-                    // Determine if this should be primary
-                    val isPrimary = eventImagesState !is ResourceState.Success || 
-                                    (eventImagesState as? ResourceState.Success<List<EventImageDto>>)?.data?.isEmpty() == true
-                    
-                    viewModel.uploadEventImage(eventId, file, isPrimary)
-                    selectedImageFile = null
                 }
             }
             
@@ -269,40 +319,155 @@ fun EventImagesScreen(
                             },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.error
-                            )
+                            ),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Text("Xóa")
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showDeleteConfirmDialog = null }) {
+                        OutlinedButton(
+                            onClick = { showDeleteConfirmDialog = null },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
                             Text("Hủy")
                         }
                     }
                 )
             }
             
-            // Set primary confirmation dialog
-            showSetPrimaryDialog?.let { imageToSetPrimary ->
+            // Add image dialog
+            if (showAddImageDialog) {
                 AlertDialog(
-                    onDismissRequest = { showSetPrimaryDialog = null },
-                    title = { Text("Đặt làm ảnh chính") },
-                    text = { Text("Bạn có chắc chắn muốn đặt hình ảnh này làm ảnh chính không?") },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                viewModel.setAsPrimaryImage(eventId, imageToSetPrimary.id)
-                                showSetPrimaryDialog = null
-                            }
-                        ) {
-                            Text("Đồng ý")
-                        }
+                    onDismissRequest = { showAddImageDialog = false },
+                    title = { 
+                        Text(
+                            text = "Thêm hình ảnh sự kiện",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        ) 
                     },
+                    text = { 
+                        ImageUploader(
+                            imageUri = null,
+                            onImageSelected = { uri ->
+                                selectedImageUri = uri
+                                showAddImageDialog = false
+                            },
+                            onImageRemoved = {},
+                            label = "Chọn hình ảnh",
+                            placeholder = "Nhấn để chọn hoặc chụp ảnh",
+                            aspectRatio = 16f / 9f
+                        )
+                    },
+                    confirmButton = {},
                     dismissButton = {
-                        TextButton(onClick = { showSetPrimaryDialog = null }) {
+                        TextButton(onClick = { showAddImageDialog = false }) {
                             Text("Hủy")
                         }
                     }
+                )
+            }
+            
+            // Image viewer dialog
+            selectedViewImage?.let { image ->
+                ImageViewerDialog(
+                    image = image,
+                    onDismiss = { selectedViewImage = null }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ImageViewerDialog(
+    image: EventImageDto,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.9f))
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { onDismiss() }
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(image.url)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth(0.95f)
+                    .aspectRatio(image.width.toFloat() / image.height.toFloat())
+            )
+            
+            // Thông tin ảnh
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .padding(16.dp)
+            ) {
+                if (image.isPrimary) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Ảnh chính",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                
+                Text(
+                    text = "Kích thước: ${image.width} x ${image.height}",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            
+            // Close button
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .size(48.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(24.dp)
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Đóng",
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -312,84 +477,85 @@ fun EventImagesScreen(
 @Composable
 fun EventImageItem(
     image: EventImageDto,
-    onSetAsPrimary: (EventImageDto) -> Unit,
+    onClick: () -> Unit,
     onDelete: (EventImageDto) -> Unit
 ) {
     val context = LocalContext.current
     
-    Box(
+    NeumorphicCard(
         modifier = Modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(8.dp))
-            .border(
-                width = if (image.isPrimary) 3.dp else 1.dp,
-                color = if (image.isPrimary) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                shape = RoundedCornerShape(8.dp)
-            )
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(image.url) // Use the full URL directly from the API
-                .crossfade(true)
-                .build(),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
-        
-        // Overlay with actions
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.3f))
-        )
-        
-        // Primary indicator
-        if (image.isPrimary) {
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp),
-                color = MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(4.dp)
-            ) {
-                Text(
-                    text = "Chính",
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
-        }
-        
-        // Action buttons
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.6f))
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+                .clip(RoundedCornerShape(16.dp))
         ) {
-            IconButton(
-                onClick = { onSetAsPrimary(image) },
-                enabled = !image.isPrimary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Đặt làm ảnh chính",
-                    tint = if (image.isPrimary) MaterialTheme.colorScheme.primary else Color.White
-                )
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(image.url)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            
+            // Overlay with actions
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.2f))
+            )
+            
+            // Primary indicator
+            if (image.isPrimary) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(8.dp),
+                    shadowElevation = 4.dp
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Ảnh chính",
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
             
+            // Delete button
             IconButton(
                 onClick = { onDelete(image) },
-                enabled = true
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp)
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.8f))
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Xóa",
-                    tint = Color.White
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }

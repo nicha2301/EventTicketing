@@ -27,8 +27,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     
-    // SSL Pinning - Thay thế các giá trị này bằng certificate hash thực tế của bạn
-    // Lưu ý: Vì chúng ta đang sử dụng http cho localhost/emulator, SSL pinning chỉ áp dụng khi chuyển sang https
     private val certificatePinner = CertificatePinner.Builder()
         .add("api.eventticketing.com", "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=") // Thay thế bằng hash thực tế
         .add("api.eventticketing.com", "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=") // Backup hash
@@ -75,57 +73,46 @@ object NetworkModule {
                     try {
                         if (retryCount > 0) {
                             Timber.d("Đang thử lại request lần thứ $retryCount")
-                            // Tăng thời gian chờ trước mỗi lần thử lại (exponential backoff)
                             val waitTime = (Math.pow(2.0, retryCount.toDouble()) * 100).toLong()
                             Thread.sleep(waitTime)
                         }
                         
-                        // Không retry các request POST, PUT, DELETE
                         if (retryCount > 0 && (request.method == "POST" || request.method == "PUT" || request.method == "DELETE")) {
                             Timber.d("Không thử lại request ${request.method}")
                             break
                         }
                         
-                        // Đóng response cũ nếu có
                         response?.close()
                         
-                        // Thực hiện request mới
                         response = chain.proceed(request)
                         
-                        // Nếu response là 5xx, thử lại
                         if (response.code in 500..599) {
                             response.close()
                             retryCount++
                             continue
                         }
                         
-                        // Nếu thành công hoặc lỗi client (4xx), không thử lại nữa
                         return response
                         
                     } catch (e: SocketTimeoutException) {
-                        // Chỉ thử lại nếu bị timeout
                         exception = e
                         Timber.e(e, "Timeout, đang thử lại")
                         retryCount++
                     } catch (e: IOException) {
-                        // Lỗi IO khác, ghi log và thử lại
                         exception = e
                         Timber.e(e, "Lỗi IO, đang thử lại")
                         retryCount++
                     }
                 }
                 
-                // Nếu vẫn còn response, trả về nó
                 if (response != null) {
                     return response
                 }
                 
-                // Nếu không có response và có exception, ném lại exception
                 if (exception != null) {
                     throw exception
                 }
                 
-                // Trường hợp không nên xảy ra
                 throw IOException("Không thể thực hiện request sau ${AppConfig.Api.MAX_RETRIES} lần thử lại")
             }
         }
@@ -145,14 +132,13 @@ object NetworkModule {
         retryInterceptor: Interceptor
     ): OkHttpClient {
         val builder = OkHttpClient.Builder()
-            .addInterceptor(retryInterceptor) // Thêm retry interceptor đầu tiên
+            .addInterceptor(retryInterceptor)
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(AppConfig.Api.CONNECT_TIMEOUT, TimeUnit.SECONDS)
             .readTimeout(AppConfig.Api.READ_TIMEOUT, TimeUnit.SECONDS)
             .writeTimeout(AppConfig.Api.WRITE_TIMEOUT, TimeUnit.SECONDS)
             
-        // Chỉ áp dụng certificatePinner khi sử dụng HTTPS
         if (AppConfig.Api.API_BASE_URL.startsWith("https")) {
             builder.certificatePinner(certificatePinner)
         }
@@ -164,7 +150,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient, moshi: Moshi): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(AppConfig.Api.API_BASE_URL) // URL cho Android Emulator để kết nối đến localhost máy chủ
+            .baseUrl(AppConfig.Api.API_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
