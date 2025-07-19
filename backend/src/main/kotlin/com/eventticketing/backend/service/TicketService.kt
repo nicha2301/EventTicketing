@@ -3,6 +3,7 @@ package com.eventticketing.backend.service
 import com.eventticketing.backend.dto.TicketDto
 import com.eventticketing.backend.dto.TicketPurchaseDto
 import com.eventticketing.backend.dto.TicketPurchaseResponseDto
+import com.eventticketing.backend.dto.TicketCheckInRequestDto
 import com.eventticketing.backend.entity.TicketStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -39,16 +40,11 @@ interface TicketService {
      * Lấy danh sách vé của một người dùng theo trạng thái
      */
     fun getTicketsByUserIdAndStatus(userId: UUID, status: TicketStatus, pageable: Pageable): Page<TicketDto>
-
+    
     /**
-     * Check-in vé
+     * Check-in vé bằng mã vé và id vé
      */
-    fun checkInTicket(ticketId: UUID): TicketDto
-
-    /**
-     * Check-in vé bằng mã vé
-     */
-    fun checkInTicketByNumber(ticketNumber: String): TicketDto
+    fun checkInTicket(request: TicketCheckInRequestDto): TicketDto
 
     /**
      * Hủy vé

@@ -23,6 +23,8 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
 import com.eventticketing.backend.entity.EventStatus
+import com.eventticketing.backend.dto.TicketCheckInRequestDto
+import com.eventticketing.backend.exception.BadRequestException
 
 @Service
 class TicketServiceImpl(
@@ -150,38 +152,50 @@ class TicketServiceImpl(
 
         return ticketRepository.findByUserIdAndStatus(userId, status, pageable).map { convertToDto(it) }
     }
-
+    
     @Transactional
-    override fun checkInTicket(ticketId: UUID): TicketDto {
-        // Chỉ admin mới có quyền check-in vé
-        if (!securityUtils.isAdmin()) {
+    override fun checkInTicket(request: TicketCheckInRequestDto): TicketDto {
+        // Chỉ organizer và admin mới có quyền check-in vé
+        if (!securityUtils.isOrganizer()) {
             throw TicketException("Không có quyền check-in vé")
         }
-
-        val ticket = ticketRepository.findById(ticketId)
-            .orElseThrow { ResourceNotFoundException("Không tìm thấy vé với ID: $ticketId") }
-
+        
+        // Tìm vé dựa trên ticketId hoặc ticketNumber
+        val ticket = when {
+            request.ticketId != null -> ticketRepository.findById(request.ticketId)
+                .orElseThrow { ResourceNotFoundException("Không tìm thấy vé với ID: ${request.ticketId}") }
+            request.ticketNumber != null -> ticketRepository.findByTicketNumber(request.ticketNumber)
+                .orElseThrow { ResourceNotFoundException("Không tìm thấy vé với mã: ${request.ticketNumber}") }
+            else -> throw BadRequestException("Phải cung cấp ID vé hoặc mã vé")
+        }
+        
+        // Kiểm tra vé thuộc sự kiện đã chỉ định
+        if (ticket.event.id != request.eventId) {
+            throw BadRequestException("Vé không thuộc sự kiện đã chỉ định")
+        }
+        
+        // Kiểm tra userId nếu được cung cấp
+        if (request.userId != null && ticket.user.id != request.userId) {
+            throw BadRequestException("Vé không thuộc về người dùng đã chỉ định")
+        }
+        
+        // Kiểm tra thời gian check-in (không được check-in trước 2 giờ khi sự kiện bắt đầu)
+        val now = LocalDateTime.now()
+        val eventStartTime = ticket.event.startDate
+        if (now.isBefore(eventStartTime.minusHours(12))) {
+            throw TicketException("Không thể check-in vé trước 12 giờ khi sự kiện bắt đầu")
+        }
+        
+        // Kiểm tra vé đã hết hạn chưa (không thể check-in sau khi sự kiện kết thúc)
+        if (now.isAfter(ticket.event.endDate)) {
+            throw TicketException("Không thể check-in vé sau khi sự kiện kết thúc")
+        }
+        
+        // Kiểm tra trạng thái vé và thực hiện check-in
         if (!ticket.checkIn()) {
-            throw TicketException("Không thể check-in vé. Vé phải ở trạng thái đã thanh toán.")
+            throw TicketException("Vé đã check in.")
         }
-
-        return convertToDto(ticketRepository.save(ticket))
-    }
-
-    @Transactional
-    override fun checkInTicketByNumber(ticketNumber: String): TicketDto {
-        // Chỉ admin mới có quyền check-in vé
-        if (!securityUtils.isAdmin()) {
-            throw TicketException("Không có quyền check-in vé")
-        }
-
-        val ticket = ticketRepository.findByTicketNumber(ticketNumber)
-            .orElseThrow { ResourceNotFoundException("Không tìm thấy vé với mã: $ticketNumber") }
-
-        if (!ticket.checkIn()) {
-            throw TicketException("Không thể check-in vé. Vé phải ở trạng thái đã thanh toán.")
-        }
-
+        
         return convertToDto(ticketRepository.save(ticket))
     }
 
@@ -229,7 +243,6 @@ class TicketServiceImpl(
             totalAmount = totalAmount.add(ticket.price)
         }
 
-        // Tạo đối tượng phản hồi
         return TicketPurchaseResponseDto(
             orderId = orderId,
             eventId = event.id!!,

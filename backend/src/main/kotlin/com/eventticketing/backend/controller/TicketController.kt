@@ -4,6 +4,7 @@ import com.eventticketing.backend.dto.ApiResponse
 import com.eventticketing.backend.dto.TicketDto
 import com.eventticketing.backend.dto.TicketPurchaseDto
 import com.eventticketing.backend.dto.TicketPurchaseResponseDto
+import com.eventticketing.backend.dto.TicketCheckInRequestDto
 import com.eventticketing.backend.entity.TicketStatus
 import com.eventticketing.backend.util.SecurityUtils
 import com.eventticketing.backend.service.TicketService
@@ -83,25 +84,19 @@ class TicketController(
         val tickets = ticketService.getTicketsByEventId(eventId, pageable)
         return ResponseEntity.ok(ApiResponse.success(tickets))
     }
-
+    
     /**
-     * Check-in vé (chỉ admin)
+     * Check-in vé
+     * Hỗ trợ check-in bằng ID hoặc mã vé
      */
-    @PostMapping("/{ticketId}/check-in")
-    @PreAuthorize("hasRole('ADMIN')")
-    fun checkInTicket(@PathVariable ticketId: UUID): ResponseEntity<ApiResponse<TicketDto>> {
-        val ticket = ticketService.checkInTicket(ticketId)
-        return ResponseEntity.ok(ApiResponse.success(ticket))
-    }
-
-    /**
-     * Check-in vé bằng mã vé (chỉ admin)
-     */
-    @PostMapping("/check-in/{ticketNumber}")
-    @PreAuthorize("hasRole('ADMIN')")
-    fun checkInTicketByNumber(@PathVariable ticketNumber: String): ResponseEntity<ApiResponse<TicketDto>> {
-        val ticket = ticketService.checkInTicketByNumber(ticketNumber)
-        return ResponseEntity.ok(ApiResponse.success(ticket))
+    @PostMapping("/check-in")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    fun checkInTicketWithRequest(@Valid @RequestBody request: TicketCheckInRequestDto): ResponseEntity<ApiResponse<TicketDto>> {
+        val ticket = ticketService.checkInTicket(request)
+        return ResponseEntity.ok(ApiResponse.success(
+            "Đã check-in vé thành công",
+            ticket
+        ))
     }
 
     /**

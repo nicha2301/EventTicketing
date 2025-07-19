@@ -66,4 +66,12 @@ data class TicketCheckInResponseDto(
     val checkedIn: Boolean,
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     val checkedInAt: LocalDateTime?
+)
+
+data class TicketCheckInRequestDto(
+    val ticketId: UUID? = null,
+    val ticketNumber: String? = null,
+    @field:NotNull(message = "EventId không được để trống")
+    val eventId: UUID,
+    val userId: UUID? = null
 ) 
