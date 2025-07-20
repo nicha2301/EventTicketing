@@ -1,6 +1,5 @@
 package com.nicha.eventticketing.domain.mapper
 
-import com.nicha.eventticketing.data.local.entity.TicketEntity
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
 import com.nicha.eventticketing.domain.model.Ticket
 import com.nicha.eventticketing.domain.model.TicketStatus
@@ -36,43 +35,6 @@ class TicketMapper @Inject constructor() {
             } else null,
             expiryDate = parseDate(dto.eventEndDate),
             status = TicketStatus.fromString(dto.status)
-        )
-    }
-
-    fun mapToEntity(dto: TicketDto): TicketEntity {
-        val purchasedDate = if (dto.purchaseDate != null) parseDate(dto.purchaseDate) else Date()
-        return TicketEntity(
-            id = dto.id,
-            ticketTypeId = dto.ticketTypeId,
-            userId = dto.userId,
-            eventId = dto.eventId,
-            orderCode = dto.ticketNumber,
-            qrCode = dto.ticketNumber,
-            price = dto.price,
-            status = dto.status,
-            checkedIn = dto.status.equals("USED", ignoreCase = true),
-            checkedInAt = if (dto.status.equals("USED", ignoreCase = true)) purchasedDate else null,
-            purchasedAt = purchasedDate,
-            createdAt = purchasedDate, 
-            updatedAt = purchasedDate
-        )
-    }
-
-    fun mapToDomainModel(entity: TicketEntity): Ticket {
-        return Ticket(
-            id = entity.id,
-            eventId = entity.eventId,
-            eventTitle = "", 
-            eventImageUrl = "", 
-            userId = entity.userId,
-            ticketCode = entity.qrCode ?: "",
-            ticketType = TicketType.STANDARD, 
-            price = entity.price,
-            purchaseDate = entity.purchasedAt,
-            isUsed = entity.checkedIn,
-            usedDate = entity.checkedInAt,
-            expiryDate = null, 
-            status = TicketStatus.fromString(entity.status)
         )
     }
 
