@@ -24,7 +24,6 @@ class GoogleAuthManager @Inject constructor(
     private lateinit var googleSignInClient: GoogleSignInClient
     
     init {
-        // Cấu hình GoogleSignInOptions - cần thêm web client ID trong strings.xml
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(context.getString(com.nicha.eventticketing.R.string.google_web_client_id))
             .requestEmail()

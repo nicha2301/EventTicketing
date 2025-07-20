@@ -1,34 +1,47 @@
 package com.nicha.eventticketing.domain.repository
 
-import androidx.paging.Pager
-import androidx.paging.PagingConfig
-import androidx.paging.PagingData
-import androidx.paging.map
-import com.nicha.eventticketing.data.local.dao.EventDao
-import com.nicha.eventticketing.data.local.entity.EventEntity
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
-import com.nicha.eventticketing.data.remote.service.ApiService
-import com.nicha.eventticketing.domain.mapper.EventMapper
-import com.nicha.eventticketing.domain.model.Event
+import com.nicha.eventticketing.data.remote.dto.event.PageDto
 import com.nicha.eventticketing.domain.model.Resource
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import javax.inject.Inject
 
 /**
- * Interface cho EventRepository, định nghĩa các phương thức để tương tác với Event
+ * Repository xử lý các chức năng liên quan đến sự kiện
  */
 interface EventRepository {
-    suspend fun getEvents(page: Int, size: Int): Flow<Resource<List<Event>>>
-    suspend fun getEventById(eventId: String): Flow<Resource<Event>>
-    suspend fun getFeaturedEvents(limit: Int = 10): Flow<Resource<List<Event>>>
-    suspend fun getUpcomingEvents(limit: Int = 10): Flow<Resource<List<Event>>>
-    suspend fun getNearbyEvents(latitude: Double, longitude: Double, radius: Double = 10.0, page: Int, size: Int): Flow<Resource<List<Event>>>
-    suspend fun searchEvents(
+    /**
+     * Lấy danh sách sự kiện có phân trang
+     * @param page Trang cần lấy (bắt đầu từ 0)
+     * @param size Số lượng sự kiện trên một trang
+     * @return Flow<Resource<PageDto<EventDto>>> Flow chứa danh sách sự kiện
+     */
+    fun getEvents(page: Int, size: Int): Flow<Resource<PageDto<EventDto>>>
+
+    /**
+     * Lấy thông tin chi tiết của một sự kiện theo ID
+     * @param eventId ID của sự kiện
+     * @return Flow<Resource<EventDto>> Flow chứa thông tin sự kiện
+     */
+    fun getEventById(eventId: String): Flow<Resource<EventDto>>
+    
+    /**
+     * Tìm kiếm sự kiện theo các điều kiện
+     * @param keyword Từ khóa tìm kiếm
+     * @param categoryId ID danh mục
+     * @param startDate Ngày bắt đầu
+     * @param endDate Ngày kết thúc
+     * @param locationId ID địa điểm
+     * @param radius Bán kính tìm kiếm (km)
+     * @param latitude Vĩ độ
+     * @param longitude Kinh độ
+     * @param minPrice Giá tối thiểu
+     * @param maxPrice Giá tối đa
+     * @param status Trạng thái sự kiện
+     * @param page Trang cần lấy
+     * @param size Số lượng sự kiện trên một trang
+     * @return Flow<Resource<PageDto<EventDto>>> Flow chứa danh sách sự kiện phù hợp
+     */
+    fun searchEvents(
         keyword: String? = null,
         categoryId: String? = null,
         startDate: String? = null,
@@ -42,254 +55,73 @@ interface EventRepository {
         status: String? = null,
         page: Int,
         size: Int
-    ): Flow<Resource<List<Event>>>
+    ): Flow<Resource<PageDto<EventDto>>>
     
-    // Local operations
-    fun getLocalEvents(): Flow<List<Event>>
-    fun getLocalEventsPaging(): Flow<PagingData<Event>>
-    fun getLocalEventById(eventId: String): Flow<Event?>
-    suspend fun updateFavoriteStatus(eventId: String, isFavorite: Boolean)
-    fun getFavoriteEvents(): Flow<List<Event>>
-}
-
-/**
- * Triển khai của EventRepository
- */
-class EventRepositoryImpl @Inject constructor(
-    private val apiService: ApiService,
-    private val eventDao: EventDao,
-    private val eventMapper: EventMapper
-) : EventRepository {
-
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-
-    override suspend fun getEvents(page: Int, size: Int): Flow<Resource<List<Event>>> = flow {
-        emit(Resource.Loading())
-        try {
-            val response = apiService.getEvents(page, size)
-            if (response.isSuccessful && response.body()?.success == true) {
-                val events = response.body()?.data?.content
-                events?.let {
-                    // Lưu events vào database local
-                    val eventEntities = it.map { eventDto ->
-                        eventMapper.mapToEntity(eventDto)
-                    }
-                    eventDao.insertEvents(eventEntities)
-                    
-                    // Chuyển đổi sang domain model
-                    val domainEvents = it.map { eventDto ->
-                        eventMapper.mapToDomainModel(eventDto)
-                    }
-                    
-                    emit(Resource.Success(domainEvents))
-                } ?: emit(Resource.Error("Events data is null"))
-            } else {
-                emit(Resource.Error(response.body()?.message ?: "Failed to get events"))
-            }
-        } catch (e: Exception) {
-            emit(Resource.Error(e.localizedMessage ?: "An unexpected error occurred"))
-        }
-    }
-
-    override suspend fun getEventById(eventId: String): Flow<Resource<Event>> = flow {
-        emit(Resource.Loading())
-        try {
-            val response = apiService.getEventById(eventId)
-            if (response.isSuccessful && response.body()?.success == true) {
-                val event = response.body()?.data
-                event?.let {
-                    // Lưu event vào database local
-                    eventDao.insertEvent(eventMapper.mapToEntity(it))
-                    
-                    // Chuyển đổi sang domain model
-                    val domainEvent = eventMapper.mapToDomainModel(it)
-                    
-                    emit(Resource.Success(domainEvent))
-                } ?: emit(Resource.Error("Event data is null"))
-            } else {
-                emit(Resource.Error(response.body()?.message ?: "Failed to get event"))
-            }
-        } catch (e: Exception) {
-            emit(Resource.Error(e.localizedMessage ?: "An unexpected error occurred"))
-        }
-    }
-
-    override suspend fun getFeaturedEvents(limit: Int): Flow<Resource<List<Event>>> = flow {
-        emit(Resource.Loading())
-        try {
-            val response = apiService.getFeaturedEvents(limit)
-            if (response.isSuccessful && response.body()?.success == true) {
-                val events = response.body()?.data
-                events?.let {
-                    // Lưu events vào database local
-                    val eventEntities = it.map { eventDto ->
-                        eventMapper.mapToEntity(eventDto)
-                    }
-                    eventDao.insertEvents(eventEntities)
-                    
-                    // Chuyển đổi sang domain model
-                    val domainEvents = it.map { eventDto ->
-                        eventMapper.mapToDomainModel(eventDto)
-                    }
-                    
-                    emit(Resource.Success(domainEvents))
-                } ?: emit(Resource.Error("Featured events data is null"))
-            } else {
-                emit(Resource.Error(response.body()?.message ?: "Failed to get featured events"))
-            }
-        } catch (e: Exception) {
-            emit(Resource.Error(e.localizedMessage ?: "An unexpected error occurred"))
-        }
-    }
-
-    override suspend fun getUpcomingEvents(limit: Int): Flow<Resource<List<Event>>> = flow {
-        emit(Resource.Loading())
-        try {
-            val response = apiService.getUpcomingEvents(limit)
-            if (response.isSuccessful && response.body()?.success == true) {
-                val events = response.body()?.data
-                events?.let {
-                    // Lưu events vào database local
-                    val eventEntities = it.map { eventDto ->
-                        eventMapper.mapToEntity(eventDto)
-                    }
-                    eventDao.insertEvents(eventEntities)
-                    
-                    // Chuyển đổi sang domain model
-                    val domainEvents = it.map { eventDto ->
-                        eventMapper.mapToDomainModel(eventDto)
-                    }
-                    
-                    emit(Resource.Success(domainEvents))
-                } ?: emit(Resource.Error("Upcoming events data is null"))
-            } else {
-                emit(Resource.Error(response.body()?.message ?: "Failed to get upcoming events"))
-            }
-        } catch (e: Exception) {
-            emit(Resource.Error(e.localizedMessage ?: "An unexpected error occurred"))
-        }
-    }
-
-    override suspend fun getNearbyEvents(
+    /**
+     * Lấy danh sách sự kiện nổi bật
+     * @param limit Số lượng sự kiện tối đa cần lấy
+     * @return Flow<Resource<List<EventDto>>> Flow chứa danh sách sự kiện nổi bật
+     */
+    fun getFeaturedEvents(limit: Int = 10): Flow<Resource<List<EventDto>>>
+    
+    /**
+     * Lấy danh sách sự kiện sắp diễn ra
+     * @param limit Số lượng sự kiện tối đa cần lấy
+     * @return Flow<Resource<List<EventDto>>> Flow chứa danh sách sự kiện sắp diễn ra
+     */
+    fun getUpcomingEvents(limit: Int = 10): Flow<Resource<List<EventDto>>>
+    
+    /**
+     * Lấy danh sách sự kiện gần đây dựa trên vị trí
+     * @param latitude Vĩ độ
+     * @param longitude Kinh độ
+     * @param radius Bán kính tìm kiếm (km)
+     * @param page Trang cần lấy
+     * @param size Số lượng sự kiện trên một trang
+     * @return Flow<Resource<PageDto<EventDto>>> Flow chứa danh sách sự kiện gần đây
+     */
+    fun getNearbyEvents(
         latitude: Double,
         longitude: Double,
-        radius: Double,
+        radius: Double = 10.0,
         page: Int,
         size: Int
-    ): Flow<Resource<List<Event>>> = flow {
-        emit(Resource.Loading())
-        try {
-            val response = apiService.getNearbyEvents(latitude, longitude, radius, page, size)
-            if (response.isSuccessful && response.body()?.success == true) {
-                val events = response.body()?.data?.content
-                events?.let {
-                    // Lưu events vào database local
-                    val eventEntities = it.map { eventDto ->
-                        eventMapper.mapToEntity(eventDto)
-                    }
-                    eventDao.insertEvents(eventEntities)
-                    
-                    // Chuyển đổi sang domain model
-                    val domainEvents = it.map { eventDto ->
-                        eventMapper.mapToDomainModel(eventDto)
-                    }
-                    
-                    emit(Resource.Success(domainEvents))
-                } ?: emit(Resource.Error("Nearby events data is null"))
-            } else {
-                emit(Resource.Error(response.body()?.message ?: "Failed to get nearby events"))
-            }
-        } catch (e: Exception) {
-            emit(Resource.Error(e.localizedMessage ?: "An unexpected error occurred"))
-        }
-    }
-
-    override suspend fun searchEvents(
-        keyword: String?,
-        categoryId: String?,
-        startDate: String?,
-        endDate: String?,
-        locationId: String?,
-        radius: Double?,
-        latitude: Double?,
-        longitude: Double?,
-        minPrice: Double?,
-        maxPrice: Double?,
-        status: String?,
-        page: Int,
-        size: Int
-    ): Flow<Resource<List<Event>>> = flow {
-        emit(Resource.Loading())
-        try {
-            val response = apiService.searchEvents(
-                keyword, categoryId, startDate, endDate, locationId, radius,
-                latitude, longitude, minPrice, maxPrice, status, page, size
-            )
-            if (response.isSuccessful && response.body()?.success == true) {
-                val events = response.body()?.data?.content
-                events?.let {
-                    // Lưu events vào database local
-                    val eventEntities = it.map { eventDto ->
-                        eventMapper.mapToEntity(eventDto)
-                    }
-                    eventDao.insertEvents(eventEntities)
-                    
-                    // Chuyển đổi sang domain model
-                    val domainEvents = it.map { eventDto ->
-                        eventMapper.mapToDomainModel(eventDto)
-                    }
-                    
-                    emit(Resource.Success(domainEvents))
-                } ?: emit(Resource.Error("Search events data is null"))
-            } else {
-                emit(Resource.Error(response.body()?.message ?: "Failed to search events"))
-            }
-        } catch (e: Exception) {
-            emit(Resource.Error(e.localizedMessage ?: "An unexpected error occurred"))
-        }
-    }
-
-    // Local operations
-    override fun getLocalEvents(): Flow<List<Event>> {
-        return eventDao.getAllEvents().map { entities ->
-            entities.map { entity ->
-                eventMapper.mapToDomainModel(entity)
-            }
-        }
-    }
-
-    override fun getLocalEventsPaging(): Flow<PagingData<Event>> {
-        return Pager(
-            config = PagingConfig(
-                pageSize = 20,
-                enablePlaceholders = false,
-                maxSize = 100
-            ),
-            pagingSourceFactory = { eventDao.getEventsPagingSource() }
-        ).flow.map { pagingData ->
-            pagingData.map { entity ->
-                eventMapper.mapToDomainModel(entity)
-            }
-        }
-    }
-
-    override fun getLocalEventById(eventId: String): Flow<Event?> {
-        return eventDao.getEventById(eventId).map { entity ->
-            entity?.let {
-                eventMapper.mapToDomainModel(it)
-            }
-        }
-    }
-
-    override suspend fun updateFavoriteStatus(eventId: String, isFavorite: Boolean) {
-        eventDao.updateFavoriteStatus(eventId, isFavorite)
-    }
-
-    override fun getFavoriteEvents(): Flow<List<Event>> {
-        return eventDao.getFavoriteEvents().map { entities ->
-            entities.map { entity ->
-                eventMapper.mapToDomainModel(entity)
-            }
-        }
-    }
+    ): Flow<Resource<PageDto<EventDto>>>
+    
+    /**
+     * Tạo sự kiện mới
+     * @param eventDto Thông tin sự kiện cần tạo
+     * @return Flow<Resource<EventDto>> Flow chứa thông tin sự kiện đã tạo
+     */
+    fun createEvent(eventDto: EventDto): Flow<Resource<EventDto>>
+    
+    /**
+     * Cập nhật thông tin sự kiện
+     * @param eventId ID của sự kiện
+     * @param eventDto Thông tin sự kiện cần cập nhật
+     * @return Flow<Resource<EventDto>> Flow chứa thông tin sự kiện đã cập nhật
+     */
+    fun updateEvent(eventId: String, eventDto: EventDto): Flow<Resource<EventDto>>
+    
+    /**
+     * Xóa sự kiện
+     * @param eventId ID của sự kiện
+     * @return Flow<Resource<Boolean>> Flow chứa kết quả xóa
+     */
+    fun deleteEvent(eventId: String): Flow<Resource<Boolean>>
+    
+    /**
+     * Xuất bản sự kiện
+     * @param eventId ID của sự kiện
+     * @return Flow<Resource<EventDto>> Flow chứa thông tin sự kiện đã xuất bản
+     */
+    fun publishEvent(eventId: String): Flow<Resource<EventDto>>
+    
+    /**
+     * Hủy sự kiện
+     * @param eventId ID của sự kiện
+     * @param reason Lý do hủy
+     * @return Flow<Resource<EventDto>> Flow chứa thông tin sự kiện đã hủy
+     */
+    fun cancelEvent(eventId: String, reason: String): Flow<Resource<EventDto>>
 } 

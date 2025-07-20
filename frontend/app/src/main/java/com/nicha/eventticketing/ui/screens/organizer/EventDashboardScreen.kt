@@ -1,6 +1,5 @@
 package com.nicha.eventticketing.ui.screens.organizer
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,8 +9,6 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
@@ -20,25 +17,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
-import com.nicha.eventticketing.data.model.EventType
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.domain.model.ResourceState
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
-import com.nicha.eventticketing.ui.theme.CardBackground
-import com.nicha.eventticketing.ui.theme.LocalNeumorphismStyle
 import com.nicha.eventticketing.viewmodel.OrganizerEventViewModel
-import kotlinx.coroutines.launch
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import com.nicha.eventticketing.ui.components.EventCard
 import com.nicha.eventticketing.ui.components.DashboardStatCard
 
