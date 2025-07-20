@@ -9,6 +9,8 @@ import com.nicha.eventticketing.domain.repository.EventRepository
 import com.nicha.eventticketing.data.repository.EventRepositoryImpl
 import com.nicha.eventticketing.domain.repository.UserRepository
 import com.nicha.eventticketing.data.repository.UserRepositoryImpl
+import com.nicha.eventticketing.domain.repository.EventImageRepository
+import com.nicha.eventticketing.data.repository.EventImageRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -43,5 +45,13 @@ object RepositoryModule {
         apiService: ApiService
     ): UserRepository {
         return UserRepositoryImpl(apiService)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideEventImageRepository(
+        apiService: ApiService
+    ): EventImageRepository {
+        return EventImageRepositoryImpl(apiService)
     }
 } 
