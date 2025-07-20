@@ -188,7 +188,7 @@ fun ForgotPasswordScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Text(
-                        text = "Nhập email của bạn để nhận liên kết đặt lại mật khẩu",
+                        text = "Nhập email của bạn để nhận mật khẩu tạm thời",
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -210,7 +210,7 @@ fun ForgotPasswordScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = "Liên kết đặt lại mật khẩu đã được gửi!",
+                                    text = "Mật khẩu tạm thời đã được gửi!",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -223,6 +223,16 @@ fun ForgotPasswordScreen(
                                     style = MaterialTheme.typography.bodyMedium,
                                     textAlign = TextAlign.Center,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Text(
+                                    text = "Vui lòng đăng nhập với mật khẩu tạm thời và đổi mật khẩu mới ngay sau khi đăng nhập.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
                         }
@@ -303,7 +313,7 @@ fun ForgotPasswordScreen(
                                 )
                             } else {
                                 Text(
-                                    text = "Gửi liên kết đặt lại",
+                                    text = "Gửi mật khẩu tạm thời",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold
                                 )

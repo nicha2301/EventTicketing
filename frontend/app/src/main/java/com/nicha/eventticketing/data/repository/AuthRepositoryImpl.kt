@@ -1,7 +1,6 @@
 package com.nicha.eventticketing.data.repository
 
 import com.nicha.eventticketing.data.preferences.PreferencesManager
-import com.nicha.eventticketing.data.remote.dto.auth.ForgotPasswordRequestDto
 import com.nicha.eventticketing.data.remote.dto.auth.GoogleAuthRequestDto
 import com.nicha.eventticketing.data.remote.dto.auth.LoginRequestDto
 import com.nicha.eventticketing.data.remote.dto.auth.LogoutRequestDto
