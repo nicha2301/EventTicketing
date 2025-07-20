@@ -2,33 +2,25 @@ package com.nicha.eventticketing.ui.screens.payment
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -48,12 +40,10 @@ import com.nicha.eventticketing.viewmodel.EventViewModel
 import com.nicha.eventticketing.viewmodel.PaymentViewModel
 import com.nicha.eventticketing.viewmodel.TicketViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.util.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import com.nicha.eventticketing.data.model.EventType
+import com.nicha.eventticketing.domain.model.EventType
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 
