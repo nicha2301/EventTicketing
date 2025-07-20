@@ -3,27 +3,23 @@ package com.nicha.eventticketing.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nicha.eventticketing.data.remote.dto.category.CategoryDto
-import com.nicha.eventticketing.data.remote.service.ApiService
+import com.nicha.eventticketing.domain.model.Resource
 import com.nicha.eventticketing.domain.model.ResourceState
+import com.nicha.eventticketing.domain.repository.CategoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.io.IOException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 import javax.inject.Inject
-import retrofit2.HttpException
-import com.google.gson.Gson
 
 /**
  * ViewModel để quản lý dữ liệu danh mục
  */
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val categoryRepository: CategoryRepository
 ) : ViewModel() {
     
     private val _categoriesState = MutableStateFlow<ResourceState<List<CategoryDto>>>(ResourceState.Initial)
@@ -36,29 +32,29 @@ class CategoryViewModel @Inject constructor(
         _categoriesState.value = ResourceState.Loading
         
         viewModelScope.launch {
-            try {
-                Timber.d("Đang lấy danh sách danh mục")
-                val response = apiService.getCategories(includeInactive, page, size)
-                
-                if (response.isSuccessful && response.body()?.success == true) {
-                    val categoryResponse = response.body()?.data
-                    if (categoryResponse != null) {
-                        val categories = categoryResponse.content ?: emptyList()
-                        Timber.d("Nhận được dữ liệu danh mục: ${categories.size} danh mục")
-                        
-                        _categoriesState.value = ResourceState.Success(categories)
-                        Timber.d("Lấy danh sách danh mục thành công")
-                    } else {
-                        Timber.e("Không thể lấy danh sách danh mục từ response")
-                        _categoriesState.value = ResourceState.Error("Không thể lấy danh sách danh mục")
+            categoryRepository.getCategories(includeInactive, page, size).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        val categoryResponse = result.data
+                        if (categoryResponse != null) {
+                            val categories = categoryResponse.content ?: emptyList()
+                            Timber.d("Nhận được dữ liệu danh mục: ${categories.size} danh mục")
+                            
+                            _categoriesState.value = ResourceState.Success(categories)
+                            Timber.d("Lấy danh sách danh mục thành công")
+                        } else {
+                            Timber.e("Không tìm thấy danh mục")
+                            _categoriesState.value = ResourceState.Error("Không tìm thấy danh mục")
+                        }
                     }
-                } else {
-                    val errorMessage = response.body()?.message ?: "Không thể lấy danh sách danh mục"
-                    Timber.e("Lấy danh sách danh mục thất bại: $errorMessage")
-                    _categoriesState.value = ResourceState.Error(errorMessage)
+                    is Resource.Error -> {
+                        Timber.e("Lấy danh sách danh mục thất bại: ${result.message}")
+                        _categoriesState.value = ResourceState.Error(result.message ?: "Không thể lấy danh sách danh mục")
+                    }
+                    is Resource.Loading -> {
+                        _categoriesState.value = ResourceState.Loading
+                    }
                 }
-            } catch (e: Exception) {
-                handleNetworkError(e, "lấy danh sách danh mục", _categoriesState)
             }
         }
     }
@@ -67,51 +63,26 @@ class CategoryViewModel @Inject constructor(
         _categoryDetailState.value = ResourceState.Loading
         
         viewModelScope.launch {
-            try {
-                Timber.d("Đang lấy chi tiết danh mục: $categoryId")
-                val response = apiService.getCategoryById(categoryId)
-                
-                if (response.isSuccessful && response.body()?.success == true) {
-                    val category = response.body()?.data
-                    if (category != null) {
-                        _categoryDetailState.value = ResourceState.Success(category)
-                        Timber.d("Lấy chi tiết danh mục thành công: ${category.name}")
-                    } else {
-                        Timber.e("Không thể lấy chi tiết danh mục từ response")
-                        _categoryDetailState.value = ResourceState.Error("Không thể lấy chi tiết danh mục")
+            categoryRepository.getCategoryById(categoryId).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        val category = result.data
+                        if (category != null) {
+                            _categoryDetailState.value = ResourceState.Success(category)
+                            Timber.d("Lấy chi tiết danh mục thành công: ${category.name}")
+                        } else {
+                            Timber.e("Không tìm thấy danh mục")
+                            _categoryDetailState.value = ResourceState.Error("Không tìm thấy danh mục")
+                        }
                     }
-                } else {
-                    val errorMessage = response.body()?.message ?: "Không thể lấy chi tiết danh mục"
-                    Timber.e("Lấy chi tiết danh mục thất bại: $errorMessage")
-                    _categoryDetailState.value = ResourceState.Error(errorMessage)
+                    is Resource.Error -> {
+                        Timber.e("Lấy chi tiết danh mục thất bại: ${result.message}")
+                        _categoryDetailState.value = ResourceState.Error(result.message ?: "Không thể lấy chi tiết danh mục")
+                    }
+                    is Resource.Loading -> {
+                        _categoryDetailState.value = ResourceState.Loading
+                    }
                 }
-            } catch (e: Exception) {
-                handleNetworkError(e, "lấy chi tiết danh mục", _categoryDetailState)
-            }
-        }
-    }
-    
-    private fun <T> handleNetworkError(exception: Exception, action: String, stateFlow: MutableStateFlow<ResourceState<T>>) {
-        when (exception) {
-            is UnknownHostException -> {
-                Timber.e(exception, "Lỗi kết nối: Không thể kết nối đến máy chủ")
-                stateFlow.value = ResourceState.Error("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng của bạn.")
-            }
-            is SocketTimeoutException -> {
-                Timber.e(exception, "Lỗi kết nối: Kết nối bị timeout")
-                stateFlow.value = ResourceState.Error("Kết nối bị timeout. Vui lòng thử lại sau.")
-            }
-            is IOException -> {
-                Timber.e(exception, "Lỗi kết nối: IOException")
-                stateFlow.value = ResourceState.Error("Lỗi kết nối: ${exception.message ?: "Không xác định"}")
-            }
-            is HttpException -> {
-                Timber.e(exception, "Lỗi HTTP: ${exception.code()}")
-                stateFlow.value = ResourceState.Error("Lỗi máy chủ: ${exception.message()}")
-            }
-            else -> {
-                Timber.e(exception, "Lỗi không xác định khi $action")
-                stateFlow.value = ResourceState.Error("Lỗi không xác định: ${exception.message ?: "Unknown"}")
             }
         }
     }
