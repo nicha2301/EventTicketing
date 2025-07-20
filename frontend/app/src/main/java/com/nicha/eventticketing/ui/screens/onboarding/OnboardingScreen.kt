@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nicha.eventticketing.R
 import com.nicha.eventticketing.data.preferences.PreferencesManager
+import com.nicha.eventticketing.viewmodel.OnboardingViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 

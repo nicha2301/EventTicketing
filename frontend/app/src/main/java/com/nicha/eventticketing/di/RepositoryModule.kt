@@ -11,6 +11,20 @@ import com.nicha.eventticketing.domain.repository.UserRepository
 import com.nicha.eventticketing.data.repository.UserRepositoryImpl
 import com.nicha.eventticketing.domain.repository.EventImageRepository
 import com.nicha.eventticketing.data.repository.EventImageRepositoryImpl
+import com.nicha.eventticketing.domain.repository.TicketTypeRepository
+import com.nicha.eventticketing.data.repository.TicketTypeRepositoryImpl
+import com.nicha.eventticketing.domain.repository.TicketRepository
+import com.nicha.eventticketing.data.repository.TicketRepositoryImpl
+import com.nicha.eventticketing.domain.repository.CategoryRepository
+import com.nicha.eventticketing.data.repository.CategoryRepositoryImpl
+import com.nicha.eventticketing.domain.repository.PaymentRepository
+import com.nicha.eventticketing.data.repository.PaymentRepositoryImpl
+import com.nicha.eventticketing.domain.repository.OrganizerRepository
+import com.nicha.eventticketing.data.repository.OrganizerRepositoryImpl
+import com.nicha.eventticketing.domain.repository.NotificationRepository
+import com.nicha.eventticketing.data.repository.NotificationRepositoryImpl
+import com.nicha.eventticketing.domain.repository.LocationRepository
+import com.nicha.eventticketing.data.repository.LocationRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -53,5 +67,61 @@ object RepositoryModule {
         apiService: ApiService
     ): EventImageRepository {
         return EventImageRepositoryImpl(apiService)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideTicketTypeRepository(
+        apiService: ApiService
+    ): TicketTypeRepository {
+        return TicketTypeRepositoryImpl(apiService)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideTicketRepository(
+        apiService: ApiService
+    ): TicketRepository {
+        return TicketRepositoryImpl(apiService)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideCategoryRepository(
+        apiService: ApiService
+    ): CategoryRepository {
+        return CategoryRepositoryImpl(apiService)
+    }
+    
+    @Provides
+    @Singleton
+    fun providePaymentRepository(
+        apiService: ApiService
+    ): PaymentRepository {
+        return PaymentRepositoryImpl(apiService)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideOrganizerRepository(
+        apiService: ApiService
+    ): OrganizerRepository {
+        return OrganizerRepositoryImpl(apiService)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideNotificationRepository(
+        apiService: ApiService
+    ): NotificationRepository {
+        return NotificationRepositoryImpl(apiService)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideLocationRepository(
+        apiService: ApiService
+    ): LocationRepository {
+        return LocationRepositoryImpl(apiService)
     }
 } 

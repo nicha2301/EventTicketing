@@ -10,12 +10,18 @@ import com.nicha.eventticketing.data.remote.dto.category.CategoryResponse
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.data.remote.dto.location.LocationDto
 import com.nicha.eventticketing.data.remote.service.ApiService
+import com.nicha.eventticketing.domain.model.Resource
+import com.nicha.eventticketing.domain.repository.CategoryRepository
+import com.nicha.eventticketing.domain.repository.EventImageRepository
+import com.nicha.eventticketing.domain.repository.EventRepository
+import com.nicha.eventticketing.domain.repository.LocationRepository
 import com.nicha.eventticketing.util.ImagePickerUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -32,6 +38,10 @@ import javax.inject.Inject
 @HiltViewModel
 class CreateEventViewModel @Inject constructor(
     private val apiService: ApiService,
+    private val categoryRepository: CategoryRepository,
+    private val locationRepository: LocationRepository,
+    private val eventRepository: EventRepository,
+    private val eventImageRepository: EventImageRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     
@@ -58,29 +68,26 @@ class CreateEventViewModel @Inject constructor(
     // Load categories
     fun loadCategories() {
         viewModelScope.launch {
-            try {
-                _isLoading.value = true
-                val response = apiService.getCategories(includeInactive = false)
-                if (response.isSuccessful && response.body() != null) {
-                    val categoryResponse = response.body()!!
-                    if (categoryResponse.success) {
-                        categoryResponse.data?.content?.let { categories ->
+            _isLoading.value = true
+            _error.value = null
+            
+            categoryRepository.getCategories(includeInactive = false).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        result.data?.content?.let { categories ->
                             _categories.value = categories
                         }
-                    } else {
-                        _error.value = categoryResponse.message ?: "Không thể tải danh mục"
+                        _isLoading.value = false
                     }
-                } else {
-                    _error.value = "Không thể tải danh mục từ server"
+                    is Resource.Error -> {
+                        _error.value = result.message ?: "Không thể tải danh mục"
+                        _isLoading.value = false
+                        Timber.e("Lỗi khi tải danh mục: ${result.message}")
+                    }
+                    is Resource.Loading -> {
+                        _isLoading.value = true
+                    }
                 }
-            } catch (e: HttpException) {
-                _error.value = "Lỗi HTTP: ${e.message()}"
-                Timber.e(e, "Lỗi khi tải danh mục")
-            } catch (e: IOException) {
-                _error.value = "Lỗi kết nối: ${e.message}"
-                Timber.e(e, "Lỗi kết nối khi tải danh mục")
-            } finally {
-                _isLoading.value = false
             }
         }
     }
@@ -88,29 +95,26 @@ class CreateEventViewModel @Inject constructor(
     // Load locations
     fun loadLocations() {
         viewModelScope.launch {
-            try {
-                _isLoading.value = true
-                val response = apiService.getLocations()
-                if (response.isSuccessful && response.body() != null) {
-                    val locationResponse = response.body()!!
-                    if (locationResponse.success) {
-                        locationResponse.data?.content?.let { locations ->
+            _isLoading.value = true
+            _error.value = null
+            
+            locationRepository.getLocations().collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        result.data?.content?.let { locations ->
                             _locations.value = locations
                         }
-                    } else {
-                        _error.value = locationResponse.message ?: "Không thể tải địa điểm"
+                        _isLoading.value = false
                     }
-                } else {
-                    _error.value = "Không thể tải địa điểm từ server"
+                    is Resource.Error -> {
+                        _error.value = result.message ?: "Không thể tải địa điểm"
+                        _isLoading.value = false
+                        Timber.e("Lỗi khi tải địa điểm: ${result.message}")
+                    }
+                    is Resource.Loading -> {
+                        _isLoading.value = true
+                    }
                 }
-            } catch (e: HttpException) {
-                _error.value = "Lỗi HTTP: ${e.message()}"
-                Timber.e(e, "Lỗi khi tải địa điểm")
-            } catch (e: IOException) {
-                _error.value = "Lỗi kết nối: ${e.message}"
-                Timber.e(e, "Lỗi kết nối khi tải địa điểm")
-            } finally {
-                _isLoading.value = false
             }
         }
     }
@@ -134,87 +138,66 @@ class CreateEventViewModel @Inject constructor(
         bannerImageUri: Uri? = null
     ) {
         viewModelScope.launch {
-            try {
-                _isLoading.value = true
-                _error.value = null
-                
-                val eventDto = EventDto(
-                    id = "",  
-                    title = title,
-                    description = description,
-                    shortDescription = shortDescription,
-                    organizerId = "", 
-                    organizerName = "", 
-                    categoryId = categoryId,
-                    categoryName = "", 
-                    locationId = locationId,
-                    locationName = "", 
-                    address = address,
-                    city = city,
-                    latitude = null, 
-                    longitude = null,  
-                    status = if (isDraft) "DRAFT" else "PUBLISHED",
-                    maxAttendees = maxAttendees,
-                    currentAttendees = 0,
-                    featuredImageUrl = null,
-                    imageUrls = emptyList(),
-                    minTicketPrice = null,
-                    maxTicketPrice = null,
-                    startDate = startDate,
-                    endDate = endDate,
-                    createdAt = "", 
-                    updatedAt = "", 
-                    isPrivate = isPrivate,
-                    isFeatured = false,
-                    isFree = isFree,
-                    ticketTypes = null
-                )
-                
-                val response = apiService.createEvent(eventDto)
-                
-                if (response.isSuccessful && response.body() != null) {
-                    val eventResponse = response.body()!!
-                    if (eventResponse.success) {
-                        eventResponse.data?.id?.let { eventId ->
+            _isLoading.value = true
+            _error.value = null
+            _uiState.value = UiState.Loading
+            
+            val eventDto = EventDto(
+                id = "",  
+                title = title,
+                description = description,
+                shortDescription = shortDescription,
+                organizerId = "", 
+                organizerName = "", 
+                categoryId = categoryId,
+                categoryName = "", 
+                locationId = locationId,
+                locationName = "", 
+                address = address,
+                city = city,
+                latitude = null, 
+                longitude = null,  
+                status = if (isDraft) "DRAFT" else "PUBLISHED",
+                maxAttendees = maxAttendees,
+                currentAttendees = 0,
+                featuredImageUrl = null,
+                imageUrls = emptyList(),
+                minTicketPrice = null,
+                maxTicketPrice = null,
+                startDate = startDate,
+                endDate = endDate,
+                createdAt = "", 
+                updatedAt = "", 
+                isPrivate = isPrivate,
+                isFeatured = false,
+                isFree = isFree,
+                ticketTypes = null
+            )
+            
+            eventRepository.createEvent(eventDto).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        result.data?.id?.let { eventId ->
                             // Tải ảnh lên nếu có
                             uploadEventImages(eventId, featuredImageUri, bannerImageUri)
                             _uiState.value = UiState.Success(eventId)
+                        } ?: run {
+                            _uiState.value = UiState.Error("Không thể tạo sự kiện: Không nhận được ID sự kiện")
+                            _error.value = "Không thể tạo sự kiện: Không nhận được ID sự kiện"
                         }
-                    } else {
-                        _uiState.value = UiState.Error(eventResponse.message ?: "Không thể tạo sự kiện")
-                        _error.value = eventResponse.message
+                        _isLoading.value = false
                     }
-                } else {
-                    val errorMessage = parseErrorBody(response.errorBody())
-                    _uiState.value = UiState.Error(errorMessage)
-                    _error.value = errorMessage
+                    is Resource.Error -> {
+                        _uiState.value = UiState.Error(result.message ?: "Không thể tạo sự kiện")
+                        _error.value = result.message
+                        _isLoading.value = false
+                        Timber.e("Lỗi khi tạo sự kiện: ${result.message}")
+                    }
+                    is Resource.Loading -> {
+                        _isLoading.value = true
+                        _uiState.value = UiState.Loading
+                    }
                 }
-            } catch (e: HttpException) {
-                val errorMessage = parseErrorBody(e.response()?.errorBody())
-                _uiState.value = UiState.Error(errorMessage)
-                _error.value = errorMessage
-                Timber.e(e, "Lỗi HTTP khi tạo sự kiện")
-            } catch (e: IllegalStateException) {
-                // Xử lý lỗi "closed" từ OkHttp
-                if (e.message?.contains("closed") == true) {
-                    _uiState.value = UiState.Error("Lỗi kết nối với server. Vui lòng thử lại sau.")
-                    _error.value = "Lỗi kết nối với server. Vui lòng thử lại sau."
-                    Timber.e(e, "Lỗi IllegalStateException: closed khi tạo sự kiện")
-                } else {
-                    _uiState.value = UiState.Error("Lỗi không xác định: ${e.message}")
-                    _error.value = "Lỗi không xác định: ${e.message}"
-                    Timber.e(e, "Lỗi IllegalStateException khi tạo sự kiện")
-                }
-            } catch (e: IOException) {
-                _uiState.value = UiState.Error("Lỗi kết nối: ${e.message}")
-                _error.value = "Lỗi kết nối: ${e.message}"
-                Timber.e(e, "Lỗi kết nối khi tạo sự kiện")
-            } catch (e: Exception) {
-                _uiState.value = UiState.Error("Lỗi không xác định: ${e.message}")
-                _error.value = "Lỗi không xác định: ${e.message}"
-                Timber.e(e, "Lỗi không xác định khi tạo sự kiện")
-            } finally {
-                _isLoading.value = false
             }
         }
     }
@@ -251,10 +234,18 @@ class CreateEventViewModel @Inject constructor(
             val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
             val imagePart = MultipartBody.Part.createFormData("image", imageFile.name, requestFile)
             
-            val response = apiService.uploadEventImage(eventId, imagePart, isPrimary)
+            val result = eventImageRepository.uploadEventImage(eventId, imagePart, isPrimary).first()
             
-            if (!response.isSuccessful || response.body() == null || !response.body()!!.success) {
-                Timber.e("Lỗi khi tải ảnh: ${response.errorBody()?.string()}")
+            when (result) {
+                is Resource.Success -> {
+                    Timber.d("Tải ảnh thành công: ${result.data?.id}")
+                }
+                is Resource.Error -> {
+                    Timber.e("Lỗi khi tải ảnh: ${result.message}")
+                }
+                is Resource.Loading -> {
+                    // Đang tải
+                }
             }
         } catch (e: Exception) {
             Timber.e(e, "Lỗi khi tải ảnh")

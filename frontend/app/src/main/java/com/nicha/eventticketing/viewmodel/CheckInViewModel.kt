@@ -6,7 +6,9 @@ import com.nicha.eventticketing.data.remote.dto.ApiResponse
 import com.nicha.eventticketing.data.remote.dto.ticket.CheckInRequestDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
 import com.nicha.eventticketing.data.remote.service.ApiService
+import com.nicha.eventticketing.domain.model.Resource
 import com.nicha.eventticketing.domain.model.ResourceState
+import com.nicha.eventticketing.domain.repository.TicketRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +29,7 @@ private typealias TicketResponse = Response<ApiResponse<TicketDto>>
  */
 @HiltViewModel
 class CheckInViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val ticketRepository: TicketRepository
 ) : ViewModel() {
     
     // State cho check-in vé
@@ -46,17 +48,39 @@ class CheckInViewModel @Inject constructor(
         Timber.d("Bắt đầu check-in vé: ticketId=$ticketId, eventId=$eventId, userId=$userId")
         
         viewModelScope.launch {
-            try {
-                val request = CheckInRequestDto(
-                    ticketId = ticketId,
-                    eventId = eventId,
-                    userId = userId
-                )
-                Timber.d("Đang gọi API check-in: $request")
-                val response = apiService.checkInTicket(request)
-                handleCheckInResponse(response)
-            } catch (e: Exception) {
-                handleCheckInError(e)
+            val request = CheckInRequestDto(
+                ticketId = ticketId,
+                eventId = eventId,
+                userId = userId
+            )
+            Timber.d("Đang gọi API check-in: $request")
+            
+            ticketRepository.checkInTicket(request).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        val ticket = result.data
+                        if (ticket != null) {
+                            Timber.d("Check-in thành công: ${ticket.ticketNumber}")
+                            _checkInState.value = ResourceState.Success(ticket)
+                            _scanningState.value = ScanningState.Success(ticket, "Check-in thành công")
+                        } else {
+                            val errorMsg = "Không thể lấy thông tin vé đã check-in từ response"
+                            Timber.e(errorMsg)
+                            _checkInState.value = ResourceState.Error(errorMsg)
+                            _scanningState.value = ScanningState.Error(errorMsg)
+                        }
+                    }
+                    is Resource.Error -> {
+                        val errorMessage = result.message ?: "Không thể check-in vé"
+                        Timber.e("Check-in vé thất bại: $errorMessage")
+                        _checkInState.value = ResourceState.Error(errorMessage)
+                        _scanningState.value = ScanningState.Error(errorMessage)
+                    }
+                    is Resource.Loading -> {
+                        _checkInState.value = ResourceState.Loading
+                        _scanningState.value = ScanningState.Processing
+                    }
+                }
             }
         }
     }
@@ -67,40 +91,6 @@ class CheckInViewModel @Inject constructor(
     private fun prepareCheckIn() {
         _checkInState.value = ResourceState.Loading
         _scanningState.value = ScanningState.Processing
-    }
-    
-    /**
-     * Xử lý response từ API check-in
-     */
-    private fun handleCheckInResponse(response: TicketResponse) {
-        if (response.isSuccessful && response.body()?.success == true) {
-            val ticket = response.body()?.data
-            if (ticket != null) {
-                val message = response.body()?.message ?: "Check-in thành công"
-                Timber.d("Check-in thành công: ${ticket.ticketNumber}, message: $message")
-                _checkInState.value = ResourceState.Success(ticket)
-                _scanningState.value = ScanningState.Success(ticket, message)
-            } else {
-                val errorMsg = "Không thể lấy thông tin vé đã check-in từ response"
-                Timber.e(errorMsg)
-                _checkInState.value = ResourceState.Error(errorMsg)
-                _scanningState.value = ScanningState.Error(errorMsg)
-            }
-        } else {
-            val errorMessage = response.body()?.message ?: "Không thể check-in vé"
-            Timber.e("Check-in vé thất bại: $errorMessage")
-            _checkInState.value = ResourceState.Error(errorMessage)
-            _scanningState.value = ScanningState.Error(errorMessage)
-        }
-    }
-    
-    /**
-     * Xử lý lỗi khi check-in
-     */
-    private fun handleCheckInError(e: Exception) {
-        val errorMsg = handleNetworkError(e, "check-in vé")
-        _checkInState.value = ResourceState.Error(errorMsg)
-        _scanningState.value = ScanningState.Error(errorMsg)
     }
     
     /**
@@ -151,42 +141,6 @@ class CheckInViewModel @Inject constructor(
         Timber.d("Reset trạng thái")
         _checkInState.value = ResourceState.Initial
         _scanningState.value = ScanningState.Ready
-    }
-    
-    /**
-     * Xử lý lỗi mạng chung cho tất cả các API call
-     * @return Thông báo lỗi để hiển thị
-     */
-    private fun handleNetworkError(exception: Exception, action: String): String {
-        val errorMessage = when (exception) {
-            is UnknownHostException -> {
-                val msg = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng của bạn."
-                Timber.e(exception, "Lỗi kết nối: Không thể kết nối đến máy chủ")
-                msg
-            }
-            is SocketTimeoutException -> {
-                val msg = "Kết nối bị timeout. Vui lòng thử lại sau."
-                Timber.e(exception, "Lỗi kết nối: Kết nối bị timeout")
-                msg
-            }
-            is IOException -> {
-                val msg = "Lỗi kết nối: ${exception.message ?: "Không xác định"}"
-                Timber.e(exception, "Lỗi kết nối: IOException")
-                msg
-            }
-            is HttpException -> {
-                val msg = "Lỗi máy chủ: ${exception.message()}"
-                Timber.e(exception, "Lỗi HTTP: ${exception.code()}")
-                msg
-            }
-            else -> {
-                val msg = "Lỗi không xác định: ${exception.message ?: "Unknown"}"
-                Timber.e(exception, "Lỗi không xác định khi $action")
-                msg
-            }
-        }
-        
-        return errorMessage
     }
 }
 
