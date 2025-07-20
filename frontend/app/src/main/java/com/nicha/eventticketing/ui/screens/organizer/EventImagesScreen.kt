@@ -32,6 +32,7 @@ import com.nicha.eventticketing.domain.model.ResourceState
 import com.nicha.eventticketing.ui.components.ImageUploader
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.util.ImagePickerUtil
+import com.nicha.eventticketing.util.ImageUtils.getFullUrl
 import com.nicha.eventticketing.viewmodel.EventImageViewModel
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
@@ -406,14 +407,14 @@ fun ImageViewerDialog(
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(image.url)
+                    .data(image.getFullUrl())
                     .crossfade(true)
                     .build(),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .fillMaxWidth(0.95f)
-                    .aspectRatio(image.width.toFloat() / image.height.toFloat())
+                    .fillMaxSize()
+                    .padding(8.dp)
             )
             
             // Thông tin ảnh
@@ -495,7 +496,7 @@ fun EventImageItem(
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
-                    .data(image.url)
+                    .data(image.getFullUrl())
                     .crossfade(true)
                     .build(),
                 contentDescription = null,

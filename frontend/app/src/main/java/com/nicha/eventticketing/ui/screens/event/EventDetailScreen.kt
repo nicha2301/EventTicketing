@@ -56,6 +56,9 @@ import com.nicha.eventticketing.util.AnimationUtils
 import com.nicha.eventticketing.util.TicketUtils
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
 import com.nicha.eventticketing.viewmodel.TicketViewModel
+import com.nicha.eventticketing.util.ImageUtils
+import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
+import com.nicha.eventticketing.util.ImageUtils.getFullImageUrls
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -181,9 +184,9 @@ fun EventDetailScreen(
                 }
                 
                 val imageUrls = if (event.imageUrls.isNullOrEmpty() && event.featuredImageUrl != null) {
-                    listOf(event.featuredImageUrl)
+                    listOf(ImageUtils.getFullImageUrl(event.featuredImageUrl))
                 } else {
-                    event.imageUrls ?: emptyList()
+                    ImageUtils.getFullImageUrls(event.imageUrls)
                 }
                 
                 val pagerState = rememberPagerState(pageCount = { imageUrls.size })

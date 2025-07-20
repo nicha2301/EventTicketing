@@ -7,6 +7,7 @@ import com.nicha.eventticketing.domain.model.EventPricing
 import com.nicha.eventticketing.domain.model.EventStatus
 import com.nicha.eventticketing.domain.model.Rating
 import com.nicha.eventticketing.domain.model.TicketInfo
+import com.nicha.eventticketing.util.ImageUtils
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -43,8 +44,8 @@ class EventMapper @Inject constructor() {
                     iconUrl = null
                 )
             },
-            featuredImageUrl = dto.featuredImageUrl,
-            imageUrl = dto.featuredImageUrl ?: "",
+            featuredImageUrl = ImageUtils.getFullImageUrl(dto.featuredImageUrl),
+            imageUrl = ImageUtils.getFullImageUrl(dto.featuredImageUrl),
             pricing = EventPricing(
                 minPrice = dto.minTicketPrice,
                 maxPrice = dto.maxTicketPrice,

@@ -56,13 +56,13 @@ interface ApiService {
     
     @POST("api/auth/google")
     suspend fun loginWithGoogle(@Body googleAuthRequest: GoogleAuthRequestDto): Response<ApiResponse<UserAuthResponseDto>>
-
+    
     @POST("api/auth/password/forgot")
     suspend fun forgotPassword(@Query("email") email: String): Response<ApiResponse<String>>
     
     @POST("api/auth/password/reset")
     suspend fun resetPassword(@Body request: ResetPasswordRequestDto): Response<ApiResponse<String>>
-
+    
     @POST("api/auth/logout")
     suspend fun logout(@Body request: LogoutRequestDto): Response<ApiResponse<String>>
     
@@ -72,7 +72,7 @@ interface ApiService {
     
     @PUT("api/users/me")
     suspend fun updateUser(@Body user: UserUpdateDto): Response<ApiResponse<UserDto>>
-
+    
     
     // Events
     @GET("api/events")
@@ -162,7 +162,7 @@ interface ApiService {
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 20
     ): Response<ApiResponse<TicketTypePageResponse>>
-
+    
     @POST("api/events/{eventId}/ticket-types")
     suspend fun createTicketType(
         @Path("eventId") eventId: String,

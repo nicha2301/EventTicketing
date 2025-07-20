@@ -46,6 +46,7 @@ import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import com.nicha.eventticketing.domain.model.EventType
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
+import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
 
 // Data classes for PaymentScreen
 data class EventEntity(
@@ -260,7 +261,7 @@ fun PaymentScreen(
                         ) {
                             // Event image
                             AsyncImage(
-                                model = event.featuredImageUrl,
+                                model = event.getFullFeaturedImageUrl(),
                                 contentDescription = event.title,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier

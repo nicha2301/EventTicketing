@@ -47,6 +47,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.CalendarToday
 import coil.request.ImageRequest
+import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -307,7 +308,7 @@ fun SearchResultItem(
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(event.featuredImageUrl)
+                        .data(event.getFullFeaturedImageUrl())
                         .crossfade(true)
                         .build(),
                     contentDescription = event.title,

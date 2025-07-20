@@ -46,6 +46,7 @@ import com.nicha.eventticketing.ui.components.QRCodeImage
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
+import com.nicha.eventticketing.util.ImageUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,7 +153,7 @@ fun TicketDetailScreen(
                             ) {
                                 AsyncImage(
                                     model = ImageRequest.Builder(context)
-                                        .data(ticket.eventImageUrl)
+                                        .data(ImageUtils.getFullImageUrl(ticket.eventImageUrl))
                                         .crossfade(true)
                                         .build(),
                                     contentDescription = ticket.eventTitle,

@@ -31,6 +31,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.util.FormatUtils
+import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
 
 @Composable
 fun EventCard(
@@ -65,7 +66,7 @@ fun EventCard(
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(event.featuredImageUrl)
+                        .data(event.getFullFeaturedImageUrl())
                         .crossfade(true)
                         .build(),
                     contentDescription = event.title,

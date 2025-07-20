@@ -51,6 +51,7 @@ import com.nicha.eventticketing.util.FormatUtils
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.graphicsLayer
+import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
 
 
 enum class EventStatus {
@@ -722,7 +723,7 @@ fun EventListItem(
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(event.featuredImageUrl)
+                        .data(event.getFullFeaturedImageUrl())
                         .crossfade(true)
                         .build(),
                     contentDescription = event.title,

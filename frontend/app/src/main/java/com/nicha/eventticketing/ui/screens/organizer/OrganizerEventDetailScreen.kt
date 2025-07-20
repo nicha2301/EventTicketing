@@ -32,6 +32,7 @@ import com.nicha.eventticketing.viewmodel.OrganizerEventViewModel
 import com.nicha.eventticketing.ui.components.EventStatusChip
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.ui.theme.LocalNeumorphismStyle
+import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -174,7 +175,7 @@ fun OrganizerEventDetailScreen(
                                 .height(240.dp)
                         ) {
                             AsyncImage(
-                                model = event.featuredImageUrl,
+                                model = event.getFullFeaturedImageUrl(),
                                 contentDescription = "Event image",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
