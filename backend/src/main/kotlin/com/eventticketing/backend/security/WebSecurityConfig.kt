@@ -40,6 +40,7 @@ class WebSecurityConfig(
                 auth
                     .requestMatchers(
                         "${ApiPaths.AUTH_BASE}/**",
+                        "/api/files/**",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",

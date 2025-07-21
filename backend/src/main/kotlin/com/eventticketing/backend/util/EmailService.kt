@@ -156,6 +156,35 @@ class EmailService(
         
         sendHtmlEmail(to, subject, "rating-notification", variables)
     }
+    
+    /**
+     * Gửi email thông báo
+     */
+    fun sendSystemNotificationEmail(
+        to: String, 
+        name: String, 
+        subject: String, 
+        message: String,
+        title: String? = null,
+        details: String? = null,
+        buttonUrl: String? = null,
+        buttonText: String? = null,
+        additionalInfo: String? = null
+    ) {
+        val variables = mutableMapOf(
+            "name" to name,
+            "message" to message,
+            "showInfoBox" to (title != null || details != null).toString()
+        )
+        
+        if (title != null) variables["title"] = title
+        if (details != null) variables["details"] = details
+        if (buttonUrl != null) variables["buttonUrl"] = buttonUrl
+        if (buttonText != null) variables["buttonText"] = buttonText
+        if (additionalInfo != null) variables["additionalInfo"] = additionalInfo
+        
+        sendHtmlEmail(to, subject, "system-notification", variables)
+    }
 
     /**
      * Phương thức gửi email HTML với template
@@ -191,7 +220,6 @@ class EmailService(
             logger.info("HTML email sent successfully to: $to")
         } catch (e: Exception) {
             logger.error("Failed to send HTML email to $to: ${e.message}")
-            // Fallback to plain text email
             val plainContent = "Vui lòng xem email này ở định dạng HTML. " +
                                "Nếu bạn không thể xem được, vui lòng liên hệ support@eventticketing.com."
             sendEmail(to, subject, plainContent)

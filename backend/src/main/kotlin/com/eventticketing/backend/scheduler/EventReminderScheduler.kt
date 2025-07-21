@@ -21,8 +21,8 @@ class EventReminderScheduler(
     private val logger = LoggerFactory.getLogger(EventReminderScheduler::class.java)
     private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
     
-    // Chạy mỗi giờ
-    @Scheduled(cron = "0 0 * * * *")
+    // Chạy mỗi ngày lúc 9:00 AM
+    @Scheduled(cron = "0 0 9 * * *")
     fun sendEventReminders() {
         logger.info("Starting event reminder scheduler")
         

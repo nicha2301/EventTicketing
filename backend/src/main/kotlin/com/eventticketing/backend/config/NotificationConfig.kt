@@ -6,10 +6,8 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 @ConfigurationProperties(prefix = "app.notification")
 class NotificationConfig {
-    // Email notification settings
     var email = EmailNotificationConfig()
     
-    // Push notification settings
     var push = PushNotificationConfig()
     
     class EmailNotificationConfig {

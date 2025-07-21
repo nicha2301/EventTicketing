@@ -45,4 +45,12 @@ interface NotificationService {
      */
     fun sendNewRatingNotification(userId: UUID, email: String, name: String, eventId: UUID,
                                 eventName: String, raterName: String, rating: Int, review: String?)
+                                
+    /**
+     * Gửi thông báo hệ thống tổng quát
+     */
+    fun sendSystemNotification(userId: UUID, email: String, name: String, 
+                             subject: String, message: String,
+                             referenceId: UUID? = null, referenceType: String? = null,
+                             buttonUrl: String? = null, buttonText: String? = null)
 } 

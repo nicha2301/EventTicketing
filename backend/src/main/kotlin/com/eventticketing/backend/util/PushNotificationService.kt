@@ -1,17 +1,78 @@
 package com.eventticketing.backend.util
 
 import com.eventticketing.backend.config.NotificationConfig
+import com.eventticketing.backend.entity.DeviceToken
+import com.eventticketing.backend.repository.DeviceTokenRepository
+import com.google.firebase.messaging.AndroidConfig
+import com.google.firebase.messaging.AndroidNotification
+import com.google.firebase.messaging.ApnsConfig
+import com.google.firebase.messaging.Aps
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.Message
+import com.google.firebase.messaging.Notification
+import com.google.firebase.messaging.WebpushConfig
+import com.google.firebase.messaging.WebpushNotification
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.util.UUID
+import java.util.concurrent.CompletableFuture
+import java.util.function.Function
 
 @Service
 class PushNotificationService(
-    private val notificationConfig: NotificationConfig
+    private val notificationConfig: NotificationConfig,
+    private val deviceTokenRepository: DeviceTokenRepository
 ) {
     private val logger = LoggerFactory.getLogger(PushNotificationService::class.java)
     
     /**
-     * Gửi thông báo đẩy cho người dùng
+     * Gửi thông báo đẩy cho người dùng thông qua token thiết bị cụ thể
+     */
+    fun sendNotificationToToken(token: String, title: String, body: String, data: Map<String, String> = emptyMap()) {
+        if (!notificationConfig.push.enabled) {
+            logger.info("Push notifications are disabled. Would send notification to token: $token - $title - $body")
+            return
+        }
+        
+        try {
+            val message = Message.builder()
+                .setToken(token)
+                .setNotification(
+                    Notification.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build()
+                )
+                .putAllData(data)
+                .setAndroidConfig(createAndroidConfig(title, body))
+                .setApnsConfig(createApnsConfig(title))
+                .setWebpushConfig(createWebpushConfig(title, body))
+                .build()
+                
+            // Gửi thông báo bất đồng bộ
+            val response = FirebaseMessaging.getInstance().sendAsync(message)
+            
+            // Xử lý kết quả bất đồng bộ
+            CompletableFuture.supplyAsync {
+                try {
+                    return@supplyAsync response.get()
+                } catch (e: Exception) {
+                    logger.error("Failed to send message to token: $token, error: ${e.message}")
+                    throw e
+                }
+            }.thenAccept { messageId ->
+                logger.info("Successfully sent message: $messageId to token: $token")
+            }.exceptionally { e ->
+                logger.error("Failed to send message to token: $token, error: ${e.message}")
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("Error sending push notification to token: $token - ${e.message}", e)
+        }
+    }
+    
+    /**
+     * Gửi thông báo đẩy cho một người dùng cụ thể
      */
     fun sendNotification(userId: String, title: String, body: String, data: Map<String, String> = emptyMap()) {
         if (!notificationConfig.push.enabled) {
@@ -20,13 +81,38 @@ class PushNotificationService(
         }
         
         try {
-            // TODO: Implement Firebase Cloud Messaging integration
-            // Sử dụng Firebase Admin SDK để gửi thông báo
-            // Cần thêm dependency: implementation("com.google.firebase:firebase-admin:9.2.0")
+            val userIdUUID = UUID.fromString(userId)
+            val deviceTokens = deviceTokenRepository.findByUserIdAndIsActiveTrue(userIdUUID)
             
-            logger.info("Sent push notification to user $userId: $title - $body")
+            if (deviceTokens.isEmpty()) {
+                logger.info("No active device tokens found for user: $userId")
+                return
+            }
+            
+            logger.info("Sending push notification to ${deviceTokens.size} devices for user: $userId")
+            
+            // Gửi thông báo đến tất cả thiết bị của người dùng
+            for (deviceToken in deviceTokens) {
+                sendNotificationToToken(deviceToken.token, title, body, data)
+            }
+        } catch (e: IllegalArgumentException) {
+            logger.error("Invalid UUID format for user: $userId", e)
         } catch (e: Exception) {
-            logger.error("Failed to send push notification to user $userId: ${e.message}")
+            logger.error("Error sending push notification to user: $userId - ${e.message}", e)
+        }
+    }
+    
+    /**
+     * Gửi thông báo đẩy hàng loạt đến nhiều người dùng
+     */
+    fun sendBatchNotifications(userIds: List<UUID>, title: String, body: String, data: Map<String, String> = emptyMap()) {
+        if (!notificationConfig.push.enabled) {
+            logger.info("Push notifications are disabled. Would send notification to ${userIds.size} users")
+            return
+        }
+        
+        userIds.forEach { userId ->
+            sendNotification(userId.toString(), title, body, data)
         }
     }
     
@@ -100,5 +186,53 @@ class PushNotificationService(
         )
         
         sendNotification(organizerId, title, body, data)
+    }
+    
+    /**
+     * Tạo cấu hình Android cho thông báo
+     */
+    private fun createAndroidConfig(title: String, body: String): AndroidConfig {
+        return AndroidConfig.builder()
+            .setPriority(AndroidConfig.Priority.HIGH)
+            .setNotification(
+                AndroidNotification.builder()
+                    .setTitle(title)
+                    .setBody(body)
+                    .setIcon("ic_notification")
+                    .setSound("default")
+                    .setColor("#4a6fa5")
+                    .build()
+            )
+            .build()
+    }
+    
+    /**
+     * Tạo cấu hình APNS (iOS) cho thông báo
+     */
+    private fun createApnsConfig(title: String): ApnsConfig {
+        return ApnsConfig.builder()
+            .setAps(
+                Aps.builder()
+                    .setAlert(title)
+                    .setSound("default")
+                    .setBadge(1)
+                    .build()
+            )
+            .build()
+    }
+    
+    /**
+     * Tạo cấu hình Webpush cho thông báo
+     */
+    private fun createWebpushConfig(title: String, body: String): WebpushConfig {
+        return WebpushConfig.builder()
+            .setNotification(
+                WebpushNotification.builder()
+                    .setTitle(title)
+                    .setBody(body)
+                    .setIcon("/images/logo.png")
+                    .build()
+            )
+            .build()
     }
 } 

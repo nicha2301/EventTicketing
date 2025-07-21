@@ -44,6 +44,8 @@ dependencies {
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	
+	implementation("com.google.firebase:firebase-admin:9.2.0")
+	
 	// Apache POI for Excel exports
 	implementation("org.apache.poi:poi:5.2.5")
 	implementation("org.apache.poi:poi-ooxml:5.2.5")

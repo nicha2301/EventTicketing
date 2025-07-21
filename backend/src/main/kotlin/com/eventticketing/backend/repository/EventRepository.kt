@@ -47,6 +47,11 @@ interface EventRepository : JpaRepository<Event, UUID>, JpaSpecificationExecutor
     fun findByEndDateBeforeAndStatus(endDate: LocalDateTime, status: EventStatus, pageable: Pageable): Page<Event>
     
     /**
+     * Tìm tất cả sự kiện đã kết thúc (endDate < now) theo trạng thái
+     */
+    fun findByStatusAndEndDateBefore(status: EventStatus, endDate: LocalDateTime): List<Event>
+    
+    /**
      * Tìm sự kiện đang diễn ra (startDate < now < endDate)
      */
     fun findByStartDateBeforeAndEndDateAfterAndStatus(now: LocalDateTime, endTime: LocalDateTime, status: EventStatus, pageable: Pageable): Page<Event>

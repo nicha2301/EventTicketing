@@ -152,4 +152,39 @@ class NotificationServiceImpl(
             logger.error("Failed to send rating notification to user $userId: ${e.message}")
         }
     }
+    
+    override fun sendSystemNotification(
+        userId: UUID, email: String, name: String, 
+        subject: String, message: String, 
+        referenceId: UUID?, referenceType: String?,
+        buttonUrl: String?, buttonText: String?
+    ) {
+        try {
+            // Gửi email thông báo hệ thống
+            emailService.sendSystemNotificationEmail(
+                to = email,
+                name = name,
+                subject = subject,
+                message = message,
+                buttonUrl = buttonUrl,
+                buttonText = buttonText
+            )
+            
+            // Gửi thông báo đẩy
+            pushNotificationService.sendNotification(
+                userId.toString(),
+                subject,
+                message,
+                mapOf(
+                    "type" to "SYSTEM_NOTIFICATION",
+                    "referenceId" to (referenceId?.toString() ?: ""),
+                    "referenceType" to (referenceType ?: "")
+                )
+            )
+            
+            logger.info("System notification sent to user: $userId")
+        } catch (e: Exception) {
+            logger.error("Failed to send system notification to user $userId: ${e.message}")
+        }
+    }
 } 
