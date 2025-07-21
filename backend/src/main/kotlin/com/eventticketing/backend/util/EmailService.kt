@@ -214,7 +214,11 @@ class EmailService(
             helper.setText(htmlContent, true)
             
             // Thêm logo vào email
-            helper.addInline("logo", ClassPathResource("static/images/logo.png"))
+            try {
+                helper.addInline("logo", ClassPathResource("static/images/logo.png"))
+            } catch (e: Exception) {
+                logger.warn("Could not add logo to email: ${e.message}")
+            }
             
             mailSender.send(message)
             logger.info("HTML email sent successfully to: $to")
