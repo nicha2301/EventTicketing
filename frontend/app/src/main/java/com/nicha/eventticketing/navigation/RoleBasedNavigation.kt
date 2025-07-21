@@ -22,11 +22,10 @@ class RoleBasedNavigation @Inject constructor(
     fun canAccessDestination(destination: NavDestination, currentUser: UserDto?): Boolean {
         // Danh sách các điểm đến chỉ dành cho người tổ chức
         val organizerOnlyDestinations = listOf(
-            NavDestination.OrganizerDashboard,
-            NavDestination.OrganizerEventList,
+            NavDestination.EventDashboard,
             NavDestination.OrganizerEventDetail,
             NavDestination.EventImages,
-            NavDestination.TicketTypeList,
+            NavDestination.EventTicketTypes,
             NavDestination.OrganizerProfile
         )
         
@@ -47,7 +46,7 @@ class RoleBasedNavigation @Inject constructor(
     fun getHomeDestinationForUser(user: UserDto?): NavDestination {
         return if (permissionUtils.isOrganizer(user)) {
             // Người tổ chức sẽ được đưa đến dashboard
-            NavDestination.OrganizerDashboard
+            NavDestination.EventDashboard
         } else {
             // Người dùng thông thường sẽ được đưa đến trang chính
             NavDestination.Home

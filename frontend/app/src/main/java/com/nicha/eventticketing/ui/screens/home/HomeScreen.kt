@@ -52,6 +52,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.graphicsLayer
 import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
+import com.nicha.eventticketing.ui.components.NotificationIconWithBadge
+import com.nicha.eventticketing.viewmodel.NotificationViewModel
 
 
 enum class EventStatus {
@@ -66,9 +68,11 @@ fun HomeScreen(
     onTicketsClick: () -> Unit,
     onProfileClick: () -> Unit,
     onExploreClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
     onCategoryClick: (String) -> Unit = {},
     eventViewModel: EventViewModel = hiltViewModel(),
-    categoryViewModel: CategoryViewModel = hiltViewModel()
+    categoryViewModel: CategoryViewModel = hiltViewModel(),
+    notificationViewModel: NotificationViewModel = hiltViewModel()
 ) {
     val scrollState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -79,6 +83,7 @@ fun HomeScreen(
     val categoriesState by categoryViewModel.categoriesState.collectAsState()
     val categoryEventsState by eventViewModel.categoryEventsState.collectAsState()
     val selectedCategoryId by eventViewModel.selectedCategoryId.collectAsState()
+    val unreadCountState by notificationViewModel.unreadCountState.collectAsState()
     
     // Theo dõi trạng thái loading cho từng phần riêng biệt
     val isFeaturedLoading = featuredEventsState is ResourceState.Loading
@@ -96,11 +101,18 @@ fun HomeScreen(
     val categoryEventsError = if (categoryEventsState is ResourceState.Error) 
                           (categoryEventsState as ResourceState.Error).message else null
     
+    val unreadCount = if (unreadCountState is ResourceState.Success) {
+        (unreadCountState as ResourceState.Success).data.unreadCount
+    } else {
+        0
+    }
+    
     // Load data when screen is displayed
     LaunchedEffect(Unit) {
         eventViewModel.getFeaturedEvents()
         eventViewModel.getUpcomingEvents()
         categoryViewModel.getCategories()
+        notificationViewModel.getUnreadNotificationCount()
     }
     
     // Map category icons based on name (fallback)
@@ -137,6 +149,10 @@ fun HomeScreen(
                     )
                 },
                 actions = {
+                    NotificationIconWithBadge(
+                        count = unreadCount,
+                        onClick = onNotificationsClick
+                    )
                     IconButton(onClick = onTicketsClick) {
                         Icon(
                             imageVector = Icons.Filled.ConfirmationNumber,

@@ -15,6 +15,13 @@ import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.data.remote.dto.event.PageDto
 import com.nicha.eventticketing.data.remote.dto.location.LocationDto
 import com.nicha.eventticketing.data.remote.dto.notification.NotificationDto
+import com.nicha.eventticketing.data.remote.dto.notification.NotificationPreferencesDto
+import com.nicha.eventticketing.data.remote.dto.notification.DeviceTokenDto
+import com.nicha.eventticketing.data.remote.dto.notification.DeviceTokenRequestDto
+import com.nicha.eventticketing.data.remote.dto.notification.TopicSubscriptionDto
+import com.nicha.eventticketing.data.remote.dto.notification.UnreadCountDto
+import com.nicha.eventticketing.data.remote.dto.notification.MarkAllReadResultDto
+import com.nicha.eventticketing.data.remote.dto.notification.DeleteAllResultDto
 import com.nicha.eventticketing.data.remote.dto.organizer.OrganizerDto
 import com.nicha.eventticketing.data.remote.dto.organizer.OrganizerCreateDto
 import com.nicha.eventticketing.data.remote.dto.organizer.OrganizerUpdateDto
@@ -225,16 +232,66 @@ interface ApiService {
     @GET("api/notifications")
     suspend fun getNotifications(
         @Query("page") page: Int = 0,
-        @Query("size") size: Int = 20
-    ): Response<ApiResponse<PageDto<NotificationDto>>>
+        @Query("size") size: Int = 20,
+        @Query("sort") sort: String = "createdAt,desc"
+    ): Response<PageDto<NotificationDto>>
     
-    @PUT("api/notifications/{id}/read")
-    suspend fun markNotificationAsRead(@Path("id") id: String): Response<ApiResponse<NotificationDto>>
+    @GET("api/notifications/unread")
+    suspend fun getUnreadNotifications(
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 20,
+        @Query("sort") sort: String = "createdAt,desc"
+    ): Response<PageDto<NotificationDto>>
+    
+    @GET("api/notifications/type/{type}")
+    suspend fun getNotificationsByType(
+        @Path("type") type: String,
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 20,
+        @Query("sort") sort: String = "createdAt,desc"
+    ): Response<PageDto<NotificationDto>>
+    
+    @GET("api/notifications/count")
+    suspend fun getUnreadNotificationCount(): Response<UnreadCountDto>
+    
+    @PUT("api/notifications/{notificationId}/read")
+    suspend fun markNotificationAsRead(@Path("notificationId") id: String): Response<NotificationDto>
+    
+    @PUT("api/notifications/read-all")
+    suspend fun markAllNotificationsAsRead(): Response<MarkAllReadResultDto>
+    
+    @DELETE("api/notifications/{notificationId}")
+    suspend fun deleteNotification(@Path("notificationId") id: String): Response<Void>
+    
+    @DELETE("api/notifications")
+    suspend fun deleteAllNotifications(): Response<DeleteAllResultDto>
+    
+    @GET("api/notifications/preferences")
+    suspend fun getNotificationPreferences(): Response<NotificationPreferencesDto>
     
     @PUT("api/notifications/preferences")
     suspend fun updateNotificationPreferences(
-        @Body preferences: Map<String, Any>
-    ): Response<ApiResponse<Map<String, Any>>>
+        @Body preferences: NotificationPreferencesDto
+    ): Response<NotificationPreferencesDto>
+    
+    // Device Tokens
+    @POST("api/devices/tokens")
+    suspend fun registerDeviceToken(@Body request: DeviceTokenRequestDto): Response<ApiResponse<DeviceTokenDto>>
+    
+    @GET("api/devices/tokens")
+    suspend fun getDeviceTokens(): Response<ApiResponse<List<DeviceTokenDto>>>
+    
+    @DELETE("api/devices/tokens/{tokenId}")
+    suspend fun deleteDeviceToken(@Path("tokenId") tokenId: String): Response<ApiResponse<Boolean>>
+    
+    @DELETE("api/devices/tokens")
+    suspend fun deleteAllDeviceTokens(): Response<ApiResponse<Int>>
+    
+    @POST("api/devices/topic/subscribe")
+    suspend fun subscribeToTopic(@Body request: TopicSubscriptionDto): Response<ApiResponse<Boolean>>
+    
+    @POST("api/devices/topic/unsubscribe")
+    suspend fun unsubscribeFromTopic(@Body request: TopicSubscriptionDto): Response<ApiResponse<Boolean>>
     
     // Organizers
     @GET("api/events/organizer/{organizerId}")

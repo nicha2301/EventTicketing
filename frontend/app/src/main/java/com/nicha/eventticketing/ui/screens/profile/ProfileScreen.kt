@@ -43,8 +43,10 @@ import com.nicha.eventticketing.ui.theme.LocalNeumorphismStyle
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nicha.eventticketing.viewmodel.NotificationViewModel
 import com.nicha.eventticketing.viewmodel.ProfileState
 import com.nicha.eventticketing.viewmodel.ProfileViewModel
+import com.nicha.eventticketing.domain.model.ResourceState
 
 // Data classes for ProfileScreen
 data class TicketEntity(
@@ -77,19 +79,28 @@ fun ProfileScreen(
     onSecurityClick: () -> Unit = {},
     onPrivacyClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
-    viewModel: ProfileViewModel = hiltViewModel()
+    viewModel: ProfileViewModel = hiltViewModel(),
+    notificationViewModel: NotificationViewModel = hiltViewModel()
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
     val isDarkTheme = MaterialTheme.colorScheme.background == Color(0xFF121212)
     
     val profileState by viewModel.profileState.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
+    val unreadCountState by notificationViewModel.unreadCountState.collectAsState()
     
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     
+    val unreadCount = if (unreadCountState is ResourceState.Success) {
+        (unreadCountState as ResourceState.Success).data.unreadCount
+    } else {
+        0
+    }
+    
     LaunchedEffect(Unit) {
         viewModel.fetchUserProfile()
+        notificationViewModel.getUnreadNotificationCount()
     }
     
     LaunchedEffect(profileState) {
@@ -328,8 +339,10 @@ fun ProfileScreen(
                     ProfileSettingItem(
                         icon = Icons.Filled.Notifications,
                         title = "Thông báo",
-                        subtitle = "Quản lý thông báo",
-                        onClick = onNotificationsClick
+                        subtitle = "Quản lý thông báo" + if (unreadCount > 0) " (${unreadCount} chưa đọc)" else "",
+                        onClick = onNotificationsClick,
+                        showBadge = unreadCount > 0,
+                        badgeCount = unreadCount
                     )
                     
                     HorizontalDivider(
@@ -436,7 +449,9 @@ fun ProfileSettingItem(
     icon: ImageVector,
     title: String,
     subtitle: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    showBadge: Boolean = false,
+    badgeCount: Int = 0
 ) {
     Row(
         modifier = Modifier
@@ -445,12 +460,24 @@ fun ProfileSettingItem(
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
-        )
+        Box(contentAlignment = Alignment.TopEnd) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+            
+            if (showBadge) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .offset(x = 4.dp, y = (-4).dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.error)
+                )
+            }
+        }
         
         Spacer(modifier = Modifier.width(16.dp))
         

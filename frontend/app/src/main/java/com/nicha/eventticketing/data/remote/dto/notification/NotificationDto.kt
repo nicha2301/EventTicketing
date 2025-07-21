@@ -5,33 +5,47 @@ package com.nicha.eventticketing.data.remote.dto.notification
  */
 data class NotificationDto(
     val id: String,
-    val userId: String,
     val title: String,
-    val message: String,
-    val type: String,
-    val isRead: Boolean,
-    val relatedId: String?,
-    val relatedType: String?,
-    val createdAt: String,
-    val imageUrl: String?
+    val content: String,
+    val notificationType: String,
+    val referenceId: String? = null,
+    val referenceType: String? = null,
+    val isRead: Boolean = false,
+    val readAt: String? = null,
+    val createdAt: String
 )
 
 /**
- * DTO cho tùy chọn thông báo
+ * DTO cho số lượng thông báo chưa đọc
+ */
+data class UnreadCountDto(
+    val unreadCount: Int
+)
+
+/**
+ * DTO cho kết quả đánh dấu đọc tất cả thông báo
+ */
+data class MarkAllReadResultDto(
+    val markedCount: Int
+)
+
+/**
+ * DTO cho kết quả xóa tất cả thông báo
+ */
+data class DeleteAllResultDto(
+    val deletedCount: Int
+)
+
+/**
+ * DTO cho cài đặt thông báo của người dùng
  */
 data class NotificationPreferencesDto(
-    val email: NotificationChannelPreferencesDto,
-    val push: NotificationChannelPreferencesDto
+    val emailNotifications: Boolean = true,
+    val pushNotifications: Boolean = true,
+    val inAppNotifications: Boolean = true,
+    val eventReminders: Boolean = true,
+    val commentNotifications: Boolean = true,
+    val ratingNotifications: Boolean = true,
+    val ticketUpdates: Boolean = true,
+    val marketingNotifications: Boolean = false
 )
-
-/**
- * DTO cho tùy chọn kênh thông báo
- */
-data class NotificationChannelPreferencesDto(
-    val enabled: Boolean,
-    val accountNotifications: Boolean,
-    val eventReminders: Boolean,
-    val commentNotifications: Boolean,
-    val ratingNotifications: Boolean,
-    val marketingNotifications: Boolean
-) 

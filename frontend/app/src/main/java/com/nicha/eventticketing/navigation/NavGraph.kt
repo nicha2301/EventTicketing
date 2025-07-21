@@ -36,6 +36,8 @@ import com.nicha.eventticketing.viewmodel.AuthViewModel
 import com.nicha.eventticketing.ui.screens.organizer.EditEventScreen
 import com.nicha.eventticketing.ui.screens.organizer.CreateEventScreen
 import com.nicha.eventticketing.ui.screens.organizer.OrganizerProfileScreen
+import com.nicha.eventticketing.ui.screens.notification.NotificationsScreen
+import com.nicha.eventticketing.ui.screens.organizer.TicketTypeListScreen
 
 @Composable
 fun NavGraph(
@@ -149,19 +151,22 @@ fun NavGraph(
         composable(route = NavDestination.Home.route) {
             HomeScreen(
                 onEventClick = { eventId ->
-                    navController.navigate("event_detail/$eventId")
+                    navController.navigate(NavDestination.EventDetail.createRoute(eventId))
                 },
                 onSearchClick = {
-                    navController.navigate("search")
+                    navController.navigate(NavDestination.Search.route)
                 },
                 onTicketsClick = {
-                    navController.navigate("ticket_wallet")
+                    navController.navigate(NavDestination.TicketWallet.route)
                 },
                 onProfileClick = {
-                    navController.navigate("profile")
+                    navController.navigate(NavDestination.Profile.route)
                 },
                 onExploreClick = {
-                    navController.navigate("search")
+                    // Implement explore navigation if needed
+                },
+                onNotificationsClick = {
+                    navController.navigate(NavDestination.Notifications.route)
                 }
             )
         }
@@ -182,7 +187,6 @@ fun NavGraph(
                     navController.popBackStack()
                 },
                 onBuyTicketsClick = { eventId, ticketTypeId ->
-                    // Chuyển đến màn hình thanh toán với ID sự kiện và ID loại vé
                     navController.navigate(NavDestination.Payment.createRoute(eventId, ticketTypeId, 1))
                 },
                 onViewTicketClick = { ticketId ->
@@ -210,24 +214,25 @@ fun NavGraph(
                     navController.popBackStack()
                 },
                 onEditClick = {
-                    navController.navigate("edit_profile")
+                    navController.navigate(NavDestination.EditProfile.route)
                 },
                 onSettingsClick = {
-                    // Show edit profile dialog or navigate to edit screen
-                    // For now, just show a toast or snackbar
+                    // Navigate to settings if needed
                 },
                 onNotificationsClick = {
-                    navController.navigate("notifications")
+                    navController.navigate(NavDestination.Notifications.route)
                 },
                 onSecurityClick = {
-                    navController.navigate("security")
+                    navController.navigate(NavDestination.Security.route)
                 },
                 onPrivacyClick = {
-                    navController.navigate("privacy")
+                    navController.navigate(NavDestination.Privacy.route)
                 },
                 onLogoutClick = {
                     navController.navigate(NavDestination.Login.route) {
-                        popUpTo(NavDestination.Home.route) { inclusive = true }
+                        popUpTo(NavDestination.Home.route) {
+                            inclusive = true
+                        }
                     }
                 }
             )
@@ -253,30 +258,44 @@ fun NavGraph(
                     navController.navigate("notifications")
                 },
                 onMyEventsClick = {
-                    navController.navigate(NavDestination.OrganizerEventList.route)
+                    navController.navigate(NavDestination.EventDashboard.route)
                 },
                 onCreateEventClick = {
                     navController.navigate(NavDestination.CreateEvent.route)
                 },
                 onEventDashboardClick = {
-                    navController.navigate(NavDestination.OrganizerDashboard.route)
+                    navController.navigate(NavDestination.EventDashboard.route)
                 },
                 onScanQRClick = {
                     navController.navigate(NavDestination.CheckIn.route)
                 },
                 onLogoutClick = {
                     navController.navigate(NavDestination.Login.route) {
-                        popUpTo(NavDestination.OrganizerDashboard.route) { inclusive = true }
+                        popUpTo(NavDestination.EventDashboard.route) { inclusive = true }
                     }
                 }
             )
         }
         
         // Notifications Screen
-        composable(route = "notifications") {
-            com.nicha.eventticketing.ui.screens.settings.NotificationsScreen(
+        composable(route = NavDestination.Notifications.route) {
+            NotificationsScreen(
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onNotificationClick = { referenceType, referenceId, notificationType ->
+                    when (referenceType) {
+                        "EVENT" -> {
+                            if (referenceId.isNotBlank()) {
+                                navController.navigate(NavDestination.EventDetail.createRoute(referenceId))
+                            }
+                        }
+                        "TICKET" -> {
+                            if (referenceId.isNotBlank()) {
+                                navController.navigate(NavDestination.TicketDetail.createRoute(referenceId))
+                            }
+                        }
+                    }
                 }
             )
         }
@@ -393,10 +412,10 @@ fun NavGraph(
         }
         
         // Organizer Dashboard Screen
-        composable(route = NavDestination.OrganizerDashboard.route) {
+        composable(route = NavDestination.EventDashboard.route) {
             // Kiểm tra quyền truy cập
             LaunchedEffect(currentUser) {
-                if (!roleBasedNavigation.canAccessDestination(NavDestination.OrganizerDashboard, currentUser)) {
+                if (!roleBasedNavigation.canAccessDestination(NavDestination.EventDashboard, currentUser)) {
                     navController.navigate(NavDestination.Unauthorized.route)
                 }
             }
@@ -413,7 +432,7 @@ fun NavGraph(
                         navController.navigate(NavDestination.OrganizerProfile.route)
                     } else
                     if (eventId == "list") {
-                        navController.navigate(NavDestination.OrganizerEventList.route)
+                        navController.navigate(NavDestination.EventDashboard.route)
                     } else {
                         navController.navigate(NavDestination.OrganizerEventDetail.createRoute(eventId))
                     }
@@ -477,7 +496,7 @@ fun NavGraph(
                     navController.navigate(NavDestination.EditEvent.createRoute(eventIdToEdit))
                 },
                 onManageTicketsClick = { eventIdForTickets ->
-                    navController.navigate(NavDestination.TicketTypeList.createRoute(eventIdForTickets))
+                    navController.navigate(NavDestination.EventTicketTypes.createRoute(eventIdForTickets))
                 },
                 onManageImagesClick = { eventIdForImages ->
                     navController.navigate(NavDestination.EventImages.createRoute(eventIdForImages))
@@ -513,7 +532,7 @@ fun NavGraph(
         
         // Ticket Type List Screen
         composable(
-            route = NavDestination.TicketTypeList.route + "/{eventId}",
+            route = NavDestination.EventTicketTypes.route + "/{eventId}",
             arguments = listOf(
                 navArgument("eventId") {
                     type = NavType.StringType
@@ -524,7 +543,7 @@ fun NavGraph(
             
             // Kiểm tra quyền truy cập
             LaunchedEffect(currentUser) {
-                if (!roleBasedNavigation.canAccessDestination(NavDestination.TicketTypeList, currentUser)) {
+                if (!roleBasedNavigation.canAccessDestination(NavDestination.EventTicketTypes, currentUser)) {
                     navController.navigate(NavDestination.Unauthorized.route)
                 }
             }
@@ -583,10 +602,10 @@ fun NavGraph(
         }
         
         // Neumorphic Demo Screen
-        composable(route = NavDestination.NeumorphicDemo.route) {
+        composable(route = "neumorphic_demo") {
             NeumorphicDemoScreen(
                 onBackClick = {
-                    navController.popBackStack()
+                    navController.navigate(NavDestination.Home.route)
                 }
             )
         }
@@ -594,47 +613,52 @@ fun NavGraph(
 }
 
 sealed class NavDestination(val route: String) {
-    object Splash : NavDestination("splash")
-    object Onboarding : NavDestination("onboarding")
+    object Home : NavDestination("home")
     object Login : NavDestination("login")
     object Register : NavDestination("register")
     object ForgotPassword : NavDestination("forgot_password")
-    object ResetPassword : NavDestination("reset_password")
-    object Home : NavDestination("home")
+    object ResetPassword : NavDestination("reset_password") {
+        fun createRoute(token: String) = "$route/$token"
+    }
+    object Splash : NavDestination("splash")
     object EventDetail : NavDestination("event_detail") {
         fun createRoute(eventId: String) = "$route/$eventId"
     }
-    object Search : NavDestination("search")
-    object Profile : NavDestination("profile")
-    object OrganizerProfile : NavDestination("organizer_profile")
     object TicketWallet : NavDestination("ticket_wallet")
     object TicketDetail : NavDestination("ticket_detail") {
         fun createRoute(ticketId: String) = "$route/$ticketId"
     }
+    object Search : NavDestination("search")
+    object Profile : NavDestination("profile")
+    object EditProfile : NavDestination("edit_profile")
     object Payment : NavDestination("payment") {
-        fun createRoute(eventId: String, ticketType: String, quantity: Int) = 
-            "$route/$eventId/$ticketType/$quantity"
+        fun createRoute(eventId: String, ticketTypeId: String, quantity: Int) = 
+            "$route/$eventId/$ticketTypeId/$quantity"
     }
-    object CheckIn : NavDestination("check_in")
-    object OrganizerDashboard : NavDestination("organizer_dashboard")
+    object PaymentResult : NavDestination("payment_result") {
+        fun createRoute(status: String, paymentId: String) = 
+            "$route/$status/$paymentId"
+    }
     object CreateEvent : NavDestination("create_event")
     object EditEvent : NavDestination("edit_event") {
         fun createRoute(eventId: String) = "$route/$eventId"
     }
-    object NeumorphicDemo : NavDestination("neumorphic_demo")
-    
-    // Thêm điểm đến mới cho Organizer
+    object EventDashboard : NavDestination("organizer_dashboard")
     object OrganizerEventList : NavDestination("organizer_event_list")
     object OrganizerEventDetail : NavDestination("organizer_event_detail") {
+        fun createRoute(eventId: String) = "$route/$eventId"
+    }
+    object EventTicketTypes : NavDestination("event_ticket_types") {
         fun createRoute(eventId: String) = "$route/$eventId"
     }
     object EventImages : NavDestination("event_images") {
         fun createRoute(eventId: String) = "$route/$eventId"
     }
-    object TicketTypeList : NavDestination("ticket_type_list") {
-        fun createRoute(eventId: String) = "$route/$eventId"
-    }
-    
-    // Thêm màn hình Unauthorized
+    object OrganizerProfile : NavDestination("organizer_profile")
+    object CheckIn : NavDestination("check_in")
+    object Onboarding : NavDestination("onboarding")
     object Unauthorized : NavDestination("unauthorized")
+    object Notifications : NavDestination("notifications")
+    object Security : NavDestination("security")
+    object Privacy : NavDestination("privacy")
 } 
