@@ -67,11 +67,6 @@ spring:
 #      password: # Để trống nếu không có mật khẩu
 #      timeout: 2000 # ms
 #      database: 0 # Sử dụng database số 0
-  http:
-    encoding:
-      charset: UTF-8
-      enabled: true
-      force: true
   main:
     allow-bean-definition-overriding: true
 
@@ -104,6 +99,7 @@ app:
   cors:
     allowed-origins: http://localhost:3000, https://eventticketing.com
   notification:
+    retention-days: 90 # Số ngày giữ thông báo trước khi xóa
     email:
       enabled: true
       from-email: noreply@eventticketing.com
@@ -117,9 +113,13 @@ app:
         comment-notification: email/comment-notification
         rating-notification: email/rating-notification
     push:
-      enabled: false
+      enabled: true
       firebase-config-path: firebase-service-account.json
 
+      use-classpath-resource: true
+      icons:
+        android: ic_notification
+        web: /images/logo.png
 logging:
   level:
     root: INFO
@@ -155,8 +155,8 @@ management:
         allowed-methods: GET
   endpoint:
     health:
-      show-details: when_authorized
-      show-components: when_authorized
+      show-details: when-authorized
+      show-components: when-authorized
       roles: ADMIN
     info:
       enabled: true

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Thông báo hệ thống</title>
+</head>
+<body>
+    <th:block th:fragment="content">
+        <h1>Xin chào <span th:text="${name}">người dùng</span>!</h1>
+        
+        <p th:text="${message}">Nội dung thông báo sẽ xuất hiện ở đây.</p>
+        
+        <div class="info-box" th:if="${showInfoBox}">
+            <h3 th:if="${title}" th:text="${title}">Tiêu đề thông tin</h3>
+            <p th:if="${details}" th:text="${details}">Chi tiết thông tin</p>
+        </div>
+        
+        <p style="text-align: center;" th:if="${buttonUrl}">
+            <a th:href="${buttonUrl}" class="button" th:text="${buttonText ?: 'Xem chi tiết'}">Xem chi tiết</a>
+        </p>
+        
+        <p th:if="${additionalInfo}" th:text="${additionalInfo}">Thông tin bổ sung sẽ xuất hiện ở đây.</p>
+        
+        <p>Trân trọng,<br>Event Ticketing Team</p>
+    </th:block>
+</body>
+</html> 

@@ -1,10 +1,12 @@
 package com.eventticketing.backend.controller
 
+import com.eventticketing.backend.dto.ApiResponse
 import com.eventticketing.backend.dto.notification.*
 import com.eventticketing.backend.entity.NotificationType
 import com.eventticketing.backend.service.DeviceTokenService
 import com.eventticketing.backend.service.UserNotificationService
 import com.eventticketing.backend.util.SecurityUtils
+import com.eventticketing.backend.util.ResponseBuilder
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -35,6 +37,25 @@ class NotificationController(
     ): ResponseEntity<Page<NotificationResponse>> {
         val userId = securityUtils.getCurrentUserId()
         return ResponseEntity.ok(userNotificationService.getUserNotifications(userId, pageable))
+    }
+    
+    @PostMapping("/test")
+    @Operation(summary = "Tạo thông báo mới cho mục đích testing")
+    @PreAuthorize("hasRole('ADMIN')")
+    fun createTestNotification(
+        @RequestBody request: TestNotificationRequest
+    ): ResponseEntity<ApiResponse<NotificationResponse>> {
+        val notification = NotificationDto(
+            userId = request.userId ?: securityUtils.getCurrentUserId(),
+            title = request.title,
+            content = request.content,
+            notificationType = request.notificationType,
+            referenceId = request.referenceId,
+            referenceType = request.referenceType
+        )
+        
+        val createdNotification = userNotificationService.createNotification(notification)
+        return ResponseBuilder.created(createdNotification, "Thông báo test đã được tạo thành công")
     }
     
     @GetMapping("/unread")
