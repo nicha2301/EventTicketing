@@ -1,42 +1,68 @@
 package com.nicha.eventticketing.ui.screens.settings
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.nicha.eventticketing.R
+import com.nicha.eventticketing.data.remote.dto.notification.NotificationPreferencesDto
+import com.nicha.eventticketing.domain.model.ResourceState
+import com.nicha.eventticketing.ui.components.ErrorView
+import com.nicha.eventticketing.ui.components.LoadingIndicator
+import com.nicha.eventticketing.viewmodel.NotificationViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: NotificationViewModel = hiltViewModel()
 ) {
-    var pushNotifications by remember { mutableStateOf(true) }
+    val preferencesState by viewModel.preferencesState.collectAsState()
+    val scrollState = rememberScrollState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    
     var emailNotifications by remember { mutableStateOf(true) }
-    var smsNotifications by remember { mutableStateOf(false) }
+    var pushNotifications by remember { mutableStateOf(true) }
+    var inAppNotifications by remember { mutableStateOf(true) }
     var eventReminders by remember { mutableStateOf(true) }
-    var promotionalNotifications by remember { mutableStateOf(false) }
-    var newsUpdates by remember { mutableStateOf(true) }
+    var commentNotifications by remember { mutableStateOf(true) }
+    var ratingNotifications by remember { mutableStateOf(true) }
+    var ticketUpdates by remember { mutableStateOf(true) }
+    var marketingNotifications by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        viewModel.getNotificationPreferences()
+    }
+    
+    LaunchedEffect(preferencesState) {
+        if (preferencesState is ResourceState.Success) {
+            val preferences = (preferencesState as ResourceState.Success<NotificationPreferencesDto>).data
+            emailNotifications = preferences.emailNotifications
+            pushNotifications = preferences.pushNotifications
+            inAppNotifications = preferences.inAppNotifications
+            eventReminders = preferences.eventReminders
+            commentNotifications = preferences.commentNotifications
+            ratingNotifications = preferences.ratingNotifications
+            ticketUpdates = preferences.ticketUpdates
+            marketingNotifications = preferences.marketingNotifications
+        }
+    }
     
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
-                    Text(
-                        "Thông báo",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        )
-                    ) 
-                },
+                title = { Text("Cài đặt thông báo") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -44,281 +70,203 @@ fun NotificationsScreen(
                             contentDescription = "Quay lại"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.primary
+                )
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item {
-                Text(
-                    text = "Cài đặt thông báo",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            
-            item {
-                NeumorphicCard(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+            when (preferencesState) {
+                is ResourceState.Loading -> {
+                    LoadingIndicator()
+                }
+                is ResourceState.Error -> {
+                    val errorMessage = (preferencesState as ResourceState.Error).message
+                    ErrorView(
+                        message = errorMessage,
+                        onRetry = { viewModel.getNotificationPreferences() }
+                    )
+                }
+                is ResourceState.Success -> {
                     Column(
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                            .verticalScroll(scrollState),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // Kênh thông báo
                         Text(
                             text = "Kênh thông báo",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleMedium
                         )
                         
-                        Spacer(modifier = Modifier.height(12.dp))
+                        NotificationChannelItem(
+                            title = "Email",
+                            description = "Nhận thông báo qua email",
+                            checked = emailNotifications,
+                            onCheckedChange = { emailNotifications = it }
+                        )
                         
-                        // Push notifications
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Notifications,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = "Thông báo đẩy",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "Nhận thông báo ngay lập tức",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                            }
-                            Switch(
-                                checked = pushNotifications,
-                                onCheckedChange = { pushNotifications = it }
-                            )
-                        }
+                        NotificationChannelItem(
+                            title = "Push Notification",
+                            description = "Nhận thông báo trên thiết bị",
+                            checked = pushNotifications,
+                            onCheckedChange = { pushNotifications = it }
+                        )
                         
-                        // Email notifications
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Email,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = "Thông báo email",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "Nhận thông báo qua email",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                            }
-                            Switch(
-                                checked = emailNotifications,
-                                onCheckedChange = { emailNotifications = it }
-                            )
-                        }
+                        NotificationChannelItem(
+                            title = "Trong ứng dụng",
+                            description = "Hiển thị thông báo trong ứng dụng",
+                            checked = inAppNotifications,
+                            onCheckedChange = { inAppNotifications = it }
+                        )
                         
-                        // SMS notifications
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Sms,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = "Thông báo SMS",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "Nhận thông báo qua SMS",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                            }
-                            Switch(
-                                checked = smsNotifications,
-                                onCheckedChange = { smsNotifications = it }
-                            )
-                        }
-                    }
-                }
-            }
-            
-            item {
-                NeumorphicCard(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        
+                        // Loại thông báo
                         Text(
                             text = "Loại thông báo",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleMedium
                         )
                         
-                        Spacer(modifier = Modifier.height(12.dp))
+                        NotificationTypeItem(
+                            title = "Nhắc nhở sự kiện",
+                            description = "Thông báo về các sự kiện sắp diễn ra",
+                            checked = eventReminders,
+                            onCheckedChange = { eventReminders = it }
+                        )
                         
-                        // Event reminders
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Event,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = "Nhắc nhở sự kiện",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "Nhắc nhở trước sự kiện",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                            }
-                            Switch(
-                                checked = eventReminders,
-                                onCheckedChange = { eventReminders = it }
-                            )
-                        }
+                        NotificationTypeItem(
+                            title = "Bình luận",
+                            description = "Thông báo khi có bình luận mới",
+                            checked = commentNotifications,
+                            onCheckedChange = { commentNotifications = it }
+                        )
                         
-                        // Promotional notifications
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.LocalOffer,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = "Thông báo khuyến mãi",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "Thông báo về ưu đãi và khuyến mãi",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                            }
-                            Switch(
-                                checked = promotionalNotifications,
-                                onCheckedChange = { promotionalNotifications = it }
-                            )
-                        }
+                        NotificationTypeItem(
+                            title = "Đánh giá",
+                            description = "Thông báo khi có đánh giá mới",
+                            checked = ratingNotifications,
+                            onCheckedChange = { ratingNotifications = it }
+                        )
                         
-                        // News updates
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        NotificationTypeItem(
+                            title = "Cập nhật vé",
+                            description = "Thông báo khi có thay đổi về vé",
+                            checked = ticketUpdates,
+                            onCheckedChange = { ticketUpdates = it }
+                        )
+                        
+                        NotificationTypeItem(
+                            title = "Tiếp thị",
+                            description = "Thông báo về khuyến mãi và sự kiện đặc biệt",
+                            checked = marketingNotifications,
+                            onCheckedChange = { marketingNotifications = it }
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Button(
+                            onClick = {
+                                val updatedPreferences = NotificationPreferencesDto(
+                                    emailNotifications = emailNotifications,
+                                    pushNotifications = pushNotifications,
+                                    inAppNotifications = inAppNotifications,
+                                    eventReminders = eventReminders,
+                                    commentNotifications = commentNotifications,
+                                    ratingNotifications = ratingNotifications,
+                                    ticketUpdates = ticketUpdates,
+                                    marketingNotifications = marketingNotifications
+                                )
+                                viewModel.updateNotificationPreferences(updatedPreferences)
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = "Đã lưu cài đặt thông báo",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(
-                                imageVector = Icons.Filled.Article,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = "Cập nhật tin tức",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "Thông báo về tin tức và cập nhật",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                            }
-                            Switch(
-                                checked = newsUpdates,
-                                onCheckedChange = { newsUpdates = it }
-                            )
+                            Text("Lưu cài đặt")
                         }
                     }
                 }
-            }
-            
-            item {
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                Button(
-                    onClick = { /* Save settings */ },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Save,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Lưu cài đặt")
-                }
+                else -> {}
             }
         }
+    }
+}
+
+@Composable
+fun NotificationChannelItem(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
+    }
+}
+
+@Composable
+fun NotificationTypeItem(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
     }
 } 

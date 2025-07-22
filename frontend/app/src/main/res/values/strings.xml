@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">EventTicketing</string>
     <string name="google_web_client_id">YOUR_WEB_CLIENT_ID</string>
+    
+    <string name="default_notification_channel_id">event_ticketing_channel</string>
+    <string name="notification_channel_name">Event Ticketing</string>
+    <string name="notification_channel_description">Thông báo từ ứng dụng Event Ticketing</string>
 </resources>

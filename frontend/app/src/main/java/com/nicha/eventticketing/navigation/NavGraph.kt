@@ -622,7 +622,13 @@ sealed class NavDestination(val route: String) {
     }
     object Splash : NavDestination("splash")
     object EventDetail : NavDestination("event_detail") {
-        fun createRoute(eventId: String) = "$route/$eventId"
+        fun createRoute(eventId: String, openComments: Boolean = false): String {
+            return if (openComments) {
+                "$route/$eventId?openComments=true"
+            } else {
+                "$route/$eventId"
+            }
+        }
     }
     object TicketWallet : NavDestination("ticket_wallet")
     object TicketDetail : NavDestination("ticket_detail") {

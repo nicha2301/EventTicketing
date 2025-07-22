@@ -7,6 +7,7 @@ import com.nicha.eventticketing.data.remote.dto.auth.UserCreateDto
 import com.nicha.eventticketing.data.remote.dto.auth.UserDto
 import com.nicha.eventticketing.domain.model.Resource
 import com.nicha.eventticketing.domain.repository.AuthRepository
+import com.nicha.eventticketing.domain.service.FcmTokenService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +27,8 @@ import retrofit2.HttpException
  */
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val fcmTokenService: FcmTokenService
 ) : ViewModel() {
 
     // Trạng thái xác thực
@@ -219,6 +221,8 @@ class AuthViewModel @Inject constructor(
                         _currentUser.value = user
                         _authState.value = AuthState.Authenticated
                         Timber.d("Lấy thông tin người dùng thành công: ${user.fullName}")
+                        
+                        fcmTokenService.registerFcmToken()
                     } else {
                         Timber.e("Không thể lấy thông tin người dùng từ response")
                         _authState.value = AuthState.Error("Không thể lấy thông tin người dùng")

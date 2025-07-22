@@ -32,12 +32,12 @@ object NetworkUtil {
     }
     
     /**
-     * Parse lỗi từ response API
+     * Parse lỗi từ response API với ApiResponse wrapper
      *
      * @param response Response từ API
      * @return String? Thông báo lỗi hoặc null
      */
-    fun <T> parseErrorResponse(response: Response<ApiResponse<T>>): String? {
+    fun <T> parseApiErrorResponse(response: Response<ApiResponse<T>>): String? {
         if (!response.isSuccessful) {
             try {
                 val errorBodyString = response.errorBody()?.string() ?: return response.message()
@@ -60,6 +60,36 @@ object NetworkUtil {
             return apiResponse.message ?: "Lỗi không xác định"
         }
         
+        return null
+    }
+    
+    /**
+     * Parse lỗi từ response API không có ApiResponse wrapper
+     *
+     * @param response Response từ API
+     * @return String? Thông báo lỗi hoặc null
+     */
+    fun parseErrorResponse(response: Response<*>): String? {
+        if (!response.isSuccessful) {
+            try {
+                val errorBodyString = response.errorBody()?.string() ?: return response.message()
+                return try {
+                    // Thử parse như ApiResponse trước
+                    val errorResponse = Gson().fromJson(errorBodyString, ApiResponse::class.java)
+                    if (errorResponse?.message != null) {
+                        return errorResponse.message
+                    }
+                    // Nếu không parse được, trả về error body string
+                    errorBodyString
+                } catch (e: Exception) {
+                    Timber.e(e, "Lỗi khi parse error response")
+                    errorBodyString
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Lỗi khi đọc error body")
+                return response.message()
+            }
+        }
         return null
     }
 } 
