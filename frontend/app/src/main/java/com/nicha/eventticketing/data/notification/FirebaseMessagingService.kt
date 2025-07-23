@@ -12,7 +12,7 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.nicha.eventticketing.MainActivity
 import com.nicha.eventticketing.R
-import com.nicha.eventticketing.config.AppConfig
+import com.nicha.eventticketing.config.AppConfig.Notification
 import com.nicha.eventticketing.domain.model.Resource
 import com.nicha.eventticketing.domain.repository.NotificationRepository
 import dagger.hilt.android.AndroidEntryPoint
@@ -30,36 +30,8 @@ class EventTicketingFirebaseMessagingService : FirebaseMessagingService() {
     lateinit var notificationRepository: NotificationRepository
     
     private val scope = CoroutineScope(Dispatchers.IO)
-    
-    companion object {
-        private val CHANNEL_ID_EVENTS = AppConfig.Notification.CHANNEL_ID_EVENTS
-        private val CHANNEL_NAME_EVENTS = AppConfig.Notification.CHANNEL_NAME_EVENTS
-        private val CHANNEL_DESCRIPTION_EVENTS = AppConfig.Notification.CHANNEL_DESCRIPTION_EVENTS
-        
-        private val CHANNEL_ID_COMMENTS = AppConfig.Notification.CHANNEL_ID_COMMENTS
-        private val CHANNEL_NAME_COMMENTS = AppConfig.Notification.CHANNEL_NAME_COMMENTS
-        private val CHANNEL_DESCRIPTION_COMMENTS = AppConfig.Notification.CHANNEL_DESCRIPTION_COMMENTS
-        
-        private val CHANNEL_ID_SYSTEM = AppConfig.Notification.CHANNEL_ID_SYSTEM
-        private val CHANNEL_NAME_SYSTEM = AppConfig.Notification.CHANNEL_NAME_SYSTEM
-        private val CHANNEL_DESCRIPTION_SYSTEM = AppConfig.Notification.CHANNEL_DESCRIPTION_SYSTEM
-        
-        val ACTION_OPEN_EVENT = AppConfig.Notification.ACTION_OPEN_EVENT
-        val ACTION_OPEN_TICKET = AppConfig.Notification.ACTION_OPEN_TICKET
-        val ACTION_OPEN_COMMENT = AppConfig.Notification.ACTION_OPEN_COMMENT
-        val ACTION_OPEN_NOTIFICATION = AppConfig.Notification.ACTION_OPEN_NOTIFICATION
-        
-        private val TYPE_EVENT_REMINDER = AppConfig.Notification.TYPE_EVENT_REMINDER
-        private val TYPE_NEW_EVENT = AppConfig.Notification.TYPE_NEW_EVENT
-        private val TYPE_TICKET_PURCHASED = AppConfig.Notification.TYPE_TICKET_PURCHASED
-        private val TYPE_NEW_COMMENT = AppConfig.Notification.TYPE_NEW_COMMENT
-        private val TYPE_NEW_RATING = AppConfig.Notification.TYPE_NEW_RATING
-        private val TYPE_SYSTEM = AppConfig.Notification.TYPE_SYSTEM
-        private val TYPE_TEST = AppConfig.Notification.TYPE_TEST
-        
-        private var badgeCount = 0
-    }
-    
+    private var badgeCount = 0
+
     /**
      * Xử lý khi nhận được thông báo mới
      */
@@ -112,13 +84,13 @@ class EventTicketingFirebaseMessagingService : FirebaseMessagingService() {
         
         // Xử lý theo loại thông báo
         when (type) {
-            TYPE_EVENT_REMINDER -> {
+            Notification.TYPE_EVENT_REMINDER -> {
                 // Xử lý thông báo nhắc nhở sự kiện
             }
-            TYPE_NEW_COMMENT -> {
+            Notification.TYPE_NEW_COMMENT -> {
                 // Xử lý thông báo bình luận mới
             }
-            TYPE_TICKET_PURCHASED -> {
+            Notification.TYPE_TICKET_PURCHASED -> {
                 // Xử lý thông báo mua vé
             }
             // Thêm các loại thông báo khác ở đây
@@ -161,36 +133,36 @@ class EventTicketingFirebaseMessagingService : FirebaseMessagingService() {
     }
     
     /**
-     * Tạo các kênh thông báo cho Android
+     * Tạo các kênh thông báo cho Android O+
      */
     private fun createNotificationChannels(notificationManager: NotificationManager) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val eventChannel = NotificationChannel(
-                CHANNEL_ID_EVENTS,
-                CHANNEL_NAME_EVENTS,
+                Notification.CHANNEL_ID_EVENTS,
+                Notification.CHANNEL_NAME_EVENTS,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = CHANNEL_DESCRIPTION_EVENTS
+                description = Notification.CHANNEL_DESCRIPTION_EVENTS
                 enableLights(true)
                 enableVibration(true)
             }
             
             val commentChannel = NotificationChannel(
-                CHANNEL_ID_COMMENTS,
-                CHANNEL_NAME_COMMENTS,
+                Notification.CHANNEL_ID_COMMENTS,
+                Notification.CHANNEL_NAME_COMMENTS,
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = CHANNEL_DESCRIPTION_COMMENTS
+                description = Notification.CHANNEL_DESCRIPTION_COMMENTS
                 enableLights(true)
                 enableVibration(true)
             }
             
             val systemChannel = NotificationChannel(
-                CHANNEL_ID_SYSTEM,
-                CHANNEL_NAME_SYSTEM,
+                Notification.CHANNEL_ID_SYSTEM,
+                Notification.CHANNEL_NAME_SYSTEM,
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = CHANNEL_DESCRIPTION_SYSTEM
+                description = Notification.CHANNEL_DESCRIPTION_SYSTEM
                 enableLights(true)
                 enableVibration(false)
             }
@@ -207,20 +179,20 @@ class EventTicketingFirebaseMessagingService : FirebaseMessagingService() {
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             
             when (type) {
-                TYPE_EVENT_REMINDER, TYPE_NEW_EVENT -> {
-                    action = ACTION_OPEN_EVENT
+                Notification.TYPE_EVENT_REMINDER, Notification.TYPE_NEW_EVENT -> {
+                    action = Notification.ACTION_OPEN_EVENT
                     putExtra("eventId", referenceId)
                 }
-                TYPE_TICKET_PURCHASED -> {
-                    action = ACTION_OPEN_TICKET
+                Notification.TYPE_TICKET_PURCHASED -> {
+                    action = Notification.ACTION_OPEN_TICKET
                     putExtra("ticketId", referenceId)
                 }
-                TYPE_NEW_COMMENT, TYPE_NEW_RATING -> {
-                    action = ACTION_OPEN_COMMENT
+                Notification.TYPE_NEW_COMMENT, Notification.TYPE_NEW_RATING -> {
+                    action = Notification.ACTION_OPEN_COMMENT
                     putExtra("eventId", referenceId)
                 }
                 else -> {
-                    action = ACTION_OPEN_NOTIFICATION
+                    action = Notification.ACTION_OPEN_NOTIFICATION
                 }
             }
         }
@@ -236,9 +208,9 @@ class EventTicketingFirebaseMessagingService : FirebaseMessagingService() {
      */
     private fun getNotificationChannelId(type: String?): String {
         return when (type) {
-            TYPE_EVENT_REMINDER, TYPE_NEW_EVENT, TYPE_TICKET_PURCHASED -> CHANNEL_ID_EVENTS
-            TYPE_NEW_COMMENT, TYPE_NEW_RATING -> CHANNEL_ID_COMMENTS
-            else -> CHANNEL_ID_SYSTEM
+            Notification.TYPE_EVENT_REMINDER, Notification.TYPE_NEW_EVENT, Notification.TYPE_TICKET_PURCHASED -> Notification.CHANNEL_ID_EVENTS
+            Notification.TYPE_NEW_COMMENT, Notification.TYPE_NEW_RATING -> Notification.CHANNEL_ID_COMMENTS
+            else -> Notification.CHANNEL_ID_SYSTEM
         }
     }
     

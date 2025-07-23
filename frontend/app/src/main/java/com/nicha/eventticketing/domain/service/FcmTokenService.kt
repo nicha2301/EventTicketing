@@ -31,10 +31,8 @@ class FcmTokenService @Inject constructor(
                     val token = task.result
                     Timber.d("Đăng ký FCM token sau đăng nhập: $token")
                     
-                    // Đăng ký nhận thông báo từ topic "all_users"
                     subscribeToTopics()
                     
-                    // Đăng ký token với server
                     scope.launch {
                         notificationRepository.registerDeviceToken(token, "ANDROID").collect { result ->
                             when (result) {
@@ -71,5 +69,6 @@ class FcmTokenService @Inject constructor(
                     Timber.e("Đăng ký nhận thông báo từ topic '${AppConfig.Notification.TOPIC_ALL_USERS}' thất bại: ${task.exception}")
                 }
             }
+            
     }
 } 

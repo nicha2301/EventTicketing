@@ -1,35 +1,30 @@
 package com.nicha.eventticketing.di
 
-import com.nicha.eventticketing.data.local.dao.CategoryDao
-import com.nicha.eventticketing.data.local.dao.EventDao
-import com.nicha.eventticketing.data.local.dao.NotificationDao
-import com.nicha.eventticketing.data.local.dao.TicketDao
-import com.nicha.eventticketing.data.local.dao.UserDao
 import com.nicha.eventticketing.data.preferences.PreferencesManager
 import com.nicha.eventticketing.data.remote.service.ApiService
-import com.nicha.eventticketing.data.repository.AuthRepositoryImpl
-import com.nicha.eventticketing.data.repository.CategoryRepositoryImpl
-import com.nicha.eventticketing.data.repository.EventImageRepositoryImpl
-import com.nicha.eventticketing.data.repository.EventRepositoryImpl
-import com.nicha.eventticketing.data.repository.LocationRepositoryImpl
-import com.nicha.eventticketing.data.repository.NotificationRepositoryImpl
-import com.nicha.eventticketing.data.repository.OrganizerRepositoryImpl
-import com.nicha.eventticketing.data.repository.PaymentRepositoryImpl
-import com.nicha.eventticketing.data.repository.TicketRepositoryImpl
-import com.nicha.eventticketing.data.repository.TicketTypeRepositoryImpl
-import com.nicha.eventticketing.data.repository.UserRepositoryImpl
+import com.nicha.eventticketing.domain.mapper.EventMapper
 import com.nicha.eventticketing.domain.repository.AuthRepository
-import com.nicha.eventticketing.domain.repository.CategoryRepository
-import com.nicha.eventticketing.domain.repository.EventImageRepository
+import com.nicha.eventticketing.data.repository.AuthRepositoryImpl
 import com.nicha.eventticketing.domain.repository.EventRepository
-import com.nicha.eventticketing.domain.repository.LocationRepository
-import com.nicha.eventticketing.domain.repository.NotificationRepository
-import com.nicha.eventticketing.domain.repository.OrganizerRepository
-import com.nicha.eventticketing.domain.repository.PaymentRepository
-import com.nicha.eventticketing.domain.repository.TicketRepository
-import com.nicha.eventticketing.domain.repository.TicketTypeRepository
+import com.nicha.eventticketing.data.repository.EventRepositoryImpl
 import com.nicha.eventticketing.domain.repository.UserRepository
-import com.nicha.eventticketing.util.NetworkStatus
+import com.nicha.eventticketing.data.repository.UserRepositoryImpl
+import com.nicha.eventticketing.domain.repository.EventImageRepository
+import com.nicha.eventticketing.data.repository.EventImageRepositoryImpl
+import com.nicha.eventticketing.domain.repository.TicketTypeRepository
+import com.nicha.eventticketing.data.repository.TicketTypeRepositoryImpl
+import com.nicha.eventticketing.domain.repository.TicketRepository
+import com.nicha.eventticketing.data.repository.TicketRepositoryImpl
+import com.nicha.eventticketing.domain.repository.CategoryRepository
+import com.nicha.eventticketing.data.repository.CategoryRepositoryImpl
+import com.nicha.eventticketing.domain.repository.PaymentRepository
+import com.nicha.eventticketing.data.repository.PaymentRepositoryImpl
+import com.nicha.eventticketing.domain.repository.OrganizerRepository
+import com.nicha.eventticketing.data.repository.OrganizerRepositoryImpl
+import com.nicha.eventticketing.domain.repository.NotificationRepository
+import com.nicha.eventticketing.data.repository.NotificationRepositoryImpl
+import com.nicha.eventticketing.domain.repository.LocationRepository
+import com.nicha.eventticketing.data.repository.LocationRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -53,20 +48,17 @@ object RepositoryModule {
     @Singleton
     fun provideEventRepository(
         apiService: ApiService,
-        eventDao: EventDao,
-        networkStatus: NetworkStatus
+        eventMapper: EventMapper
     ): EventRepository {
-        return EventRepositoryImpl(apiService, eventDao, networkStatus)
+        return EventRepositoryImpl(apiService, eventMapper)
     }
     
     @Provides
     @Singleton
     fun provideUserRepository(
-        apiService: ApiService,
-        userDao: UserDao,
-        networkStatus: NetworkStatus
+        apiService: ApiService
     ): UserRepository {
-        return UserRepositoryImpl(apiService, userDao, networkStatus)
+        return UserRepositoryImpl(apiService)
     }
     
     @Provides
@@ -88,21 +80,17 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideTicketRepository(
-        apiService: ApiService,
-        ticketDao: TicketDao,
-        networkStatus: NetworkStatus
+        apiService: ApiService
     ): TicketRepository {
-        return TicketRepositoryImpl(apiService, ticketDao, networkStatus)
+        return TicketRepositoryImpl(apiService)
     }
     
     @Provides
     @Singleton
     fun provideCategoryRepository(
-        apiService: ApiService,
-        categoryDao: CategoryDao,
-        networkStatus: NetworkStatus
+        apiService: ApiService
     ): CategoryRepository {
-        return CategoryRepositoryImpl(apiService, categoryDao, networkStatus)
+        return CategoryRepositoryImpl(apiService)
     }
     
     @Provides
@@ -124,12 +112,9 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideNotificationRepository(
-        apiService: ApiService,
-        notificationDao: NotificationDao,
-        preferencesManager: PreferencesManager,
-        networkStatus: NetworkStatus
+        apiService: ApiService
     ): NotificationRepository {
-        return NotificationRepositoryImpl(apiService, notificationDao, preferencesManager, networkStatus)
+        return NotificationRepositoryImpl(apiService)
     }
     
     @Provides

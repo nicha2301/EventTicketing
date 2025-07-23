@@ -1,29 +1,26 @@
 package com.nicha.eventticketing.config
 
+import android.Manifest
+
 /**
  * Cấu hình toàn cục cho ứng dụng
  */
 object AppConfig {
-    // Môi trường hiện tại
     private val ENV = Environment.DEVELOPMENT
     
     /**
      * Các môi trường của ứng dụng
      */
     enum class Environment {
-        DEVELOPMENT, // Môi trường phát triển (localhost/emulator)
-        STAGING,     // Môi trường kiểm thử
-        PRODUCTION   // Môi trường sản phẩm
+        DEVELOPMENT, 
+        STAGING,    
+        PRODUCTION   
     }
     
     // API Configuration
     object Api {
-        // Cấu hình theo môi trường
         private val API_DOMAIN = when (ENV) {
-            // Cấu hình cho máy thật
-            Environment.DEVELOPMENT -> "10.211.189.200" // IP thực tế của máy chủ
-            // Cấu hình cũ cho Android Emulator
-            // Environment.DEVELOPMENT -> "10.73.147.250" 
+            Environment.DEVELOPMENT -> "10.120.235.200"
             Environment.STAGING -> "api-staging.eventticketing.com"
             Environment.PRODUCTION -> "api.eventticketing.com"
         }
@@ -38,19 +35,16 @@ object AppConfig {
             else -> "https"
         }
         
-        // Tự động tạo URL dựa trên môi trường
         val API_BASE_URL = if (API_PORT.isEmpty()) {
             "$API_PROTOCOL://$API_DOMAIN/"
         } else {
             "$API_PROTOCOL://$API_DOMAIN:$API_PORT/"
         }
         
-        // Thời gian timeout cho các request (đơn vị: giây)
-        const val CONNECT_TIMEOUT = 15L  // Giảm từ 30 xuống 15
-        const val READ_TIMEOUT = 15L     // Giảm từ 30 xuống 15
-        const val WRITE_TIMEOUT = 15L    // Giảm từ 30 xuống 15
+        const val CONNECT_TIMEOUT = 15L  
+        const val READ_TIMEOUT = 15L     
+        const val WRITE_TIMEOUT = 15L   
         
-        // Số lần thử lại tối đa khi request thất bại
         const val MAX_RETRIES = 3
     }
     
@@ -62,11 +56,9 @@ object AppConfig {
         const val FORBIDDEN_CODE = 403
         const val REFRESH_TOKEN_PATH = "api/auth/refresh-token"
         
-        // Thời gian hết hạn token (đơn vị: giây)
         const val TOKEN_EXPIRATION = 3600L
         
-        // Cập nhật token khi còn lại bao nhiêu phần trăm thời gian sống
-        const val TOKEN_REFRESH_THRESHOLD_PERCENT = 20 // 20%
+        const val TOKEN_REFRESH_THRESHOLD_PERCENT = 20 
     }
     
     // Database Configuration
@@ -77,30 +69,76 @@ object AppConfig {
     
     // Feature Flags
     object FeatureFlags {
-        // Các tính năng được bật/tắt tùy theo môi trường
         val ENABLE_BIOMETRIC_AUTH = ENV != Environment.DEVELOPMENT
         val ENABLE_PUSH_NOTIFICATIONS = ENV != Environment.DEVELOPMENT
         val ENABLE_ANALYTICS = ENV != Environment.DEVELOPMENT
         val ENABLE_CRASH_REPORTING = ENV != Environment.DEVELOPMENT
         val ENABLE_DEBUG_LOGGING = ENV == Environment.DEVELOPMENT
         
-        // Thêm flag bật/tắt tính năng lưu đăng nhập
         val ENABLE_REMEMBER_ME = true
     }
     
     // Error handling
     object ErrorCodes {
-        // HTTP Status Codes
         const val BAD_REQUEST = 400
         const val UNAUTHORIZED = 401
         const val FORBIDDEN = 403
         const val NOT_FOUND = 404
         const val INTERNAL_SERVER_ERROR = 500
         
-        // Application specific error codes
         const val NETWORK_ERROR = 1000
         const val TIMEOUT_ERROR = 1001
         const val PARSE_ERROR = 1002
         const val UNKNOWN_ERROR = 9999
+    }
+    
+    // Push notification configuration
+    object Notification {
+        // Notification channel IDs
+        const val CHANNEL_ID_EVENTS = "event_ticketing_events"
+        const val CHANNEL_NAME_EVENTS = "Sự kiện"
+        const val CHANNEL_DESCRIPTION_EVENTS = "Thông báo về sự kiện và vé"
+        
+        const val CHANNEL_ID_COMMENTS = "event_ticketing_comments"
+        const val CHANNEL_NAME_COMMENTS = "Bình luận"
+        const val CHANNEL_DESCRIPTION_COMMENTS = "Thông báo về bình luận và đánh giá"
+        
+        const val CHANNEL_ID_SYSTEM = "event_ticketing_system"
+        const val CHANNEL_NAME_SYSTEM = "Hệ thống"
+        const val CHANNEL_DESCRIPTION_SYSTEM = "Thông báo hệ thống"
+        
+        // Deep linking actions
+        const val ACTION_OPEN_EVENT = "com.nicha.eventticketing.OPEN_EVENT"
+        const val ACTION_OPEN_TICKET = "com.nicha.eventticketing.OPEN_TICKET"
+        const val ACTION_OPEN_COMMENT = "com.nicha.eventticketing.OPEN_COMMENT" 
+        const val ACTION_OPEN_NOTIFICATION = "com.nicha.eventticketing.OPEN_NOTIFICATION"
+        
+        // Notification type constants
+        const val TYPE_EVENT_REMINDER = "EVENT_REMINDER"
+        const val TYPE_NEW_EVENT = "NEW_EVENT"
+        const val TYPE_TICKET_PURCHASED = "TICKET_PURCHASED"
+        const val TYPE_NEW_COMMENT = "NEW_COMMENT"
+        const val TYPE_NEW_RATING = "NEW_RATING"
+        const val TYPE_SYSTEM = "SYSTEM"
+        const val TYPE_TEST = "TEST_NOTIFICATION"
+        
+        // FCM topic constants
+        const val TOPIC_ALL_USERS = "all_users"
+        const val TOPIC_ORGANIZERS = "organizers"
+        const val TOPIC_EVENTS = "events"
+    }
+    
+    // Permission configuration
+    object Permission {
+        // Permission constants
+        const val CAMERA_PERMISSION = Manifest.permission.CAMERA
+        const val STORAGE_READ_PERMISSION = Manifest.permission.READ_EXTERNAL_STORAGE
+        const val MEDIA_IMAGES_PERMISSION = Manifest.permission.READ_MEDIA_IMAGES
+        const val NOTIFICATION_PERMISSION = Manifest.permission.POST_NOTIFICATIONS
+        
+        // Permission request codes
+        const val REQUEST_CAMERA_PERMISSION = 100
+        const val REQUEST_STORAGE_PERMISSION = 101
+        const val REQUEST_NOTIFICATION_PERMISSION = 102
     }
 }

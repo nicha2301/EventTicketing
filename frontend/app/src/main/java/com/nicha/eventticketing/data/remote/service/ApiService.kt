@@ -26,8 +26,8 @@ import com.nicha.eventticketing.data.remote.dto.organizer.OrganizerDto
 import com.nicha.eventticketing.data.remote.dto.organizer.OrganizerCreateDto
 import com.nicha.eventticketing.data.remote.dto.organizer.OrganizerUpdateDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
-import com.nicha.eventticketing.data.remote.dto.ticket.TicketCreateDto
-import com.nicha.eventticketing.data.remote.dto.ticket.TicketStatusUpdateDto
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseDto
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseResponseDto
 import com.nicha.eventticketing.data.remote.dto.payment.PaymentDto
 import com.nicha.eventticketing.data.remote.dto.payment.PaymentRequestDto
 import com.nicha.eventticketing.data.remote.dto.payment.PaymentResponseDto
@@ -36,6 +36,7 @@ import com.nicha.eventticketing.data.remote.dto.payment.PaymentStatusUpdateDto
 import com.nicha.eventticketing.data.remote.dto.event.EventImageDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypePageResponse
+import com.nicha.eventticketing.data.remote.dto.ticket.CheckInRequestDto
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -75,19 +76,10 @@ interface ApiService {
     // User
     @GET("api/users/me")
     suspend fun getCurrentUser(): Response<ApiResponse<UserDto>>
-
-    @GET("api/users/{userId}")
-    suspend fun getUserById(@Path("userId") userId: String): Response<ApiResponse<UserDto>>
     
     @PUT("api/users/me")
-    suspend fun updateUserProfile(@Body user: UserUpdateDto): Response<ApiResponse<UserDto>>
+    suspend fun updateUser(@Body user: UserUpdateDto): Response<ApiResponse<UserDto>>
     
-    @GET("api/users/search")
-    suspend fun searchUsers(
-        @Query("query") query: String,
-        @Query("page") page: Int = 0,
-        @Query("size") size: Int = 10
-    ): Response<ApiResponse<List<UserDto>>>
     
     // Events
     @GET("api/events")
@@ -197,7 +189,7 @@ interface ApiService {
     
     // Tickets
     @POST("api/tickets/purchase")
-    suspend fun purchaseTicket(@Body request: TicketCreateDto): Response<ApiResponse<TicketDto>>
+    suspend fun purchaseTickets(@Body purchaseDto: TicketPurchaseDto): Response<ApiResponse<TicketPurchaseResponseDto>>
     
     @GET("api/tickets/{ticketId}")
     suspend fun getTicketById(@Path("ticketId") ticketId: String): Response<ApiResponse<TicketDto>>
@@ -212,15 +204,8 @@ interface ApiService {
         @Query("size") size: Int = 10
     ): Response<ApiResponse<PageDto<TicketDto>>>
     
-    @GET("api/tickets/my-tickets")
-    suspend fun getMyTicketsByStatus(
-        @Query("status") status: String,
-        @Query("page") page: Int = 0,
-        @Query("size") size: Int = 10
-    ): Response<ApiResponse<PageDto<TicketDto>>>
-    
     @POST("api/tickets/check-in")
-    suspend fun checkInTicket(@Body request: TicketStatusUpdateDto): Response<ApiResponse<TicketDto>>
+    suspend fun checkInTicket(@Body request: CheckInRequestDto): Response<ApiResponse<TicketDto>>
     
     @POST("api/tickets/{ticketId}/cancel")
     suspend fun cancelTicket(@Path("ticketId") ticketId: String): Response<ApiResponse<TicketDto>>

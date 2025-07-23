@@ -1,39 +1,75 @@
 package com.nicha.eventticketing
 
 import android.app.Application
+import android.os.Build
 import android.util.Log
+import com.google.firebase.FirebaseApp
+import com.google.firebase.messaging.FirebaseMessaging
 import com.nicha.eventticketing.config.AppConfig
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 @HiltAndroidApp
 class EventTicketingApp : Application() {
-
+    
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    
     override fun onCreate() {
         super.onCreate()
         
         // Khởi tạo Timber cho logging
         if (AppConfig.FeatureFlags.ENABLE_DEBUG_LOGGING) {
-            // Sử dụng DebugTree với nhiều thông tin hơn trong quá trình phát triển
-            Timber.plant(object : Timber.DebugTree() {
-                override fun createStackElementTag(element: StackTraceElement): String {
-                    // Format: (FileName.kt:line)
-                    val fileName = element.fileName?.substringBefore(".") ?: "Unknown"
-                    return "(${fileName}:${element.lineNumber})"
-                }
-            })
-            Timber.d("Khởi tạo ứng dụng trong chế độ DEBUG")
+            Timber.plant(Timber.DebugTree())
         } else {
-            // Sử dụng ReleaseTree với ghi log lỗi trong môi trường production
             Timber.plant(ReleaseTree())
-            Timber.i("Khởi tạo ứng dụng trong chế độ RELEASE")
         }
-
+        
+        Timber.d("EventTicketing App khởi động")
+        
+        // Khởi tạo Firebase
+        initializeFirebase()
+        
         // Bắt các exception không bị xử lý
         setupUncaughtExceptionHandler()
+    }
+    
+    /**
+     * Khởi tạo Firebase và FCM
+     */
+    private fun initializeFirebase() {
+        try {
+            FirebaseApp.initializeApp(this)
+            Timber.d("Firebase đã được khởi tạo thành công")
+            
+            FirebaseMessaging.getInstance().subscribeToTopic(AppConfig.Notification.TOPIC_ALL_USERS)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Timber.d("Đăng ký nhận thông báo từ topic '${AppConfig.Notification.TOPIC_ALL_USERS}' thành công")
+                    } else {
+                        Timber.e("Đăng ký nhận thông báo từ topic '${AppConfig.Notification.TOPIC_ALL_USERS}' thất bại: ${task.exception}")
+                    }
+                }
+            
+            FirebaseMessaging.getInstance().token
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val token = task.result
+                        Timber.d("FCM Token: $token")
+                    } else {
+                        Timber.e("Không thể lấy FCM token: ${task.exception}")
+                    }
+                }
+        } catch (e: Exception) {
+            Timber.e(e, "Lỗi khi khởi tạo Firebase")
+        }
     }
     
     private fun setupUncaughtExceptionHandler() {
@@ -53,12 +89,10 @@ class EventTicketingApp : Application() {
     private inner class ReleaseTree : Timber.Tree() {
         override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
             if (priority < Log.INFO) {
-                return // Bỏ qua các log VERBOSE và DEBUG trong môi trường production
+                return 
             }
             
-            // Ghi log lỗi quan trọng vào file hoặc gửi lên server
             if (priority >= Log.ERROR) {
-                // Trong ứng dụng thực tế, có thể gửi lỗi lên Firebase Crashlytics hoặc dịch vụ giám sát khác
                 logToFile(priority, tag, message, t)
             }
         }
@@ -92,7 +126,6 @@ class EventTicketingApp : Application() {
                 
                 logFile.appendText(logEntry)
             } catch (e: Exception) {
-                // Nếu không thể ghi log vào file, sử dụng Android Log API
                 Log.e("EventTicketingApp", "Không thể ghi log vào file: ${e.message}")
             }
         }

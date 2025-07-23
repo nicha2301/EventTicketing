@@ -2,80 +2,36 @@
 <issues format="6" by="lint 8.10.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.10.0)" variant="all" version="8.10.0">
 
     <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
-        errorLine1="                        selectedTime = String.format(&quot;%02d:%02d&quot;, hour, minute)"
-        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        id="ApplySharedPref"
+        message="Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+        errorLine1="            encryptedPrefs.edit().clear().commit()"
+        errorLine2="                                          ~~~~~~~~">
         <location
-            file="src/main/java/com/nicha/eventticketing/ui/screens/organizer/CreateEventScreen.kt"
-            line="400"
-            column="40"/>
+            file="src/main/java/com/nicha/eventticketing/data/preferences/PreferencesManager.kt"
+            line="286"
+            column="43"/>
     </issue>
 
     <issue
-        id="NewApi"
-        message="Call requires API level 26, or core library desugaring (current min is 24): `java.time.LocalDateTime#now`"
-        errorLine1="    val startDateTime: LocalDateTime = LocalDateTime.now(),"
-        errorLine2="                                                     ~~~">
+        id="InlinedApi"
+        message="Field requires API level 33 (current min is 24): `android.Manifest.permission#READ_MEDIA_IMAGES`"
+        errorLine1="        const val MEDIA_IMAGES_PERMISSION = Manifest.permission.READ_MEDIA_IMAGES"
+        errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/nicha/eventticketing/data/model/EventEntity.kt"
-            line="35"
-            column="54"/>
+            file="src/main/java/com/nicha/eventticketing/util/PermissionUtils.kt"
+            line="33"
+            column="45"/>
     </issue>
 
     <issue
-        id="NewApi"
-        message="Call requires API level 26, or core library desugaring (current min is 24): `java.time.LocalDateTime#now`"
-        errorLine1="    val startDateTime: LocalDateTime = LocalDateTime.now(),"
-        errorLine2="                                                     ~~~">
-        <location
-            file="src/main/java/com/nicha/eventticketing/data/model/EventEntity.kt"
-            line="35"
-            column="54"/>
-    </issue>
-
-    <issue
-        id="NewApi"
-        message="Call requires API level 26, or core library desugaring (current min is 24): `java.time.LocalDateTime#now`"
-        errorLine1="    val endDateTime: LocalDateTime = LocalDateTime.now(),"
-        errorLine2="                                                   ~~~">
-        <location
-            file="src/main/java/com/nicha/eventticketing/data/model/EventEntity.kt"
-            line="36"
-            column="52"/>
-    </issue>
-
-    <issue
-        id="NewApi"
-        message="Call requires API level 26, or core library desugaring (current min is 24): `java.time.LocalDateTime#now`"
-        errorLine1="    val endDateTime: LocalDateTime = LocalDateTime.now(),"
-        errorLine2="                                                   ~~~">
-        <location
-            file="src/main/java/com/nicha/eventticketing/data/model/EventEntity.kt"
-            line="36"
-            column="52"/>
-    </issue>
-
-    <issue
-        id="SimpleDateFormat"
-        message="To get local formatting use `getDateInstance()`, `getDateTimeInstance()`, or `getTimeInstance()`, or use `new SimpleDateFormat(String template, Locale locale)` with for example `Locale.US` for ASCII dates."
-        errorLine1="                                        text = &quot;Check-in lúc: ${java.text.SimpleDateFormat(&quot;HH:mm:ss dd/MM/yyyy&quot;).format(java.util.Date())}&quot;,"
-        errorLine2="                                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/nicha/eventticketing/ui/screens/checkin/CheckInScreen.kt"
-            line="290"
-            column="65"/>
-    </issue>
-
-    <issue
-        id="RedundantLabel"
-        message="Redundant label can be removed"
-        errorLine1="            android:label=&quot;@string/app_name&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        id="SelectedPhotoAccess"
+        message="Your app is currently not handling Selected Photos Access introduced in Android 14+"
+        errorLine1="    &lt;uses-permission android:name=&quot;android.permission.READ_MEDIA_IMAGES&quot; />"
+        errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="28"
-            column="13"/>
+            line="15"
+            column="36"/>
     </issue>
 
     <issue
@@ -87,6 +43,28 @@
             file="../gradle/libs.versions.toml"
             line="2"
             column="7"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of com.google.code.gson:gson than 2.10.1 is available: 2.13.1"
+        errorLine1="    implementation(&quot;com.google.code.gson:gson:2.10.1&quot;) // Thêm Gson"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="92"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.security:security-crypto than 1.1.0-alpha06 is available: 1.1.0-beta01"
+        errorLine1="    implementation(&quot;androidx.security:security-crypto:1.1.0-alpha06&quot;)"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="148"
+            column="20"/>
     </issue>
 
     <issue
@@ -124,7 +102,18 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.compose:compose-bom than 2024.09.00 is available: 2025.06.01"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.9.1 is available: 2.9.2"
+        errorLine1="lifecycleRuntimeKtx = &quot;2.9.1&quot;"
+        errorLine2="                      ~~~~~~~">
+        <location
+            file="../gradle/libs.versions.toml"
+            line="8"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose:compose-bom than 2024.09.00 is available: 2025.07.00"
         errorLine1="composeBom = &quot;2024.09.00&quot;"
         errorLine2="             ~~~~~~~~~~~~">
         <location
@@ -212,7 +201,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.navigation:navigation-compose than 2.7.6 is available: 2.9.1"
+        message="A newer version of androidx.navigation:navigation-compose than 2.7.6 is available: 2.9.2"
         errorLine1="navigation = &quot;2.7.6&quot;"
         errorLine2="             ~~~~~~~">
         <location
@@ -277,6 +266,380 @@
     </issue>
 
     <issue
+        id="GradleDependency"
+        message="A newer version of com.google.android.gms:play-services-auth than 20.7.0 is available: 21.3.0"
+        errorLine1="googleAuth = &quot;20.7.0&quot;"
+        errorLine2="             ~~~~~~~~">
+        <location
+            file="../gradle/libs.versions.toml"
+            line="30"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.Login.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/AuthNavGraph.kt"
+            line="30"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.Register.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/AuthNavGraph.kt"
+            line="49"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.ForgotPassword.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/AuthNavGraph.kt"
+            line="67"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable("
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/AuthNavGraph.kt"
+            line="79"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.Unauthorized.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/AuthNavGraph.kt"
+            line="102"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.Home.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/MainNavGraph.kt"
+            line="26"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable("
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/MainNavGraph.kt"
+            line="47"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.Search.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/MainNavGraph.kt"
+            line="72"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.Profile.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/MainNavGraph.kt"
+            line="84"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = &quot;edit_profile&quot;) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/MainNavGraph.kt"
+            line="113"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.TicketWallet.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/MainNavGraph.kt"
+            line="125"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable("
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/MainNavGraph.kt"
+            line="137"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable("
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/MainNavGraph.kt"
+            line="155"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.NeumorphicDemo.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/MiscNavGraph.kt"
+            line="17"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.Splash.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OnboardingNavGraph.kt"
+            line="18"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.Onboarding.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OnboardingNavGraph.kt"
+            line="29"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.OrganizerDashboard.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OrganizerNavGraph.kt"
+            line="35"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.OrganizerEventList.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OrganizerNavGraph.kt"
+            line="66"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable("
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OrganizerNavGraph.kt"
+            line="91"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable("
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OrganizerNavGraph.kt"
+            line="126"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable("
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OrganizerNavGraph.kt"
+            line="152"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.CreateEvent.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OrganizerNavGraph.kt"
+            line="178"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable("
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OrganizerNavGraph.kt"
+            line="192"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.OrganizerProfile.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OrganizerNavGraph.kt"
+            line="223"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableDestinationInComposeScope"
+        message="Using composable inside of a compose scope"
+        errorLine1="    composable(route = NavDestination.CheckIn.route) {"
+        errorLine2="    ~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OrganizerNavGraph.kt"
+            line="255"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposableNaming"
+        message="Composable functions that return Unit should start with an uppercase letter"
+        errorLine1="fun NavGraphBuilder.authNavGraph("
+        errorLine2="                    ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/AuthNavGraph.kt"
+            line="22"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="ComposableNaming"
+        message="Composable functions that return Unit should start with an uppercase letter"
+        errorLine1="fun NavGraphBuilder.mainNavGraph("
+        errorLine2="                    ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/MainNavGraph.kt"
+            line="22"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="ComposableNaming"
+        message="Composable functions that return Unit should start with an uppercase letter"
+        errorLine1="fun NavGraphBuilder.miscNavGraph("
+        errorLine2="                    ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/MiscNavGraph.kt"
+            line="13"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="ComposableNaming"
+        message="Composable functions that return Unit should start with an uppercase letter"
+        errorLine1="fun NavGraphBuilder.onboardingNavGraph("
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OnboardingNavGraph.kt"
+            line="14"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="ComposableNaming"
+        message="Composable functions that return Unit should start with an uppercase letter"
+        errorLine1="fun NavGraphBuilder.organizerNavGraph("
+        errorLine2="                    ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/navigation/OrganizerNavGraph.kt"
+            line="27"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="ComposableNaming"
+        message="Composable functions with a return type should start with a lowercase letter"
+        errorLine1="fun ShimmerBrush(showShimmer: Boolean = true, targetValue: Float = 1000f): Brush {"
+        errorLine2="    ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/ui/components/skeleton/SkeletonLoader.kt"
+            line="22"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/ui/components/CustomOutlinedTextField.kt"
+            line="37"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/ui/components/QRCodeImage.kt"
+            line="43"
+            column="5"/>
+    </issue>
+
+    <issue
         id="ModifierParameter"
         message="Modifier parameter should be the first optional parameter"
         errorLine1="    modifier: Modifier = Modifier,"
@@ -288,25 +651,69 @@
     </issue>
 
     <issue
-        id="AutoboxingStateCreation"
-        message="Prefer `mutableFloatStateOf` instead of `mutableStateOf`"
-        errorLine1="    var scannerLinePosition by remember { mutableStateOf(0f) }"
-        errorLine2="                                          ~~~~~~~~~~~~~~">
+        id="SuspiciousModifierThen"
+        message="Using Modifier.then with a Modifier factory function with an implicit receiver"
+        errorLine1="    return@composed this.then(background(brush))"
+        errorLine2="                              ~~~~~~~~~~">
         <location
-            file="src/main/java/com/nicha/eventticketing/ui/screens/checkin/CheckInScreen.kt"
-            line="35"
-            column="43"/>
+            file="src/main/java/com/nicha/eventticketing/ui/components/ShimmerEffect.kt"
+            line="45"
+            column="31"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                Log.e(&quot;EventTicketingApp&quot;, &quot;Không thể ghi log vào file: ${e.message}&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/EventTicketingApp.kt"
+            line="141"
+            column="17"/>
     </issue>
 
     <issue
         id="AutoboxingStateCreation"
         message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
-        errorLine1="    var selectedTab by remember { mutableStateOf(0) }"
-        errorLine2="                                  ~~~~~~~~~~~~~~">
+        errorLine1="    var totalAttendees by remember { mutableStateOf(0) }"
+        errorLine2="                                     ~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/nicha/eventticketing/ui/screens/home/HomeScreen.kt"
-            line="85"
-            column="35"/>
+            file="src/main/java/com/nicha/eventticketing/ui/screens/organizer/EventDashboardScreen.kt"
+            line="61"
+            column="38"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+        errorLine1="    var totalTicketsSold by remember { mutableStateOf(0) }"
+        errorLine2="                                       ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/ui/screens/organizer/EventDashboardScreen.kt"
+            line="62"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableLongStateOf` instead of `mutableStateOf`"
+        errorLine1="        var throttleTime by remember { mutableStateOf(0L) }"
+        errorLine2="                                       ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/util/InputUtils.kt"
+            line="60"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+        errorLine1="    var selectedTabIndex by remember { mutableStateOf(0) }"
+        errorLine2="                                       ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/ui/screens/tickets/TicketWalletScreen.kt"
+            line="62"
+            column="40"/>
     </issue>
 
     <issue
@@ -384,6 +791,116 @@
             file="src/main/res/values/colors.xml"
             line="9"
             column="12"/>
+    </issue>
+
+    <issue
+        id="UseOfNonLambdaOffsetOverload"
+        message="State backed values should use the lambda overload of Modifier.offset"
+        errorLine1="            .offset(y = (260 * scannerLinePosition.value).dp)"
+        errorLine2="             ~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/ui/screens/checkin/CheckInScreen.kt"
+            line="382"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))"
+        errorLine2="                                                            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/ui/screens/payment/PaymentScreen.kt"
+            line="168"
+            column="61"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)"
+        errorLine2="                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/util/QRCodeGenerator.kt"
+            line="37"
+            column="26"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.set` instead?"
+        errorLine1="                    bitmap.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/util/QRCodeGenerator.kt"
+            line="41"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UseTomlInstead"
+        message="Use version catalog instead"
+        errorLine1="    implementation(&quot;com.google.code.gson:gson:2.10.1&quot;) // Thêm Gson"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="92"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="UseTomlInstead"
+        message="Use version catalog instead"
+        errorLine1="    implementation(&quot;com.google.zxing:core:3.5.2&quot;)"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="144"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="UseTomlInstead"
+        message="Use version catalog instead"
+        errorLine1="    implementation(&quot;com.journeyapps:zxing-android-embedded:4.3.0&quot;)"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="145"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="UseTomlInstead"
+        message="Use version catalog instead"
+        errorLine1="    implementation(&quot;androidx.security:security-crypto:1.1.0-alpha06&quot;)"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="148"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="SetTextI18n"
+        message="Do not concatenate text displayed with `setText`. Use resource string with placeholders."
+        errorLine1="                    text = &quot;Không thể khởi tạo camera: ${e.message}&quot;"
+        errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/ui/screens/checkin/CheckInScreen.kt"
+            line="316"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="SetTextI18n"
+        message="String literal in `setText` can not be translated. Use Android resources instead."
+        errorLine1="                    text = &quot;Không thể khởi tạo camera: ${e.message}&quot;"
+        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/nicha/eventticketing/ui/screens/checkin/CheckInScreen.kt"
+            line="316"
+            column="29"/>
     </issue>
 
 </issues>

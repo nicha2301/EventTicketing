@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -89,13 +90,8 @@ dependencies {
     implementation(libs.okhttp.core)
     implementation(libs.okhttp.logging)
     implementation(libs.moshi.kotlin)
-    implementation("com.google.code.gson:gson:2.10.1") // Thêm Gson
+    implementation(libs.gson)
     
-    // Room for local database
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
-    implementation(libs.room.paging)
-    ksp(libs.room.compiler)
     
     // Paging
     implementation(libs.androidx.paging.runtime)
@@ -130,7 +126,16 @@ dependencies {
     
     // Logging
     implementation(libs.timber)
-    
+
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.analytics.ktx)
+
+    // Badge count
+    implementation(libs.shortcut.badger)
+
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -141,9 +146,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     
     // QR Code generation
-    implementation("com.google.zxing:core:3.5.2")
-    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
-    
+    implementation(libs.zxing.core)
+    implementation(libs.zxing.android.embedded)
+
     // Security
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation(libs.androidx.security.crypto)
 }

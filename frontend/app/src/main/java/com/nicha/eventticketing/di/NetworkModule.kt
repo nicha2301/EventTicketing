@@ -1,7 +1,6 @@
 package com.nicha.eventticketing.di
 
 import com.nicha.eventticketing.config.AppConfig
-import com.nicha.eventticketing.data.local.AppDatabase
 import com.nicha.eventticketing.data.preferences.PreferencesManager
 import com.nicha.eventticketing.data.remote.interceptor.AuthInterceptor
 import com.nicha.eventticketing.data.remote.service.ApiService
@@ -23,8 +22,6 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
-import com.nicha.eventticketing.util.NetworkStatus
-import com.nicha.eventticketing.util.NetworkSyncManager
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -163,23 +160,5 @@ object NetworkModule {
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
-    }
-
-    @Singleton
-    @Provides
-    fun provideNetworkSyncManager(
-        networkStatus: NetworkStatus,
-        appDatabase: AppDatabase,
-        apiService: ApiService,
-        preferencesManager: PreferencesManager
-    ): NetworkSyncManager {
-        return NetworkSyncManager(
-            networkStatus = networkStatus,
-            eventDao = appDatabase.eventDao(),
-            notificationDao = appDatabase.notificationDao(),
-            ticketDao = appDatabase.ticketDao(),
-            apiService = apiService,
-            preferencesManager = preferencesManager
-        )
     }
 } 
