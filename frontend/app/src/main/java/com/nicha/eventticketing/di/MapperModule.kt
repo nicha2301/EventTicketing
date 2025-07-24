@@ -38,12 +38,6 @@ object MapperModule {
 
     @Provides
     @Singleton
-    fun provideTicketMapper(): TicketMapper {
-        return TicketMapper()
-    }
-
-    @Provides
-    @Singleton
     fun providePaymentMapper(): PaymentMapper {
         return PaymentMapper()
     }

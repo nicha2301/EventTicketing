@@ -410,6 +410,12 @@ class TicketViewModel @Inject constructor(
         }
     }
 
+    fun setNetworkStatus(isOnline: Boolean) {
+        if (ticketRepository is com.nicha.eventticketing.data.repository.TicketRepositoryImpl) {
+            ticketRepository.isOnline = isOnline
+        }
+    }
+
     // Hàm tiện ích để phân tích chuỗi ngày thành đối tượng Date
     private fun parseDate(dateString: String): Date? {
         return try {

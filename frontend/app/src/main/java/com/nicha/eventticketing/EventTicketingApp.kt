@@ -22,8 +22,16 @@ class EventTicketingApp : Application() {
     
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     
+    companion object {
+        lateinit var instance: EventTicketingApp
+            private set
+    }
+    
     override fun onCreate() {
         super.onCreate()
+        
+        // Set instance cho static access
+        instance = this
         
         // Khởi tạo Timber cho logging
         if (AppConfig.FeatureFlags.ENABLE_DEBUG_LOGGING) {

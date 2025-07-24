@@ -5,6 +5,17 @@ import com.nicha.eventticketing.data.remote.dto.ApiResponse
 import okhttp3.ResponseBody
 import retrofit2.Response
 import timber.log.Timber
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.net.URL
+import java.util.concurrent.TimeUnit
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
+import androidx.annotation.Nullable
+import com.nicha.eventticketing.EventTicketingApp
+import org.json.JSONObject
+import android.content.Context
 
 /**
  * Tiện ích xử lý các yêu cầu mạng
@@ -91,5 +102,35 @@ object NetworkUtil {
             }
         }
         return null
+    }
+
+    /**
+     * Kiểm tra kết nối mạng trực tiếp thông qua ConnectivityManager
+     * @return true nếu có kết nối thực tế, false nếu không
+     */
+    fun isActuallyConnected(): Boolean {
+        return try {
+            // Lấy context từ application
+            val context = EventTicketingApp.instance.applicationContext
+            
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                ?: return false
+                
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val network = connectivityManager.activeNetwork ?: return false
+                val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+                val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                Timber.d("NetworkUtil: Kiểm tra kết nối: ${if (hasInternet) "ONLINE" else "OFFLINE"}")
+                return hasInternet
+            } else {
+                val networkInfo = connectivityManager.activeNetworkInfo
+                val isConnected = networkInfo != null && networkInfo.isConnected
+                Timber.d("NetworkUtil: Kiểm tra kết nối (API < 23): ${if (isConnected) "ONLINE" else "OFFLINE"}")
+                return isConnected
+            }
+        } catch (e: Exception) {
+            Timber.d("NetworkUtil: Lỗi khi kiểm tra kết nối: ${e.message}")
+            false
+        }
     }
 } 

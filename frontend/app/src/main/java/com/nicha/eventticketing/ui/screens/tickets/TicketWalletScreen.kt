@@ -33,6 +33,7 @@ import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
 import com.nicha.eventticketing.domain.model.ResourceState
 import com.nicha.eventticketing.ui.theme.LocalNeumorphismStyle
 import com.nicha.eventticketing.util.FormatUtils
+import com.nicha.eventticketing.util.NetworkStatusObserver
 import com.nicha.eventticketing.viewmodel.TicketViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -65,8 +66,17 @@ fun TicketWalletScreen(
     // Collect state from ViewModel
     val ticketsState by viewModel.ticketsState.collectAsState()
     
+    // Observe network status
+    val context = LocalContext.current
+    val isOnline by NetworkStatusObserver.observe(context).collectAsState(initial = true)
+    
+    // Update repository network status whenever it changes
+    LaunchedEffect(isOnline) {
+        viewModel.setNetworkStatus(isOnline)
+    }
+    
     // Load tickets when screen is displayed or filter changes
-    LaunchedEffect(selectedTabIndex) {
+    LaunchedEffect(selectedTabIndex, isOnline) {
         val tabId = tabs[selectedTabIndex].id
         viewModel.getMyTicketsWithFilter(tabId)
     }
@@ -114,6 +124,11 @@ fun TicketWalletScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            if (!isOnline) {
+                Box(modifier = Modifier.fillMaxWidth().background(Color.Red).padding(8.dp)) {
+                    Text("Bạn đang offline. Chỉ xem được vé đã lưu.", color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
             // Tab Row
             ScrollableTabRow(
                 selectedTabIndex = selectedTabIndex,

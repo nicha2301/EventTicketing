@@ -1,49 +1,46 @@
 package com.nicha.eventticketing.domain.mapper
 
+import com.nicha.eventticketing.data.local.entity.TicketEntity
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
-import com.nicha.eventticketing.domain.model.Ticket
-import com.nicha.eventticketing.domain.model.TicketStatus
-import com.nicha.eventticketing.domain.model.TicketType
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import javax.inject.Inject
-import javax.inject.Singleton
 
-/**
- * Mapper để chuyển đổi giữa TicketDto và Ticket domain model
- */
-@Singleton
-class TicketMapper @Inject constructor() {
+object TicketMapper {
+    fun dtoToEntity(dto: TicketDto): TicketEntity = TicketEntity(
+        id = dto.id,
+        eventId = dto.eventId,
+        ticketTypeId = dto.ticketTypeId,
+        userId = dto.userId,
+        ticketNumber = dto.ticketNumber,
+        status = dto.status,
+        purchaseDate = dto.purchaseDate,
+        eventTitle = dto.eventTitle,
+        eventStartDate = dto.eventStartDate,
+        eventEndDate = dto.eventEndDate,
+        eventLocation = dto.eventLocation,
+        ticketTypeName = dto.ticketTypeName,
+        ticketTypePrice = dto.price,
+        quantity = null, // Không có trong TicketDto
+        totalPrice = null, // Không có trong TicketDto
+        qrCode = dto.qrCodeUrl
+    )
 
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-
-    fun mapToDomainModel(dto: TicketDto): Ticket {
-        return Ticket(
-            id = dto.id,
-            eventId = dto.eventId,
-            eventTitle = dto.eventTitle,
-            eventImageUrl = dto.eventImageUrl,
-            userId = dto.userId,
-            ticketCode = dto.ticketNumber,
-            ticketType = TicketType.fromString(dto.ticketTypeName),
-            price = dto.price,
-            purchaseDate = if (dto.purchaseDate != null) parseDate(dto.purchaseDate) else Date(),
-            isUsed = dto.status.equals("USED", ignoreCase = true),
-            usedDate = if (dto.status.equals("USED", ignoreCase = true)) {
-                if (dto.purchaseDate != null) parseDate(dto.purchaseDate) else Date()
-            } else null,
-            expiryDate = parseDate(dto.eventEndDate),
-            status = TicketStatus.fromString(dto.status)
-        )
-    }
-
-    private fun parseDate(dateString: String?): Date {
-        return try {
-            if (dateString == null) return Date()
-            dateFormat.parse(dateString) ?: Date()
-        } catch (e: Exception) {
-            Date()
-        }
-    }
+    fun entityToDto(entity: TicketEntity): TicketDto = TicketDto(
+        id = entity.id,
+        ticketNumber = entity.ticketNumber,
+        userId = entity.userId,
+        userName = "", // Không có trong entity
+        eventId = entity.eventId,
+        eventTitle = entity.eventTitle ?: "",
+        ticketTypeId = entity.ticketTypeId,
+        ticketTypeName = entity.ticketTypeName ?: "",
+        price = entity.ticketTypePrice ?: 0.0,
+        status = entity.status,
+        qrCodeUrl = entity.qrCode,
+        purchaseDate = entity.purchaseDate,
+        checkedInAt = null, // Không có trong entity
+        eventStartDate = entity.eventStartDate ?: "",
+        eventEndDate = entity.eventEndDate ?: "",
+        eventLocation = entity.eventLocation ?: "",
+        eventAddress = "", // Không có trong entity
+        eventImageUrl = null // Không có trong entity
+    )
 } 

@@ -47,6 +47,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.nicha.eventticketing.util.ImageUtils
+import com.nicha.eventticketing.util.NetworkStatusObserver
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +61,12 @@ fun TicketDetailScreen(
     val uriHandler = LocalUriHandler.current
     val coroutineScope = rememberCoroutineScope()
     val isDarkTheme = isSystemInDarkTheme()
+    val isOnline by NetworkStatusObserver.observe(context).collectAsState(initial = true)
+    
+    // Update repository network status whenever it changes
+    LaunchedEffect(isOnline) {
+        viewModel.setNetworkStatus(isOnline)
+    }
     
     // Dialog states
     var showCancelDialog by remember { mutableStateOf(false) }
@@ -68,8 +75,8 @@ fun TicketDetailScreen(
     // Collect state from ViewModel
     val ticketDetailState by viewModel.ticketDetailState.collectAsState()
     
-    // Load ticket details when screen is displayed
-    LaunchedEffect(ticketId) {
+    // Load ticket details when screen is displayed or network state changes
+    LaunchedEffect(ticketId, isOnline) {
         viewModel.getTicketById(ticketId)
     }
     
@@ -97,6 +104,11 @@ fun TicketDetailScreen(
             )
         }
     ) { paddingValues ->
+        if (!isOnline) {
+            Box(modifier = Modifier.fillMaxWidth().background(Color.Red).padding(8.dp)) {
+                Text("Bạn đang offline. Dữ liệu vé có thể chưa mới nhất.", color = Color.White, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
         when (ticketDetailState) {
             is ResourceState.Loading -> {
                 Box(
