@@ -18,8 +18,8 @@ object TicketMapper {
         eventLocation = dto.eventLocation,
         ticketTypeName = dto.ticketTypeName,
         ticketTypePrice = dto.price,
-        quantity = null, // Không có trong TicketDto
-        totalPrice = null, // Không có trong TicketDto
+        quantity = null,
+        totalPrice = null, 
         qrCode = dto.qrCodeUrl
     )
 
@@ -27,7 +27,7 @@ object TicketMapper {
         id = entity.id,
         ticketNumber = entity.ticketNumber,
         userId = entity.userId,
-        userName = "", // Không có trong entity
+        userName = "", 
         eventId = entity.eventId,
         eventTitle = entity.eventTitle ?: "",
         ticketTypeId = entity.ticketTypeId,
@@ -36,11 +36,11 @@ object TicketMapper {
         status = entity.status,
         qrCodeUrl = entity.qrCode,
         purchaseDate = entity.purchaseDate,
-        checkedInAt = null, // Không có trong entity
+        checkedInAt = null, 
         eventStartDate = entity.eventStartDate ?: "",
         eventEndDate = entity.eventEndDate ?: "",
         eventLocation = entity.eventLocation ?: "",
-        eventAddress = "", // Không có trong entity
-        eventImageUrl = null // Không có trong entity
+        eventAddress = "", 
+        eventImageUrl = null 
     )
 } 

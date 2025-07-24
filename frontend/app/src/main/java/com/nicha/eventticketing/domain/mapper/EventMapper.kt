@@ -1,6 +1,7 @@
 package com.nicha.eventticketing.domain.mapper
 
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
+import com.nicha.eventticketing.data.local.entity.EventEntity
 import com.nicha.eventticketing.domain.model.Category
 import com.nicha.eventticketing.domain.model.Event
 import com.nicha.eventticketing.domain.model.EventPricing
@@ -64,6 +65,73 @@ class EventMapper @Inject constructor() {
             createdAt = parseDate(dto.createdAt),
             updatedAt = parseDate(dto.updatedAt),
             isFavorite = false // Mặc định là false
+        )
+    }
+
+    /**
+     * Chuyển đổi từ EventDto sang EventEntity
+     */
+    fun dtoToEntity(dto: EventDto): EventEntity {
+        return EventEntity(
+            id = dto.id,
+            title = dto.title,
+            description = dto.description,
+            organizerId = dto.organizerId,
+            organizerName = dto.organizerName,
+            startDate = dto.startDate,
+            endDate = dto.endDate,
+            location = dto.locationName,
+            address = dto.address,
+            latitude = dto.latitude,
+            longitude = dto.longitude,
+            category = dto.categoryName,
+            categoryId = dto.categoryId,
+            mainImageUrl = dto.featuredImageUrl,
+            images = dto.imageUrls,
+            status = dto.status,
+            isFeatured = dto.isFeatured,
+            ticketTypes = dto.ticketTypes,
+            attendeeCount = dto.currentAttendees,
+            maxAttendees = dto.maxAttendees,
+            createdAt = dto.createdAt,
+            updatedAt = dto.updatedAt
+        )
+    }
+
+    /**
+     * Chuyển đổi từ EventEntity sang EventDto
+     */
+    fun entityToDto(entity: EventEntity): EventDto {
+        return EventDto(
+            id = entity.id,
+            title = entity.title,
+            description = entity.description ?: "",
+            shortDescription = "",
+            organizerId = entity.organizerId ?: "",
+            organizerName = entity.organizerName ?: "",
+            startDate = entity.startDate ?: "",
+            endDate = entity.endDate ?: "",
+            locationName = entity.location ?: "",
+            address = entity.address ?: "",
+            latitude = entity.latitude,
+            longitude = entity.longitude,
+            categoryName = entity.category ?: "",
+            categoryId = entity.categoryId ?: "",
+            featuredImageUrl = entity.mainImageUrl ?: "",
+            imageUrls = entity.images ?: emptyList(),
+            status = entity.status ?: "draft",
+            isFeatured = entity.isFeatured ?: false,
+            ticketTypes = entity.ticketTypes ?: emptyList(),
+            currentAttendees = entity.attendeeCount ?: 0,
+            maxAttendees = entity.maxAttendees ?: 0,
+            createdAt = entity.createdAt ?: "",
+            updatedAt = entity.updatedAt ?: "",
+            locationId = "",
+            city = "",
+            minTicketPrice = 0.0,
+            maxTicketPrice = 0.0,
+            isPrivate = false,
+            isFree = false
         )
     }
 

@@ -23,7 +23,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "event_ticketing.db"
-        ).build()
+        )
+        .fallbackToDestructiveMigration() 
+        .build()
     }
 
     @Provides

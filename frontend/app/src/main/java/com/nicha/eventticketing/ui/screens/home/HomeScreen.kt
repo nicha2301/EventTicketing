@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
 import com.nicha.eventticketing.ui.components.NotificationIconWithBadge
 import com.nicha.eventticketing.viewmodel.NotificationViewModel
+import com.nicha.eventticketing.util.NetworkStatusObserver
 
 
 enum class EventStatus {
@@ -107,15 +108,20 @@ fun HomeScreen(
         0
     }
     
-    // Load data when screen is displayed
-    LaunchedEffect(Unit) {
+    val context = LocalContext.current
+    val isOnline by NetworkStatusObserver.observe(context).collectAsState(initial = true)
+    
+    LaunchedEffect(isOnline) {
+        eventViewModel.setNetworkStatus(isOnline)
+    }
+    
+    LaunchedEffect(isOnline) {
         eventViewModel.getFeaturedEvents()
         eventViewModel.getUpcomingEvents()
         categoryViewModel.getCategories()
         notificationViewModel.getUnreadNotificationCount()
     }
     
-    // Map category icons based on name (fallback)
     val categoryIcons = mapOf(
         "âm nhạc" to Icons.Filled.MusicNote,
         "thể thao" to Icons.Filled.SportsSoccer,
@@ -176,6 +182,35 @@ fun HomeScreen(
                 .padding(paddingValues),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (!isOnline) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.errorContainer)
+                            .padding(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.WifiOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Đang xem dữ liệu ngoại tuyến",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
+            }
+            
             // Search bar
             item {
                 Card(
