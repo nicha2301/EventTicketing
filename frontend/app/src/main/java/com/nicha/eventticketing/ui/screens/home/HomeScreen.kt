@@ -57,10 +57,6 @@ import com.nicha.eventticketing.viewmodel.NotificationViewModel
 import com.nicha.eventticketing.util.NetworkStatusObserver
 
 
-enum class EventStatus {
-    UPCOMING, ACTIVE, CANCELLED, COMPLETED
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -122,19 +118,6 @@ fun HomeScreen(
         notificationViewModel.getUnreadNotificationCount()
     }
     
-    val categoryIcons = mapOf(
-        "âm nhạc" to Icons.Filled.MusicNote,
-        "thể thao" to Icons.Filled.SportsSoccer,
-        "nghệ thuật" to Icons.Filled.Palette,
-        "ẩm thực" to Icons.Filled.Restaurant,
-        "công nghệ" to Icons.Filled.Computer,
-        "giáo dục" to Icons.Filled.School,
-        "kinh doanh" to Icons.Filled.Business,
-        "sức khỏe" to Icons.Filled.HealthAndSafety,
-        "giải trí" to Icons.Filled.Celebration,
-        "văn hóa" to Icons.Filled.Museum,
-        "other" to Icons.Filled.Category
-    )
     
     // Lấy danh sách danh mục trực tiếp từ API
     val categories = when (categoriesState) {
@@ -305,7 +288,7 @@ fun HomeScreen(
                                             onCategoryClick(category.id)
                                         }
                                     },
-                                    fallbackIcon = categoryIcons[category.name.lowercase()] ?: Icons.Filled.Category
+                                    fallbackIcon = Icons.Filled.Category
                                 )
                             }
                         }

@@ -14,7 +14,7 @@ import com.nicha.eventticketing.data.local.entity.UserEntity
 
 @Database(
     entities = [EventEntity::class, TicketEntity::class, UserEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(StringListConverter::class, TicketTypeListConverter::class)

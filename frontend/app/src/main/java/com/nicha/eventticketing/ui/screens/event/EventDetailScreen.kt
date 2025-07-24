@@ -59,6 +59,7 @@ import com.nicha.eventticketing.viewmodel.TicketViewModel
 import com.nicha.eventticketing.util.ImageUtils
 import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
 import com.nicha.eventticketing.util.ImageUtils.getFullImageUrls
+import com.nicha.eventticketing.util.NetworkStatusObserver
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -72,47 +73,50 @@ fun EventDetailScreen(
 ) {
     var showContent by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    
+
     LaunchedEffect(Unit) {
         delay(100)
         showContent = true
     }
-    
+
     val eventDetailState by viewModel.eventDetailState.collectAsState()
-    
+
     LaunchedEffect(eventId) {
         viewModel.getEventById(eventId)
     }
-    
+
     val myTicketState by ticketViewModel.myTicketForEventState.collectAsState()
     LaunchedEffect(eventId) {
         ticketViewModel.getMyTicketsByEventId(eventId)
     }
-    
+
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    
+
+    val context = LocalContext.current
+    val isOnline by NetworkStatusObserver.observe(context).collectAsState(initial = true)
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { },
+                title = { 
+                    Text(
+                        "Chi tiết sự kiện",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White
+
                         )
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* Handle share */ }) {
-                        Icon(
-                            imageVector = Icons.Rounded.Share,
-                            contentDescription = "Share",
-                            tint = Color.White
-                        )
-                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
@@ -174,23 +178,22 @@ fun EventDetailScreen(
             }
             is ResourceState.Success -> {
                 val event = (eventDetailState as ResourceState.Success<EventDto>).data
-                var isFavorite by remember { mutableStateOf(false) }
                 var isDescriptionExpanded by remember { mutableStateOf(false) }
                 var selectedTicketType by remember { mutableStateOf<TicketTypeDto?>(null) }
-                
+
                 // Lọc danh sách vé để chỉ hiển thị vé thường và vé VIP
                 val filteredTicketTypes = remember(event.ticketTypes) {
                     TicketUtils.filterTicketTypes(event.ticketTypes)
                 }
-                
+
                 val imageUrls = if (event.imageUrls.isNullOrEmpty() && event.featuredImageUrl != null) {
                     listOf(ImageUtils.getFullImageUrl(event.featuredImageUrl))
                 } else {
                     ImageUtils.getFullImageUrls(event.imageUrls)
                 }
-                
+
                 val pagerState = rememberPagerState(pageCount = { imageUrls.size })
-                
+
         AnimatedVisibility(
             visible = showContent,
             enter = fadeIn() + slideInVertically(
@@ -205,6 +208,33 @@ fun EventDetailScreen(
                     .verticalScroll(rememberScrollState())
                     .background(MaterialTheme.colorScheme.background)
             ) {
+                                    // Banner offline overlay trên ảnh
+                    if (!isOnline) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.errorContainer)
+                                .padding(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.WifiOff,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Đang xem dữ liệu ngoại tuyến",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
                 // Image carousel with overlay
                 Box(
                     modifier = Modifier
@@ -226,7 +256,7 @@ fun EventDetailScreen(
                             modifier = Modifier.fillMaxSize()
                         )
                     }
-                    
+
                     // Gradient overlay
                     Box(
                         modifier = Modifier
@@ -234,14 +264,14 @@ fun EventDetailScreen(
                             .background(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
-                                        Color.Black.copy(alpha = 0.6f),
+                                        Color.Black.copy(alpha = 0.2f),
                                         Color.Transparent,
-                                        Color.Black.copy(alpha = 0.6f)
+                                        Color.Black.copy(alpha = 0.2f)
                                     )
                                 )
                             )
                     )
-                    
+
                     // Page indicators
                     Row(
                         modifier = Modifier
@@ -267,23 +297,8 @@ fun EventDetailScreen(
                                     )
                                 }
                             }
-                            
-                            // Favorite button
-                            IconButton(
-                                onClick = { isFavorite = !isFavorite },
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(16.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                    contentDescription = "Favorite",
-                                    tint = if (isFavorite) Color.Red else Color.White,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                    }
                 }
-                
+
                 // Event details
                 Column(
                             modifier = Modifier.padding(16.dp)
@@ -294,9 +309,9 @@ fun EventDetailScreen(
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold
                             )
-                            
+
                             Spacer(modifier = Modifier.height(16.dp))
-                            
+
                             // Organizer
                             Row(
                         verticalAlignment = Alignment.CenterVertically
@@ -307,39 +322,39 @@ fun EventDetailScreen(
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
-                                
+
                                 Spacer(modifier = Modifier.width(8.dp))
-                                
+
                         Text(
                                     text = "Tổ chức bởi: ${event.organizerName}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            
+
                             Spacer(modifier = Modifier.height(8.dp))
-                            
+
                             // Date and time
                             val dateFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
                             val outputDateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                             val outputTimeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
-                            
+
                             val startDate = try {
                                 dateFormatter.parse(event.startDate)
                             } catch (e: Exception) {
                                 null
                             }
-                            
+
                             val endDate = try {
                                 dateFormatter.parse(event.endDate)
                             } catch (e: Exception) {
                                 null
                             }
-                            
+
                             val formattedStartDate = startDate?.let { outputDateFormatter.format(it) } ?: event.startDate.split("T")[0]
                             val formattedStartTime = startDate?.let { outputTimeFormatter.format(it) } ?: ""
                             val formattedEndTime = endDate?.let { outputTimeFormatter.format(it) } ?: ""
-                            
+
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -349,22 +364,22 @@ fun EventDetailScreen(
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
-                                
+
                                 Spacer(modifier = Modifier.width(8.dp))
-                                
+
                                 Text(
                                     text = formattedStartDate,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                
+
                                 if (formattedStartTime.isNotEmpty()) {
                                     Text(
                                         text = " • $formattedStartTime",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    
+
                                     if (formattedEndTime.isNotEmpty() && formattedEndTime != formattedStartTime) {
                                         Text(
                                             text = " - $formattedEndTime",
@@ -374,9 +389,9 @@ fun EventDetailScreen(
                                     }
                                 }
                             }
-                            
+
                             Spacer(modifier = Modifier.height(8.dp))
-                            
+
                             // Location
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
@@ -387,18 +402,18 @@ fun EventDetailScreen(
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
-                                
+
                                 Spacer(modifier = Modifier.width(8.dp))
-                                
+
                                 Text(
                                     text = "${event.locationName}, ${event.address}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            
+
                             Spacer(modifier = Modifier.height(16.dp))
-                            
+
                             // Event status and attendance info
                             Row(
                                 modifier = Modifier
@@ -456,25 +471,25 @@ fun EventDetailScreen(
                                     }
                                 }
                             }
-                              
+
                               Spacer(modifier = Modifier.height(8.dp))
-                              
+
                               HorizontalDivider(
                                   modifier = Modifier
                                       .fillMaxWidth()
                                       .padding(vertical = 16.dp),
                                   color = MaterialTheme.colorScheme.outlineVariant
                               )
-                      
+
                       // Description
                               Text(
                                   text = "Mô tả",
                                   style = MaterialTheme.typography.titleLarge,
                                   fontWeight = FontWeight.Bold
                               )
-                              
+
                               Spacer(modifier = Modifier.height(8.dp))
-                              
+
                               Text(
                                   text = event.description,
                                   style = MaterialTheme.typography.bodyMedium,
@@ -482,7 +497,7 @@ fun EventDetailScreen(
                                   maxLines = if (isDescriptionExpanded) Int.MAX_VALUE else 5,
                                   overflow = if (isDescriptionExpanded) TextOverflow.Visible else TextOverflow.Ellipsis
                               )
-                              
+
                               if (event.description.length > 200) {
                                   TextButton(
                                       onClick = { isDescriptionExpanded = !isDescriptionExpanded },
@@ -495,9 +510,9 @@ fun EventDetailScreen(
                                       )
                                   }
                               }
-                      
+
                       Spacer(modifier = Modifier.height(16.dp))
-                      
+
                               // Ticket types
                               if (!filteredTicketTypes.isNullOrEmpty()) {
                                   Text(
@@ -505,9 +520,9 @@ fun EventDetailScreen(
                                       style = MaterialTheme.typography.titleLarge,
                                       fontWeight = FontWeight.Bold
                                   )
-                                  
+
                                   Spacer(modifier = Modifier.height(8.dp))
-                                  
+
                                   filteredTicketTypes.forEach { ticketType ->
                                       TicketTypeItem(
                                           ticketType = ticketType,
@@ -545,12 +560,12 @@ fun EventDetailScreen(
                                       }
                                   }
                               }
-                              
+
                               Spacer(modifier = Modifier.height(80.dp))
                           }
                       }
                   }
-                  
+
                   // Buy tickets button
                   Box(
                       modifier = Modifier.fillMaxSize(),
@@ -586,15 +601,17 @@ fun EventDetailScreen(
                                           .fillMaxWidth()
                                           .padding(16.dp),
                                       shape = RoundedCornerShape(28.dp),
-                                      color = if (selectedTicketType != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                      color = if (selectedTicketType != null && isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                                       shadowElevation = 6.dp
                                   ) {
                                       Row(
                                           modifier = Modifier
                                               .fillMaxWidth()
-                                              .clickable(enabled = selectedTicketType != null) {
-                                                  selectedTicketType?.let { ticketType ->
-                                                      onBuyTicketsClick(event.id, ticketType.id)
+                                              .clickable(enabled = selectedTicketType != null && isOnline) {
+                                                  if (isOnline) {
+                                                      selectedTicketType?.let { ticketType ->
+                                                          onBuyTicketsClick(event.id, ticketType.id)
+                                                      }
                                                   }
                                               }
                                               .padding(16.dp),
@@ -604,13 +621,13 @@ fun EventDetailScreen(
                                           Icon(
                                               imageVector = Icons.Default.ConfirmationNumber,
                                               contentDescription = "Buy tickets",
-                                              tint = if (selectedTicketType != null) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                              tint = if (selectedTicketType != null && isOnline) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                           )
                                           Spacer(modifier = Modifier.width(8.dp))
                                           Text(
-                                              text = if (selectedTicketType != null) "Mua vé ngay" else "Chọn loại vé để mua",
+                                              text = if (!isOnline) "Không thể mua vé khi offline" else if (selectedTicketType != null) "Mua vé ngay" else "Chọn loại vé để mua",
                                               style = MaterialTheme.typography.titleMedium,
-                                              color = if (selectedTicketType != null) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                              color = if (selectedTicketType != null && isOnline) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                           )
                                       }
                                   }
@@ -624,15 +641,17 @@ fun EventDetailScreen(
                                           .fillMaxWidth()
                                           .padding(16.dp),
                                       shape = RoundedCornerShape(28.dp),
-                                      color = if (selectedTicketType != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                      color = if (selectedTicketType != null && isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                                       shadowElevation = 6.dp
                                   ) {
                                       Row(
                                           modifier = Modifier
                                               .fillMaxWidth()
-                                              .clickable(enabled = selectedTicketType != null) {
-                                                  selectedTicketType?.let { ticketType ->
-                                                      onBuyTicketsClick(event.id, ticketType.id)
+                                              .clickable(enabled = selectedTicketType != null && isOnline) {
+                                                  if (isOnline) {
+                                                      selectedTicketType?.let { ticketType ->
+                                                          onBuyTicketsClick(event.id, ticketType.id)
+                                                      }
                                                   }
                                               }
                                               .padding(16.dp),
@@ -642,13 +661,13 @@ fun EventDetailScreen(
                                           Icon(
                                               imageVector = Icons.Default.ConfirmationNumber,
                                               contentDescription = "Buy tickets",
-                                              tint = if (selectedTicketType != null) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                              tint = if (selectedTicketType != null && isOnline) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                           )
                                           Spacer(modifier = Modifier.width(8.dp))
                                           Text(
-                                              text = if (selectedTicketType != null) "Mua vé ngay" else "Chọn loại vé để mua",
+                                              text = if (!isOnline) "Không thể mua vé khi offline" else if (selectedTicketType != null) "Mua vé ngay" else "Chọn loại vé để mua",
                                               style = MaterialTheme.typography.titleMedium,
-                                              color = if (selectedTicketType != null) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                              color = if (selectedTicketType != null && isOnline) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                           )
                                       }
                                   }
@@ -672,23 +691,23 @@ fun TicketTypeItem(
     onClick: () -> Unit
 ) {
     val formattedPrice = FormatUtils.formatPrice(ticketType.price)
-    
+
     val elevation = if (isSelected) 6.dp else 1.dp
     val scale = if (isSelected) 1.03f else 1f
-    
-    val backgroundColor = if (isSelected) 
+
+    val backgroundColor = if (isSelected)
         MaterialTheme.colorScheme.primaryContainer
-    else 
+    else
         MaterialTheme.colorScheme.surface
-    
+
     val borderColor = if (isSelected)
         MaterialTheme.colorScheme.primary
     else
         MaterialTheme.colorScheme.outlineVariant
-    
+
     val isVip = TicketUtils.isVipTicket(ticketType)
     val displayName = TicketUtils.getDisplayName(ticketType)
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -744,7 +763,7 @@ fun TicketTypeItem(
                     }
                 }
             }
-            
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -767,7 +786,7 @@ fun TicketTypeItem(
                             fontWeight = FontWeight.Bold,
                             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                         )
-                        
+
                         if (!ticketType.description.isNullOrEmpty()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
@@ -779,7 +798,7 @@ fun TicketTypeItem(
                             )
                         }
                     }
-                    
+
                     if (isSelected) {
                         Box(
                             modifier = Modifier
@@ -797,17 +816,17 @@ fun TicketTypeItem(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 HorizontalDivider(
                     modifier = Modifier.fillMaxWidth(),
                     thickness = 0.5.dp,
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -854,7 +873,7 @@ fun TicketTypeItem(
                             )
                         }
                     }
-                    
+
                     // Số lượng vé còn lại
                     val availableQuantity = ticketType.quantity - ticketType.quantitySold
                     val availabilityColor = when {
@@ -862,13 +881,13 @@ fun TicketTypeItem(
                         availableQuantity < 10 -> Color(0xFFF57C00) // Orange
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
-                    
+
                     val availabilityText = when {
                         availableQuantity <= 0 -> "Hết vé"
                         availableQuantity < 10 -> "Chỉ còn $availableQuantity vé"
                         else -> "Còn $availableQuantity vé"
                     }
-                    
+
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = availabilityColor.copy(alpha = 0.1f)
@@ -887,9 +906,9 @@ fun TicketTypeItem(
                                 tint = availabilityColor,
                                 modifier = Modifier.size(16.dp)
                             )
-                            
+
                             Spacer(modifier = Modifier.width(4.dp))
-                            
+
                             Text(
                                 text = availabilityText,
                                 style = MaterialTheme.typography.labelSmall,

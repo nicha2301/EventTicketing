@@ -125,17 +125,38 @@ fun TicketWalletScreen(
                 .padding(paddingValues)
         ) {
             if (!isOnline) {
-                Box(modifier = Modifier.fillMaxWidth().background(Color.Red).padding(8.dp)) {
-                    Text("Bạn đang offline. Chỉ xem được vé đã lưu.", color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.WifiOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Đang xem dữ liệu ngoại tuyến",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
                 }
             }
-            // Tab Row
+            
             ScrollableTabRow(
                 selectedTabIndex = selectedTabIndex,
+                containerColor = MaterialTheme.colorScheme.background,
+                contentColor = MaterialTheme.colorScheme.onBackground,
                 edgePadding = 16.dp,
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.primary,
-                divider = { }
+                divider = {}
             ) {
                 tabs.forEachIndexed { index, tab ->
                     Tab(

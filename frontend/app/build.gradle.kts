@@ -151,4 +151,9 @@ dependencies {
 
     // Security
     implementation(libs.androidx.security.crypto)
+
+    // Room for local database
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
 }

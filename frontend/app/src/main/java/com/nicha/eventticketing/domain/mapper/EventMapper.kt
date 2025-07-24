@@ -94,7 +94,10 @@ class EventMapper @Inject constructor() {
             attendeeCount = dto.currentAttendees,
             maxAttendees = dto.maxAttendees,
             createdAt = dto.createdAt,
-            updatedAt = dto.updatedAt
+            updatedAt = dto.updatedAt,
+            minTicketPrice = dto.minTicketPrice,
+            maxTicketPrice = dto.maxTicketPrice,
+            isFree = dto.isFree
         )
     }
 
@@ -128,10 +131,10 @@ class EventMapper @Inject constructor() {
             updatedAt = entity.updatedAt ?: "",
             locationId = "",
             city = "",
-            minTicketPrice = 0.0,
-            maxTicketPrice = 0.0,
+            minTicketPrice = entity.minTicketPrice ?: 0.0,
+            maxTicketPrice = entity.maxTicketPrice ?: 0.0,
             isPrivate = false,
-            isFree = false
+            isFree = entity.isFree ?: false
         )
     }
 

@@ -31,5 +31,8 @@ data class EventEntity(
     val attendeeCount: Int?,
     val maxAttendees: Int?,
     val createdAt: String?,
-    val updatedAt: String?
+    val updatedAt: String?,
+    val minTicketPrice: Double?,
+    val maxTicketPrice: Double?,
+    val isFree: Boolean?
 ) 
