@@ -30,7 +30,6 @@ class EventTicketingApp : Application() {
     override fun onCreate() {
         super.onCreate()
         
-        // Set instance cho static access
         instance = this
         
         // Khởi tạo Timber cho logging

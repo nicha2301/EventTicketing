@@ -1,5 +1,6 @@
 package com.nicha.eventticketing.domain.mapper
 
+import com.nicha.eventticketing.data.local.entity.UserEntity
 import com.nicha.eventticketing.data.remote.dto.auth.UserDto
 import com.nicha.eventticketing.domain.model.User
 import com.nicha.eventticketing.domain.model.UserRole
@@ -27,7 +28,36 @@ class UserMapper @Inject constructor() {
             role = UserRole.fromString(dto.role),
             isVerified = dto.enabled,
             createdAt = dto.createdAt?.let { parseDate(it) } ?: Date(),
-            updatedAt = Date() // Not provided in UserDto
+            updatedAt = Date() 
+        )
+    }
+
+    fun dtoToEntity(dto: UserDto): UserEntity {
+        return UserEntity(
+            id = dto.id,
+            fullName = dto.fullName,
+            email = dto.email,
+            phone = dto.phoneNumber,
+            avatarUrl = dto.profilePictureUrl,
+            role = dto.role,
+            gender = null,
+            birthday = null,
+            address = null,
+            createdAt = dto.createdAt,
+            updatedAt = dto.createdAt
+        )
+    }
+    
+    fun entityToDto(entity: UserEntity): UserDto {
+        return UserDto(
+            id = entity.id,
+            email = entity.email ?: "",
+            fullName = entity.fullName ?: "",
+            profilePictureUrl = entity.avatarUrl,
+            phoneNumber = entity.phone,
+            role = entity.role ?: "USER",
+            enabled = true,
+            createdAt = entity.createdAt
         )
     }
 

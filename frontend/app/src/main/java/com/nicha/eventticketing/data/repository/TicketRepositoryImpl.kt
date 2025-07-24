@@ -26,11 +26,9 @@ class TicketRepositoryImpl @Inject constructor(
     private val apiService: ApiService,
     private val ticketDao: TicketDao
 ) : TicketRepository {
-    // isOnline sẽ được truyền từ ViewModel/UI xuống repository
     var isOnline: Boolean = true
         set(value) {
             if (field != value) {
-                Timber.d("[TicketRepository] Trạng thái mạng thay đổi: ${if (value) "ONLINE" else "OFFLINE"}")
                 field = value
             }
         }
@@ -42,7 +40,6 @@ class TicketRepositoryImpl @Inject constructor(
             if (response.isSuccessful && response.body()?.success == true) {
                 val purchaseResponse = response.body()?.data
                 if (purchaseResponse != null) {
-                    // Sau khi mua vé thành công, có thể fetch lại danh sách vé để đồng bộ local
                     emit(Resource.Success(purchaseResponse))
                 } else {
                     emit(Resource.Error("Không thể hoàn tất việc mua vé"))
@@ -59,19 +56,15 @@ class TicketRepositoryImpl @Inject constructor(
     override fun getTicketById(ticketId: String): Flow<Resource<TicketDto>> = flow {
         emit(Resource.Loading())
         
-        // Kiểm tra trạng thái mạng trước khi quyết định nguồn dữ liệu
         val actuallyOnline = isOnline && NetworkUtil.isActuallyConnected()
-        Timber.d("[TicketRepository] Trạng thái mạng: isOnline=$isOnline, actuallyOnline=$actuallyOnline")
         
         if (actuallyOnline) {
-            Timber.d("[TicketRepository] ONLINE: Lấy chi tiết vé từ API")
             try {
                 val response = apiService.getTicketById(ticketId)
                 if (response.isSuccessful && response.body()?.success == true) {
                     val ticket = response.body()?.data
                     if (ticket != null) {
                         withContext(Dispatchers.IO) { ticketDao.insertTicket(TicketMapper.dtoToEntity(ticket)) }
-                        Timber.d("[TicketRepository] Đã lưu vé %s vào cache Room", ticket.id)
                         emit(Resource.Success(ticket))
                     } else {
                         emit(Resource.Error("Không tìm thấy vé"))
@@ -80,17 +73,13 @@ class TicketRepositoryImpl @Inject constructor(
                     emit(Resource.Error(response.body()?.message ?: "Không thể lấy thông tin vé"))
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Lỗi khi lấy thông tin vé: $ticketId")
                 emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
             }
         } else {
-            Timber.d("[TicketRepository] OFFLINE: Lấy chi tiết vé từ cache Room")
             val localTicket = withContext(Dispatchers.IO) { ticketDao.getTicketById(ticketId) }
             if (localTicket != null) {
-                Timber.d("[TicketRepository] Đã lấy vé %s từ cache Room", localTicket.id)
                 emit(Resource.Success(TicketMapper.entityToDto(localTicket)))
             } else {
-                Timber.d("[TicketRepository] Không tìm thấy vé %s trong cache Room", ticketId)
                 emit(Resource.Error("Không tìm thấy vé trong cache"))
             }
         }
@@ -99,12 +88,9 @@ class TicketRepositoryImpl @Inject constructor(
     override fun getTicketByNumber(ticketNumber: String): Flow<Resource<TicketDto>> = flow {
         emit(Resource.Loading())
         
-        // Kiểm tra trạng thái mạng trước khi quyết định nguồn dữ liệu
         val actuallyOnline = isOnline && NetworkUtil.isActuallyConnected()
-        Timber.d("[TicketRepository] Trạng thái mạng: isOnline=$isOnline, actuallyOnline=$actuallyOnline")
         
         if (actuallyOnline) {
-            Timber.d("[TicketRepository] ONLINE: Lấy chi tiết vé theo số vé từ API")
             try {
                 val response = apiService.getTicketByNumber(ticketNumber)
                 if (response.isSuccessful && response.body()?.success == true) {
@@ -119,7 +105,6 @@ class TicketRepositoryImpl @Inject constructor(
                     emit(Resource.Error(response.body()?.message ?: "Không thể lấy thông tin vé"))
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Lỗi khi lấy thông tin vé theo số vé: $ticketNumber")
                 emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
             }
         } else {
@@ -141,12 +126,9 @@ class TicketRepositoryImpl @Inject constructor(
     ): Flow<Resource<PageDto<TicketDto>>> = flow {
         emit(Resource.Loading())
         
-        // Kiểm tra trạng thái mạng trước khi quyết định nguồn dữ liệu
         val actuallyOnline = isOnline && NetworkUtil.isActuallyConnected()
-        Timber.d("[TicketRepository] Trạng thái mạng: isOnline=$isOnline, actuallyOnline=$actuallyOnline")
         
         if (actuallyOnline) {
-            Timber.d("[TicketRepository] ONLINE: Lấy danh sách vé từ API")
             try {
                 val response = apiService.getMyTickets(status, page, size)
                 if (response.isSuccessful && response.body()?.success == true) {
@@ -154,7 +136,6 @@ class TicketRepositoryImpl @Inject constructor(
                     if (tickets != null) {
                         val entities = tickets.content.map { TicketMapper.dtoToEntity(it) }
                         withContext(Dispatchers.IO) { ticketDao.insertTickets(entities) }
-                        Timber.d("[TicketRepository] Đã lưu %d vé vào cache Room", entities.size)
                         emit(Resource.Success(tickets))
                     } else {
                         emit(Resource.Error("Không tìm thấy vé"))
@@ -163,14 +144,11 @@ class TicketRepositoryImpl @Inject constructor(
                     emit(Resource.Error(response.body()?.message ?: "Không thể lấy danh sách vé"))
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Lỗi khi lấy danh sách vé của người dùng hiện tại")
                 emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
             }
         } else {
-            Timber.d("[TicketRepository] OFFLINE: Lấy danh sách vé từ cache Room")
             val localTickets = withContext(Dispatchers.IO) { ticketDao.getAllTickets() }
             val dtos = localTickets.map { TicketMapper.entityToDto(it) }
-            Timber.d("[TicketRepository] Đã lấy %d vé từ cache Room", dtos.size)
             emit(Resource.Success(PageDto(
                 content = dtos,
                 pageable = PageableDto(

@@ -47,27 +47,10 @@ import com.nicha.eventticketing.viewmodel.NotificationViewModel
 import com.nicha.eventticketing.viewmodel.ProfileState
 import com.nicha.eventticketing.viewmodel.ProfileViewModel
 import com.nicha.eventticketing.domain.model.ResourceState
+import com.nicha.eventticketing.util.NetworkStatusObserver
+import androidx.compose.ui.platform.LocalContext
 
-// Data classes for ProfileScreen
-data class TicketEntity(
-    val id: String,
-    val eventId: String,
-    val ticketTypeId: String,
-    val userId: String,
-    val quantity: Int,
-    val totalPrice: Double,
-    val status: TicketStatus,
-    val purchaseDate: String,
-    val eventTitle: String,
-    val eventDate: String,
-    val eventLocation: String,
-    val ticketTypeName: String,
-    val ticketTypePrice: Double
-)
 
-enum class TicketStatus {
-    ACTIVE, USED, CANCELLED, EXPIRED
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +81,14 @@ fun ProfileScreen(
         0
     }
     
-    LaunchedEffect(Unit) {
+    val context = LocalContext.current
+    val isOnline by NetworkStatusObserver.observe(context).collectAsState(initial = true)
+    
+    LaunchedEffect(isOnline) {
+        viewModel.setNetworkStatus(isOnline)
+    }
+    
+    LaunchedEffect(isOnline) {
         viewModel.fetchUserProfile()
         notificationViewModel.getUnreadNotificationCount()
     }
@@ -195,6 +185,35 @@ fun ProfileScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            if (!isOnline) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.WifiOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Đang xem dữ liệu ngoại tuyến",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
             // Avatar
             Box(
                 modifier = Modifier

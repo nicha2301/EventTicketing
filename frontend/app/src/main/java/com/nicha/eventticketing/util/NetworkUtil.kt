@@ -85,19 +85,15 @@ object NetworkUtil {
             try {
                 val errorBodyString = response.errorBody()?.string() ?: return response.message()
                 return try {
-                    // Thử parse như ApiResponse trước
                     val errorResponse = Gson().fromJson(errorBodyString, ApiResponse::class.java)
                     if (errorResponse?.message != null) {
                         return errorResponse.message
                     }
-                    // Nếu không parse được, trả về error body string
                     errorBodyString
                 } catch (e: Exception) {
-                    Timber.e(e, "Lỗi khi parse error response")
                     errorBodyString
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Lỗi khi đọc error body")
                 return response.message()
             }
         }
@@ -110,7 +106,6 @@ object NetworkUtil {
      */
     fun isActuallyConnected(): Boolean {
         return try {
-            // Lấy context từ application
             val context = EventTicketingApp.instance.applicationContext
             
             val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
@@ -120,16 +115,13 @@ object NetworkUtil {
                 val network = connectivityManager.activeNetwork ?: return false
                 val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
                 val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                Timber.d("NetworkUtil: Kiểm tra kết nối: ${if (hasInternet) "ONLINE" else "OFFLINE"}")
                 return hasInternet
             } else {
                 val networkInfo = connectivityManager.activeNetworkInfo
                 val isConnected = networkInfo != null && networkInfo.isConnected
-                Timber.d("NetworkUtil: Kiểm tra kết nối (API < 23): ${if (isConnected) "ONLINE" else "OFFLINE"}")
                 return isConnected
             }
         } catch (e: Exception) {
-            Timber.d("NetworkUtil: Lỗi khi kiểm tra kết nối: ${e.message}")
             false
         }
     }

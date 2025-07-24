@@ -7,6 +7,7 @@ import com.nicha.eventticketing.data.remote.dto.auth.UserUpdateDto
 import com.nicha.eventticketing.domain.model.Resource
 import com.nicha.eventticketing.domain.repository.AuthRepository
 import com.nicha.eventticketing.domain.repository.UserRepository
+import com.nicha.eventticketing.data.repository.UserRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +32,17 @@ class ProfileViewModel @Inject constructor(
     // Thông tin người dùng hiện tại
     private val _userProfile = MutableStateFlow<UserDto?>(null)
     val userProfile: StateFlow<UserDto?> = _userProfile.asStateFlow()
+    
+    // Trạng thái mạng
+    private var isOnline = true
+    
+    /**
+     * Cập nhật trạng thái mạng
+     */
+    fun setNetworkStatus(online: Boolean) {
+        isOnline = online
+        (userRepository as? UserRepositoryImpl)?.setNetworkStatus(online)
+    }
     
     // Khởi tạo với việc lấy thông tin người dùng
     init {

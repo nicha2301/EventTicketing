@@ -16,6 +16,8 @@ import com.nicha.eventticketing.data.repository.TicketTypeRepositoryImpl
 import com.nicha.eventticketing.domain.repository.TicketRepository
 import com.nicha.eventticketing.data.repository.TicketRepositoryImpl
 import com.nicha.eventticketing.data.local.dao.TicketDao
+import com.nicha.eventticketing.data.local.dao.UserDao
+import com.nicha.eventticketing.domain.mapper.UserMapper
 import com.nicha.eventticketing.domain.repository.CategoryRepository
 import com.nicha.eventticketing.data.repository.CategoryRepositoryImpl
 import com.nicha.eventticketing.domain.repository.PaymentRepository
@@ -57,9 +59,11 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideUserRepository(
-        apiService: ApiService
+        apiService: ApiService,
+        userDao: UserDao,
+        userMapper: UserMapper
     ): UserRepository {
-        return UserRepositoryImpl(apiService)
+        return UserRepositoryImpl(apiService, userDao, userMapper)
     }
     
     @Provides
