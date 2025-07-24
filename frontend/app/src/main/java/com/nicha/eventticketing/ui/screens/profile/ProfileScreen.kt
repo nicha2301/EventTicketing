@@ -181,7 +181,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -405,12 +405,6 @@ fun ProfileScreen(
                     )
                 )
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Logout,
-                    contentDescription = null,
-                        tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Đăng xuất",

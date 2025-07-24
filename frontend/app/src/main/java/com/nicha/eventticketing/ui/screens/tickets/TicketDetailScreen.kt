@@ -104,21 +104,14 @@ fun TicketDetailScreen(
             )
         }
     ) { paddingValues ->
-        if (!isOnline) {
-            Box(modifier = Modifier.fillMaxWidth().background(Color.Red).padding(8.dp)) {
-                Text("Bạn đang offline. Dữ liệu vé có thể chưa mới nhất.", color = Color.White, style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-        when (ticketDetailState) {
-            is ResourceState.Loading -> {
+        
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+            modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
+            when (ticketDetailState) {
+                is ResourceState.Loading -> {
                     CircularProgressIndicator()
-                }
             }
             is ResourceState.Success -> {
                 val ticket = (ticketDetailState as ResourceState.Success<TicketDto>).data
@@ -126,11 +119,41 @@ fun TicketDetailScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
                         .padding(paddingValues)
-                        .verticalScroll(rememberScrollState())
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                        // Hiển thị thông báo offline nếu không có kết nối
+                        if (!isOnline) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.errorContainer)
+                                    .padding(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.WifiOff,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Đang xem dữ liệu ngoại tuyến",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
                     // Ticket Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -538,7 +561,7 @@ fun TicketDetailScreen(
                 }
             }
             else -> {
-                // Initial state, do nothing
+                }
             }
         }
     }

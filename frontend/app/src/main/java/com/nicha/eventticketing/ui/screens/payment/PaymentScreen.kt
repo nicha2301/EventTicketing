@@ -48,31 +48,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
 
-// Data classes for PaymentScreen
-data class EventEntity(
-    val id: String,
-    val title: String,
-    val description: String,
-    val startDate: String,
-    val endDate: String,
-    val startTime: String,
-    val endTime: String,
-    val location: String,
-    val address: String,
-    val organizerId: String,
-    val organizerName: String,
-    val featuredImageUrl: String,
-    val bannerImageUrl: String,
-    val status: EventStatus,
-    val type: EventType,
-    val tags: List<String>,
-    val createdAt: Date,
-    val updatedAt: Date
-)
-
-enum class EventStatus {
-    ACTIVE, INACTIVE, CANCELLED, COMPLETED
-}
 
 enum class PaymentMethod(val displayName: String, val code: String, val iconRes: Int? = null) {
     VNPAY("VNPAY", "vnpay", R.drawable.ic_vnpay),
@@ -197,19 +172,7 @@ fun PaymentScreen(
                     ) 
                 },
                 navigationIcon = {
-                    IconButton(
-                        onClick = onBackClick,
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = CircleShape,
-                                spotColor = neumorphismStyle.darkShadowColor,
-                                ambientColor = neumorphismStyle.lightShadowColor
-                            )
-                            .clip(CircleShape)
-                            .background(CardBackground)
-                    ) {
+                    IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Quay lại"

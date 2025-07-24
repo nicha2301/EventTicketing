@@ -6,6 +6,7 @@ import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.domain.model.Resource
 import com.nicha.eventticketing.domain.model.ResourceState
 import com.nicha.eventticketing.domain.repository.EventRepository
+import com.nicha.eventticketing.data.repository.EventRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,6 +47,16 @@ class EventViewModel @Inject constructor(
     private val _selectedCategoryId = MutableStateFlow<String?>(null)
     val selectedCategoryId: StateFlow<String?> = _selectedCategoryId.asStateFlow()
     
+    private var isOnline = true
+    
+    /**
+     * Cập nhật trạng thái mạng
+     */
+    fun setNetworkStatus(online: Boolean) {
+        isOnline = online
+        (eventRepository as? EventRepositoryImpl)?.setNetworkStatus(online)
+    }
+    
     /**
      * Lấy danh sách sự kiện nổi bật
      */
@@ -59,14 +70,11 @@ class EventViewModel @Inject constructor(
                         val events = result.data
                         if (events != null) {
                             _featuredEventsState.value = ResourceState.Success(events)
-                            Timber.d("Lấy danh sách sự kiện nổi bật thành công: ${events.size} sự kiện")
                         } else {
-                            Timber.e("Không tìm thấy sự kiện nổi bật")
                             _featuredEventsState.value = ResourceState.Error("Không tìm thấy sự kiện nổi bật")
                         }
                     }
                     is Resource.Error -> {
-                        Timber.e("Lấy danh sách sự kiện nổi bật thất bại: ${result.message}")
                         _featuredEventsState.value = ResourceState.Error(result.message ?: "Không thể lấy danh sách sự kiện nổi bật")
                     }
                     is Resource.Loading -> {
@@ -90,14 +98,11 @@ class EventViewModel @Inject constructor(
                         val events = result.data
                         if (events != null) {
                             _upcomingEventsState.value = ResourceState.Success(events)
-                            Timber.d("Lấy danh sách sự kiện sắp diễn ra thành công: ${events.size} sự kiện")
                         } else {
-                            Timber.e("Không tìm thấy sự kiện sắp diễn ra")
                             _upcomingEventsState.value = ResourceState.Error("Không tìm thấy sự kiện sắp diễn ra")
                         }
                     }
                     is Resource.Error -> {
-                        Timber.e("Lấy danh sách sự kiện sắp diễn ra thất bại: ${result.message}")
                         _upcomingEventsState.value = ResourceState.Error(result.message ?: "Không thể lấy danh sách sự kiện sắp diễn ra")
                     }
                     is Resource.Loading -> {
@@ -126,14 +131,11 @@ class EventViewModel @Inject constructor(
                         val events = result.data?.content
                         if (events != null) {
                             _categoryEventsState.value = ResourceState.Success(events)
-                            Timber.d("Lấy danh sách sự kiện theo danh mục thành công: ${events.size} sự kiện")
                         } else {
-                            Timber.e("Không tìm thấy sự kiện theo danh mục")
                             _categoryEventsState.value = ResourceState.Error("Không tìm thấy sự kiện theo danh mục")
                         }
                     }
                     is Resource.Error -> {
-                        Timber.e("Lấy danh sách sự kiện theo danh mục thất bại: ${result.message}")
                         _categoryEventsState.value = ResourceState.Error(result.message ?: "Không thể lấy danh sách sự kiện theo danh mục")
                     }
                     is Resource.Loading -> {
@@ -165,14 +167,11 @@ class EventViewModel @Inject constructor(
                         val event = result.data
                         if (event != null) {
                             _eventDetailState.value = ResourceState.Success(event)
-                            Timber.d("Lấy chi tiết sự kiện thành công: ${event.title}")
                         } else {
-                            Timber.e("Không tìm thấy sự kiện")
                             _eventDetailState.value = ResourceState.Error("Không tìm thấy sự kiện")
                         }
                     }
                     is Resource.Error -> {
-                        Timber.e("Lấy chi tiết sự kiện thất bại: ${result.message}")
                         _eventDetailState.value = ResourceState.Error(result.message ?: "Không thể lấy chi tiết sự kiện")
                     }
                     is Resource.Loading -> {
@@ -214,14 +213,11 @@ class EventViewModel @Inject constructor(
                         val events = result.data?.content
                         if (events != null) {
                             _searchEventsState.value = ResourceState.Success(events)
-                            Timber.d("Tìm kiếm sự kiện thành công: ${events.size} kết quả")
                         } else {
-                            Timber.e("Không tìm thấy sự kiện phù hợp")
                             _searchEventsState.value = ResourceState.Error("Không tìm thấy sự kiện phù hợp")
                         }
                     }
                     is Resource.Error -> {
-                        Timber.e("Tìm kiếm sự kiện thất bại: ${result.message}")
                         _searchEventsState.value = ResourceState.Error(result.message ?: "Không thể tìm kiếm sự kiện")
                     }
                     is Resource.Loading -> {
