@@ -64,7 +64,10 @@ class PaymentServiceImpl(
     private val momoSecretKey: String,
     
     @Value("\${payment.momo.api-endpoint}")
-    private val momoApiEndpoint: String
+    private val momoApiEndpoint: String,
+
+    @Value("\${payment.momo.request-type}")
+    private val momoRequestType: String
 ) : PaymentService {
 
     private val logger = LoggerFactory.getLogger(PaymentServiceImpl::class.java)
@@ -141,42 +144,29 @@ class PaymentServiceImpl(
     /**
      * Create Momo payment URL using the official Momo API
      */
-    private fun createMomoPaymentUrl(payment: Payment, returnUrl: String): String {
+    private fun createMomoPaymentUrl(payment: Payment, redirectUrl: String): String {
         try {
             val requestId = UUID.randomUUID().toString()
             val orderId = payment.transactionId!!
             val amount = payment.amount.multiply(BigDecimal(1)).toLong()
             val orderInfo = removeAccent(payment.description ?: "Thanh toan ve su kien")
             val extraData = ""
-            
-            // Prepare request data
-            val requestData = mapOf(
-                "partnerCode" to momoPartnerCode,
-                "accessKey" to momoAccessKey,
-                "requestId" to requestId,
-                "amount" to amount.toString(),
-                "orderId" to orderId,
-                "orderInfo" to orderInfo,
-                "returnUrl" to returnUrl,
-                "notifyUrl" to momoIpnUrl,
-                "extraData" to extraData,
-                "requestType" to "captureMoMoWallet"
-            )
-            
-            // Create signature
-            val rawSignature = "partnerCode=${momoPartnerCode}" +
-                    "&accessKey=${momoAccessKey}" +
-                    "&requestId=${requestId}" +
-                    "&amount=${amount}" +
-                    "&orderId=${orderId}" +
-                    "&orderInfo=${orderInfo}" +
-                    "&returnUrl=${returnUrl}" +
-                    "&notifyUrl=${momoIpnUrl}" +
-                    "&extraData=${extraData}"
-            
+
+            // Build raw signature đúng thứ tự và tên trường theo tài liệu MoMo
+            val rawSignature = "accessKey=$momoAccessKey" +
+                "&amount=$amount" +
+                "&extraData=$extraData" +
+                "&ipnUrl=$momoIpnUrl" +
+                "&orderId=$orderId" +
+                "&orderInfo=$orderInfo" +
+                "&partnerCode=$momoPartnerCode" +
+                "&redirectUrl=$redirectUrl" +
+                "&requestId=$requestId" +
+                "&requestType=$momoRequestType"
+
             val signature = createMomoSignature(rawSignature, momoSecretKey)
-            
-            // Create full request
+
+            // Build request data gửi lên MoMo
             val fullRequest = mapOf(
                 "partnerCode" to momoPartnerCode,
                 "accessKey" to momoAccessKey,
@@ -184,27 +174,26 @@ class PaymentServiceImpl(
                 "amount" to amount.toString(),
                 "orderId" to orderId,
                 "orderInfo" to orderInfo,
-                "returnUrl" to returnUrl,
-                "notifyUrl" to momoIpnUrl,
+                "redirectUrl" to redirectUrl,
+                "ipnUrl" to momoIpnUrl,
                 "extraData" to extraData,
-                "requestType" to "captureMoMoWallet",
+                "requestType" to momoRequestType,
                 "signature" to signature
             )
-            
-            // Make HTTP request to Momo API
+
             val headers = HttpHeaders()
             headers.contentType = MediaType.APPLICATION_JSON
             val entity = HttpEntity(fullRequest, headers)
-            
+
             logger.info("Sending Momo payment request: $fullRequest")
             val response = restTemplate.postForObject(momoApiEndpoint, entity, Map::class.java)
             logger.info("Received Momo payment response: $response")
             
             // Extract payment URL from response
-            if (response != null && response["errorCode"] == 0) {
+            if (response != null && response["resultCode"] == 0) {
                 return response["payUrl"] as String
             } else {
-                val errorMessage = response?.get("localMessage") as? String ?: "Unknown error"
+                val errorMessage = response?.get("message") as? String ?: "Unknown error"
                 logger.error("Error from Momo: $errorMessage")
                 throw PaymentException("Error from Momo: $errorMessage")
             }
@@ -289,38 +278,43 @@ class PaymentServiceImpl(
     private fun validateMomoResponse(params: Map<String, String>): Boolean {
         try {
             val signature = params["signature"] ?: return false
-            val orderId = params["orderId"] ?: return false
-            val requestId = params["requestId"] ?: return false
+            val accessKey = momoAccessKey
             val amount = params["amount"] ?: return false
-            val orderInfo = params["orderInfo"] ?: return false
-            val errorCode = params["errorCode"] ?: return false
-            val transId = params["transId"] ?: return false
-            val message = params["message"] ?: return false
-            val responseTime = params["responseTime"] ?: return false
             val extraData = params["extraData"] ?: ""
-            
-            val rawSignature = "partnerCode=${momoPartnerCode}" +
-                    "&accessKey=${momoAccessKey}" +
-                    "&requestId=${requestId}" +
-                    "&amount=${amount}" +
-                    "&orderId=${orderId}" +
-                    "&orderInfo=${orderInfo}" +
-                    "&orderType=momo_wallet" +
-                    "&transId=${transId}" +
-                    "&message=${message}" +
-                    "&responseTime=${responseTime}" +
-                    "&errorCode=${errorCode}" +
-                    "&extraData=${extraData}"
-            
+            val message = params["message"] ?: ""
+            val orderId = params["orderId"] ?: return false
+            val orderInfo = params["orderInfo"] ?: ""
+            val orderType = params["orderType"] ?: ""
+            val partnerCode = params["partnerCode"] ?: momoPartnerCode
+            val payType = params["payType"] ?: ""
+            val requestId = params["requestId"] ?: return false
+            val responseTime = params["responseTime"] ?: ""
+            val resultCode = params["resultCode"] ?: params["errorCode"] ?: ""
+            val transId = params["transId"] ?: ""
+
+            // Build raw signature đúng thứ tự và trường theo tài liệu MoMo
+            val rawSignature = "accessKey=$accessKey" +
+                "&amount=$amount" +
+                "&extraData=$extraData" +
+                "&message=$message" +
+                "&orderId=$orderId" +
+                "&orderInfo=$orderInfo" +
+                "&orderType=$orderType" +
+                "&partnerCode=$partnerCode" +
+                "&payType=$payType" +
+                "&requestId=$requestId" +
+                "&responseTime=$responseTime" +
+                "&resultCode=$resultCode" +
+                "&transId=$transId"
+
             val calculatedSignature = createMomoSignature(rawSignature, momoSecretKey)
-            
+
+            logger.info("Momo signature validation - raw: $rawSignature")
+            logger.info("Momo signature validation - expected: $signature")
+            logger.info("Momo signature validation - calculated: $calculatedSignature")
+
             val isValid = calculatedSignature.equals(signature, ignoreCase = true)
-            
             logger.info("Momo signature validation result: $isValid")
-            logger.info("  Expected signature: $signature")
-            logger.info("  Calculated signature: $calculatedSignature")
-            logger.info("  Raw signature data: $rawSignature")
-            
             return isValid
         } catch (e: Exception) {
             logger.error("Error validating Momo response: ${e.message}", e)
@@ -354,7 +348,7 @@ class PaymentServiceImpl(
                     orderInfo = params["orderInfo"],
                     orderType = params["orderType"],
                     transId = params["transId"],
-                    resultCode = params["errorCode"]?.toIntOrNull() ?: -1,
+                    resultCode = params["resultCode"]?.toIntOrNull() ?: params["errorCode"]?.toIntOrNull() ?: -1,
                     message = params["message"],
                     payType = params["payType"],
                     responseTime = params["responseTime"]?.toLongOrNull(),
@@ -371,71 +365,58 @@ class PaymentServiceImpl(
     @Transactional
     private fun processMomoPaymentResponse(params: Map<String, String>, source: String): ApiResponse<PaymentResponseDto> {
         val momoResponse = MomoResponse.fromParams(params)
-        
         logger.info("Processing Momo $source: orderId=${momoResponse.orderId}, resultCode=${momoResponse.resultCode}, " +
                 "transId=${momoResponse.transId}, amount=${momoResponse.amount}")
-        
         try {
-            // Find payment by orderId (transaction ID)
             val payment = paymentRepository.findByTransactionId(momoResponse.orderId)
                 .orElseThrow { ResourceNotFoundException("Payment not found with transaction ID: ${momoResponse.orderId}") }
-            
-            // Check if payment is already completed
-            if (payment.status == PaymentStatus.COMPLETED) {
-                logger.info("Payment already completed: ${momoResponse.orderId}")
-                return ApiResponse.success("Payment has already been processed", mapToPaymentResponseDto(payment))
-            }
-            
             val ticket = payment.ticket
-            
-            // Update payment status based on Momo result code
+
+            if (source == "RETURN") {
+                // Nếu đã completed thì trả về thành công, nếu chưa thì trả về đang chờ xác nhận
+                return if (payment.status == PaymentStatus.COMPLETED) {
+                    ApiResponse.success("Thanh toán thành công", mapToPaymentResponseDto(payment))
+                } else {
+                    ApiResponse.error("Thanh toán đang chờ xác nhận từ MoMo. Vui lòng kiểm tra lại sau khi nhận được thông báo xác nhận.", mapToPaymentResponseDto(payment))
+                }
+            }
+
+            // Chỉ cập nhật trạng thái khi là IPN
             payment.status = when (momoResponse.resultCode) {
-                0 -> { // Success
+                0 -> {
                     logger.info("Payment successful ($source): ${momoResponse.orderId}")
-                    
-                    // Mark ticket as paid if it's still in RESERVED status
                     if (ticket.status == TicketStatus.RESERVED) {
                         ticket.markAsPaid(payment.id!!)
-                        // Generate ticket number and QR code if not already done
                         if (ticket.ticketNumber == null) {
                             ticket.generateTicketNumber()
                             ticket.qrCode = generateQRCode(ticket.ticketNumber!!)
                         }
-                        // Save ticket changes
                         ticketRepository.save(ticket)
-                        // Update available ticket quantity
                         val ticketType = ticket.ticketType
                         ticketType.availableQuantity = (ticketType.availableQuantity - 1).coerceAtLeast(0)
                         ticketRepository.save(ticket)
                     }
-                    
-                PaymentStatus.COMPLETED
-            }
-                9000 -> { // Transaction canceled by user
+                    PaymentStatus.COMPLETED
+                }
+                9000 -> {
                     logger.info("Payment cancelled by user ($source): ${momoResponse.orderId}")
-                PaymentStatus.CANCELLED
-            }
-            else -> {
+                    PaymentStatus.CANCELLED
+                }
+                else -> {
                     logger.warn("Payment failed with code ${momoResponse.resultCode} ($source): ${momoResponse.orderId}")
-                PaymentStatus.FAILED
+                    PaymentStatus.FAILED
+                }
             }
-        }
-        
-            // Update payment timestamps
-        payment.updatedAt = LocalDateTime.now()
-        
-            // Update payment metadata with Momo response data
-        val metadata = mutableMapOf<String, String>()
-        if (payment.metadata != null) {
-            try {
+            payment.updatedAt = LocalDateTime.now()
+            val metadata = mutableMapOf<String, String>()
+            if (payment.metadata != null) {
+                try {
                     val existingMetadata = objectMapper.readValue(payment.metadata, Map::class.java) as Map<String, Any>
                     metadata.putAll(existingMetadata.mapValues { it.value.toString() })
-            } catch (e: Exception) {
-                logger.warn("Failed to parse existing metadata: ${e.message}")
+                } catch (e: Exception) {
+                    logger.warn("Failed to parse existing metadata: ${e.message}")
+                }
             }
-        }
-        
-            // Add Momo response details to metadata
             momoResponse.transId?.let { metadata["momoTransId"] = it }
             momoResponse.resultCode.let { metadata["momoResultCode"] = it.toString() }
             momoResponse.message?.let { metadata["momoMessage"] = it }
@@ -443,19 +424,13 @@ class PaymentServiceImpl(
             momoResponse.responseTime?.let { metadata["responseTime"] = it.toString() }
             metadata["processedBy"] = source
             metadata["processedAt"] = LocalDateTime.now().toString()
-        
-        // Save updated metadata
             try {
                 val jsonNode: JsonNode = objectMapper.valueToTree(metadata)
                 payment.metadata = objectMapper.writeValueAsString(jsonNode)
             } catch (e: Exception) {
                 logger.warn("Failed to update metadata: ${e.message}")
             }
-            
-            // Save updated payment
             val updatedPayment = paymentRepository.save(payment)
-            
-            // Return appropriate response based on payment status
             return if (updatedPayment.status == PaymentStatus.COMPLETED) {
                 ApiResponse.success("Thanh toán thành công", mapToPaymentResponseDto(updatedPayment))
             } else {

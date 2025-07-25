@@ -31,7 +31,15 @@ class PaymentController(private val paymentService: PaymentService) {
 
     @PostMapping("/payments/momo-return")
     @Operation(summary = "Process Momo return", description = "Process Momo payment return callback")
-    fun processMomoReturn(request: HttpServletRequest): ResponseEntity<ApiResponse<PaymentResponseDto>> {
+    fun processMomoReturnPost(request: HttpServletRequest): ResponseEntity<ApiResponse<PaymentResponseDto>> {
+        val params = request.parameterMap.mapValues { it.value[0] }
+        val response = paymentService.processMomoReturn(params)
+        return ResponseEntity.ok(response)
+    }
+
+    @GetMapping("/payments/momo-return")
+    @Operation(summary = "Process Momo return (GET)", description = "Process Momo payment return callback via GET")
+    fun processMomoReturnGet(request: HttpServletRequest): ResponseEntity<ApiResponse<PaymentResponseDto>> {
         val params = request.parameterMap.mapValues { it.value[0] }
         val response = paymentService.processMomoReturn(params)
         return ResponseEntity.ok(response)
@@ -39,8 +47,14 @@ class PaymentController(private val paymentService: PaymentService) {
 
     @PostMapping("/payments/momo-ipn")
     @Operation(summary = "Process Momo IPN", description = "Process Momo Instant Payment Notification")
-    fun processMomoIpn(request: HttpServletRequest): ResponseEntity<ApiResponse<String>> {
-        val params = request.parameterMap.mapValues { it.value[0] }
+    fun processMomoIpn(
+        request: HttpServletRequest,
+        @RequestBody(required = false) body: Map<String, Any>? = null
+    ): ResponseEntity<ApiResponse<String>> {
+        val params = when {
+            body != null -> body.mapValues { it.value.toString() }
+            else -> request.parameterMap.mapValues { it.value[0] }
+        }
         val response = paymentService.processMomoIpn(params)
         return ResponseEntity.ok(response)
     }

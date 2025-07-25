@@ -48,7 +48,9 @@ class WebSecurityConfig(
                         "/error",
                         "${ApiPaths.EVENTS_BASE}/public/**",
                         "${ApiPaths.EVENTS_BASE}/search",
-                        "${ApiPaths.EVENTS_BASE}/{id}/public"
+                        "${ApiPaths.EVENTS_BASE}/{id}/public",
+                        "/api/payments/momo-return",
+                        "/api/payments/momo-ipn"
                     ).permitAll()
                     .requestMatchers("${ApiPaths.ADMIN_BASE}/**").hasRole("ADMIN")
                     .requestMatchers("${ApiPaths.ORGANIZER_BASE}/**").hasAnyRole("ADMIN", "ORGANIZER")
