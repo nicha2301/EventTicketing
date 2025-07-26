@@ -10,8 +10,10 @@ import org.springframework.mail.javamail.MimeMessageHelper
 import org.springframework.stereotype.Service
 import org.thymeleaf.TemplateEngine
 import org.thymeleaf.context.Context
-import java.nio.charset.StandardCharsets
 import java.util.*
+import java.util.Base64
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @Service
 class EmailService(
@@ -79,6 +81,18 @@ class EmailService(
         )
         
         sendHtmlEmail(to, subject, "ticket-confirmation", variables)
+    }
+    
+    /**
+     * Kiểm tra tính hợp lệ của base64 string
+     */
+    private fun isValidBase64(data: String): Boolean {
+        return try {
+            Base64.getDecoder().decode(data)
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     /**
@@ -187,6 +201,30 @@ class EmailService(
     }
 
     /**
+     * Tạo link QR code động thay vì base64
+     */
+    fun generateQRCodeLink(data: String, width: Int = 200, height: Int = 200): String {
+        try {
+            if (data.isBlank()) {
+                return ""
+            }
+            
+            val encodedData = URLEncoder.encode(data, StandardCharsets.UTF_8.toString())
+            return "https://api.qrserver.com/v1/create-qr-code/?size=${width}x${height}&data=${encodedData}"
+        } catch (e: Exception) {
+            return ""
+        }
+    }
+    
+    /**
+     * Tạo link QR code từ thông tin vé (tạo link nội bộ)
+     */
+    fun generateTicketQRLink(ticketId: String, eventId: String, userId: String): String {
+        val qrData = "TICKET:${ticketId}:${eventId}:${userId}"
+        return generateQRCodeLink(qrData)
+    }
+
+    /**
      * Phương thức gửi email HTML với template
      */
     private fun sendHtmlEmail(to: String, subject: String, templateName: String, variables: Map<String, String>) {
@@ -215,18 +253,19 @@ class EmailService(
             
             // Thêm logo vào email
             try {
-                helper.addInline("logo", ClassPathResource("static/images/logo.png"))
+                val logoResource = ClassPathResource("static/images/logo.png")
+                if (logoResource.exists()) {
+                    helper.addInline("logo", logoResource)
+                }
             } catch (e: Exception) {
                 logger.warn("Could not add logo to email: ${e.message}")
             }
             
             mailSender.send(message)
-            logger.info("HTML email sent successfully to: $to")
+            logger.info("Email sent successfully to: $to")
         } catch (e: Exception) {
-            logger.error("Failed to send HTML email to $to: ${e.message}")
-            val plainContent = "Vui lòng xem email này ở định dạng HTML. " +
-                               "Nếu bạn không thể xem được, vui lòng liên hệ support@eventticketing.com."
-            sendEmail(to, subject, plainContent)
+            logger.error("Failed to send email: ${e.message}", e)
+            throw e
         }
     }
 

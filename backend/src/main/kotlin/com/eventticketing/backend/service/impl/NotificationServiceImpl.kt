@@ -43,13 +43,13 @@ class NotificationServiceImpl(
         ticketPrice: String, qrCodeData: String
     ) {
         try {
-            // Gửi email xác nhận vé
+            val qrCodeLink = emailService.generateQRCodeLink(qrCodeData)
+            
             emailService.sendTicketConfirmationEmail(
                 email, name, eventName, eventDate, eventLocation, 
-                ticketType, ticketPrice, qrCodeData, ticketId.toString()
+                ticketType, ticketPrice, qrCodeLink, ticketId.toString()
             )
             
-            // Gửi thông báo đẩy
             pushNotificationService.sendNotification(
                 userId.toString(),
                 "Xác nhận vé",

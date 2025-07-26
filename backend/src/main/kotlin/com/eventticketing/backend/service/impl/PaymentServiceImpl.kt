@@ -12,6 +12,7 @@ import com.eventticketing.backend.exception.PaymentException
 import com.eventticketing.backend.repository.PaymentRepository
 import com.eventticketing.backend.repository.TicketRepository
 import com.eventticketing.backend.repository.UserRepository
+import com.eventticketing.backend.service.NotificationService
 import com.eventticketing.backend.service.PaymentService
 import com.eventticketing.backend.util.SecurityUtils
 import com.fasterxml.jackson.databind.JsonNode
@@ -47,6 +48,7 @@ class PaymentServiceImpl(
     private val securityUtils: SecurityUtils,
     private val objectMapper: ObjectMapper,
     private val restTemplate: RestTemplate,
+    private val notificationService: NotificationService,
 
     @Value("\${payment.momo.return-url}")
     private val momoReturnUrl: String,
@@ -360,7 +362,7 @@ class PaymentServiceImpl(
     }
 
     /**
-     * Process Momo payment response (common logic for both Return URL and IPN)
+     * Process Momo payment response
      */
     @Transactional
     private fun processMomoPaymentResponse(params: Map<String, String>, source: String): ApiResponse<PaymentResponseDto> {
@@ -389,12 +391,36 @@ class PaymentServiceImpl(
                         ticket.markAsPaid(payment.id!!)
                         if (ticket.ticketNumber == null) {
                             ticket.generateTicketNumber()
-                            ticket.qrCode = generateQRCode(ticket.ticketNumber!!)
+                            ticket.qrCode = generateQRCode(ticket.id!!, ticket.ticketType.event.id!!, ticket.user.id!!)
                         }
                         ticketRepository.save(ticket)
                         val ticketType = ticket.ticketType
                         ticketType.availableQuantity = (ticketType.availableQuantity - 1).coerceAtLeast(0)
                         ticketRepository.save(ticket)
+                        
+                        try {
+                            val user = ticket.user
+                            val event = ticket.ticketType.event
+                            
+                            val qrData = "TICKET:${ticket.id}:${event.id}:${user.id}"
+                            
+                            notificationService.sendTicketConfirmation(
+                                user.id!!,
+                                user.email,
+                                user.fullName,
+                                event.id!!,
+                                event.name,
+                                event.startDate.toString(),
+                                event.location.name,
+                                ticket.id!!,
+                                ticket.ticketType.name,
+                                ticket.price.toString(),
+                                qrData
+                            )
+                        } catch (e: Exception) {
+                            logger.error("Failed to send ticket confirmation email", e)
+                            logger.error("Failed to send ticket confirmation email: ${e.message}", e)
+                        }
                     }
                     PaymentStatus.COMPLETED
                 }
@@ -646,16 +672,15 @@ class PaymentServiceImpl(
     
     /**
      * Generate QR code for ticket
+     * @param ticketId ID của vé
+     * @param eventId ID của sự kiện
+     * @param userId ID của người dùng
+     * @return Chuỗi QR code theo định dạng TICKET:ticketId:eventId:userId
      */
-    private fun generateQRCode(ticketNumber: String): String {
-        // In a real environment, we would use a QR code generation library
-        // Here, we'll just create a simple URL
-        return "https://api.eventticketing.com/verify/$ticketNumber"
+    private fun generateQRCode(ticketId: UUID, eventId: UUID, userId: UUID): String {
+        return "TICKET:$ticketId:$eventId:$userId"
     }
-    
-    /**
-     * Remove Vietnamese accents from a string
-     */
+
     private fun removeAccent(s: String): String {
         val temp = Normalizer.normalize(s, Normalizer.Form.NFD)
         return temp.replace("[^\\p{ASCII}]".toRegex(), "")

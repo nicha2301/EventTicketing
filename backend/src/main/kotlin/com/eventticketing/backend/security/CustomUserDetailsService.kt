@@ -20,10 +20,8 @@ class CustomUserDetailsService(
             .orElseThrow { UsernameNotFoundException("Không tìm thấy người dùng với email: $username") }
 
         val authorities = mutableListOf<SimpleGrantedAuthority>().apply {
-            // Thêm vai trò người dùng
             add(SimpleGrantedAuthority("ROLE_${user.role}"))
             
-            // Thêm quyền theo vai trò
             when (user.role) {
                 UserRole.ADMIN -> {
                     add(SimpleGrantedAuthority("PRIVILEGE_READ"))

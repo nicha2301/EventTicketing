@@ -25,7 +25,6 @@ class JwtAuthConverter : Converter<Jwt, Collection<GrantedAuthority>> {
             authorities.add(SimpleGrantedAuthority("ROLE_${role.toString().uppercase()}"))
         }
         
-        // Ensure we have at least USER role
         if (authorities.isEmpty()) {
             authorities.add(SimpleGrantedAuthority("ROLE_USER"))
         }
