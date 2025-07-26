@@ -2,6 +2,7 @@ package com.nicha.eventticketing.ui.screens.payment
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -21,70 +22,36 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
 import com.nicha.eventticketing.R
 import com.nicha.eventticketing.domain.model.ResourceState
+import com.nicha.eventticketing.domain.model.PaymentMethod
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicGradientButton
-import com.nicha.eventticketing.ui.theme.CardBackground
 import com.nicha.eventticketing.ui.theme.LocalNeumorphismStyle
 import com.nicha.eventticketing.util.FormatUtils
 import com.nicha.eventticketing.viewmodel.EventViewModel
 import com.nicha.eventticketing.viewmodel.PaymentViewModel
 import com.nicha.eventticketing.viewmodel.TicketViewModel
-import kotlinx.coroutines.delay
-import java.util.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import com.nicha.eventticketing.domain.model.EventType
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseItemDto
 
-
-enum class PaymentMethod(val displayName: String, val code: String, val iconRes: Int? = null) {
-    VNPAY("VNPAY", "vnpay", R.drawable.ic_vnpay),
-    MOMO("MoMo", "momo", R.drawable.ic_momo),
-    ZALOPAY("ZaloPay", "zalopay", R.drawable.ic_zalopay),
-    BANK_TRANSFER("Chuyển khoản ngân hàng", "bank_transfer"),
-    CASH("Tiền mặt", "cash")
-}
-
-// TicketType data class for PaymentScreen
-data class TicketType(
-    val id: String,
-    val eventId: String,
-    val name: String,
-    val description: String,
-    val price: Double,
-    val quantity: Int,
-    val quantitySold: Int,
-    val maxPerOrder: Int,
-    val minPerOrder: Int,
-    val saleStartDate: String,
-    val saleEndDate: String
-)
-
-// Temporary data class for payment screen
-data class PaymentEventInfo(
-    val id: String,
-    val title: String,
-    val description: String,
-    val imageUrl: String,
-    val date: String,
-    val time: String,
-    val location: String,
-    val organizer: String,
-    val price: Double,
-    val type: EventType
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,6 +59,7 @@ fun PaymentScreen(
     eventId: String,
     ticketTypeId: String,
     quantity: Int,
+    existingTicketId: String? = null, // New parameter for existing ticket
     onBackClick: () -> Unit,
     onPaymentSuccess: () -> Unit,
     eventViewModel: EventViewModel = hiltViewModel(),
@@ -100,25 +68,96 @@ fun PaymentScreen(
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
     
-    var selectedPaymentMethod by remember { mutableStateOf<PaymentMethod>(PaymentMethod.VNPAY) }
+    var selectedPaymentMethod by remember { mutableStateOf<PaymentMethod>(PaymentMethod.MOMO) }
     var showLoadingDialog by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    
+    var waitingForPayment by remember { mutableStateOf(false) }
+    var currentPaymentId by remember { mutableStateOf<String?>(null) }
+    var paymentStartTime by remember { mutableStateOf<Long?>(null) }
+
     // Collect states from ViewModels
     val eventState by eventViewModel.eventDetailState.collectAsState()
     val ticketTypeState by ticketViewModel.ticketTypeState.collectAsState()
+    val ticketPurchaseState by ticketViewModel.purchaseState.collectAsState()
     val paymentState by paymentViewModel.paymentState.collectAsState()
-    
+    val existingUnpaidTicketState by ticketViewModel.existingUnpaidTicketState.collectAsState()
+
     // Load data when screen is displayed
-    LaunchedEffect(eventId, ticketTypeId) {
+    LaunchedEffect(eventId, ticketTypeId, existingTicketId) {
         eventViewModel.getEventById(eventId)
-        ticketViewModel.getTicketTypeById(ticketTypeId)
+        
+        // If no existing ticket ID provided, check for existing unpaid ticket
+        if (existingTicketId == null) {
+            ticketViewModel.checkExistingUnpaidTicket(eventId, ticketTypeId)
+        }
     }
-    
+
+    // Monitor app lifecycle to check payment status when app resumes
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            
+            if (event == Lifecycle.Event.ON_RESUME && waitingForPayment && currentPaymentId != null) {
+                val currentTime = System.currentTimeMillis()
+                val startTime = paymentStartTime ?: currentTime
+                val elapsedTime = currentTime - startTime
+                val timeoutMillis = 10 * 60 * 1000L
+                
+                if (elapsedTime > timeoutMillis) {
+                    waitingForPayment = false
+                    currentPaymentId = null
+                    paymentStartTime = null
+                    errorMessage = "Phiên thanh toán đã hết hạn. Vui lòng thử lại."
+                    showErrorDialog = true
+                } else {
+                    paymentViewModel.checkPaymentStatusAfterReturn(currentPaymentId!!, maxRetries = 5)
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }    // Handle ticket purchase state changes
+    LaunchedEffect(ticketPurchaseState) {
+        when (ticketPurchaseState) {
+            is ResourceState.Loading -> {
+                showLoadingDialog = true
+            }
+            is ResourceState.Success -> {
+                val purchaseResponse = (ticketPurchaseState as ResourceState.Success).data
+                val orderId = purchaseResponse.orderId
+                val totalAmount = purchaseResponse.totalAmount
+                
+                val firstTicket = purchaseResponse.tickets.firstOrNull()
+                if (firstTicket != null) {
+                    paymentViewModel.setSelectedPaymentMethod(selectedPaymentMethod.code)
+                    paymentViewModel.createPayment(
+                        ticketId = firstTicket.id,
+                        amount = totalAmount,
+                        description = "Thanh toán đơn hàng #$orderId"
+                    )
+                } else {
+                    showLoadingDialog = false
+                    errorMessage = "Không tìm thấy thông tin vé"
+                    showErrorDialog = true
+                }
+                
+                ticketViewModel.clearPurchaseState()
+            }
+            is ResourceState.Error -> {
+                showLoadingDialog = false
+                errorMessage = (ticketPurchaseState as ResourceState.Error).message
+                showErrorDialog = true
+                ticketViewModel.clearPurchaseState()
+            }
+            else -> {}
+        }
+    }
+
     // Handle payment state changes
     LaunchedEffect(paymentState) {
         when (paymentState) {
@@ -127,25 +166,43 @@ fun PaymentScreen(
             }
             is ResourceState.Success -> {
                 showLoadingDialog = false
-                val paymentResponse = (paymentState as ResourceState.Success).data
+                val successState = paymentState as ResourceState.Success
+                val payment = successState.data
                 
-                // Mở URL thanh toán trong trình duyệt
-                paymentResponse.paymentUrl?.let { url ->
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    context.startActivity(intent)
+                when (payment.status.uppercase()) {
+                    "PENDING" -> {
+                        payment.paymentUrl?.let { url ->
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            context.startActivity(intent)
+                            
+                            waitingForPayment = true
+                            currentPaymentId = payment.id ?: payment.paymentId
+                            paymentStartTime = System.currentTimeMillis()
+                            
+                            paymentViewModel.resetPaymentState()
+                        }
+                    }
+                    "COMPLETED" -> {
+                        showSuccessDialog = true
+                        waitingForPayment = false
+                        currentPaymentId = null
+                        paymentStartTime = null
+                    }
+                    else -> {
+                    }
                 }
-                
-                // Trong thực tế, cần chờ callback từ cổng thanh toán
-                // Ở đây giả định thanh toán thành công sau 5 giây
-                delay(5000)
-                showSuccessDialog = true
             }
             is ResourceState.Error -> {
                 showLoadingDialog = false
-                errorMessage = (paymentState as ResourceState.Error).message
+                val errorState = paymentState as ResourceState.Error
                 showErrorDialog = true
+                errorMessage = errorState.message
+                waitingForPayment = false
+                currentPaymentId = null  
+                paymentStartTime = null
             }
-            else -> {}
+            is ResourceState.Initial -> {
+            }
         }
     }
     
@@ -155,10 +212,7 @@ fun PaymentScreen(
         else -> null
     }
     
-    val ticketType = when (ticketTypeState) {
-        is ResourceState.Success -> (ticketTypeState as ResourceState.Success).data
-        else -> null
-    }
+    val ticketType = event?.ticketTypes?.find { it.id == ticketTypeId }
     
     val totalAmount = ticketType?.price?.times(quantity) ?: 0.0
     
@@ -295,56 +349,111 @@ fun PaymentScreen(
                     
                     // Ticket details
                     if (ticketType != null) {
-                        Column(
-                            modifier = Modifier.padding(vertical = 16.dp)
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                            ),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                            )
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                            Column(
+                                modifier = Modifier.padding(16.dp)
                             ) {
-                                Text(
-                                    text = "Loại vé:",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    text = ticketType.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = "Số lượng:",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    text = quantity.toString(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = "Đơn giá:",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    text = FormatUtils.formatPrice(ticketType.price),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.ConfirmationNumber,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = ticketType.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                
+                                ticketType.description?.let { description ->
+                                    if (description.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = description,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = "Số lượng:",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "$quantity vé",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                    
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = "Đơn giá:",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = FormatUtils.formatPrice(ticketType.price),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                
+                                if (ticketType.availableQuantity > 0) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Inventory,
+                                            contentDescription = null,
+                                            tint = if (ticketType.availableQuantity < 10) 
+                                                MaterialTheme.colorScheme.error 
+                                            else 
+                                                MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Còn lại: ${ticketType.availableQuantity} vé",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = if (ticketType.availableQuantity < 10) 
+                                                MaterialTheme.colorScheme.error 
+                                            else 
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -355,16 +464,25 @@ fun PaymentScreen(
                                 .height(80.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (ticketTypeState is ResourceState.Loading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else if (ticketTypeState is ResourceState.Error) {
-                                Text(
-                                    text = (ticketTypeState as ResourceState.Error).message,
-                                    color = MaterialTheme.colorScheme.error
-                                )
+                            when (eventState) {
+                                is ResourceState.Loading -> {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                }
+                                is ResourceState.Error -> {
+                                    Text(
+                                        text = "Không thể tải thông tin loại vé",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                else -> {
+                                    Text(
+                                        text = "Không tìm thấy loại vé",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                         }
                     }
@@ -375,11 +493,32 @@ fun PaymentScreen(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                     )
                     
+                    // Calculation details
+                    if (ticketType != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "${ticketType.name} x ${quantity}:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = FormatUtils.formatPrice(ticketType.price * quantity),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    
                     // Total amount
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 16.dp),
+                            .padding(top = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
@@ -417,17 +556,33 @@ fun PaymentScreen(
             // Pay button
             NeumorphicGradientButton(
                 onClick = {
-                    if (ticketType != null) {
-                        // Tạo returnUrl dựa trên scheme của ứng dụng
-                        val returnUrl = "eventticketing://payment/callback"
-                        // Gọi API tạo thanh toán
-                        paymentViewModel.createPayment(
-                            ticketId = ticketType.id,
-                            amount = totalAmount,
-                            paymentMethod = selectedPaymentMethod.code,
-                            returnUrl = returnUrl,
-                            description = "Thanh toán vé sự kiện: ${event?.title ?: ""}"
-                        )
+                    if (event != null && ticketType != null) {
+                        val ticketIdToUse = existingTicketId 
+                            ?: (existingUnpaidTicketState as? ResourceState.Success)?.data?.id
+                        
+                        if (ticketIdToUse != null) {
+                            paymentViewModel.setSelectedPaymentMethod(selectedPaymentMethod.code)
+                            paymentViewModel.createPayment(
+                                ticketId = ticketIdToUse,
+                                amount = totalAmount,
+                                description = "Thanh toán cho vé ${ticketType.name}"
+                            )
+                        } else {
+                            val ticketItems = listOf(
+                                TicketPurchaseItemDto(
+                                    ticketTypeId = ticketType.id,
+                                    quantity = quantity
+                                )
+                            )
+                            
+                            ticketViewModel.purchaseTickets(
+                                eventId = event.id,
+                                ticketItems = ticketItems,
+                                buyerName = "Guest User", 
+                                buyerEmail = "guest@example.com",  
+                                buyerPhone = "0123456789"
+                            )
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -438,12 +593,25 @@ fun PaymentScreen(
                     )
                 )
             ) {
-                Text(
-                    text = "Thanh toán ${FormatUtils.formatPrice(totalAmount)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = if (ticketType != null) {
+                            "Thanh toán ${quantity} vé ${ticketType.name}"
+                        } else {
+                            "Thanh toán"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                    Text(
+                        text = FormatUtils.formatPrice(totalAmount),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
             }
         }
     }
@@ -477,40 +645,70 @@ fun PaymentScreen(
     if (showSuccessDialog) {
         Dialog(onDismissRequest = {}) {
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                shadowElevation = 8.dp
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier.padding(28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(72.dp)
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                     Text(
                         text = "Thanh toán thành công!",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Cảm ơn bạn đã đặt vé. Vé của bạn đã được gửi đến email.",
+                        text = "Cảm ơn bạn đã đặt vé. Vé của bạn đã được gửi đến email và có thể xem trong ví vé.",
                         textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = { onPaymentSuccess() },
-                        modifier = Modifier.fillMaxWidth()
+                    Spacer(modifier = Modifier.height(28.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("Xem vé của tôi")
+                        OutlinedButton(
+                            onClick = { 
+                                showSuccessDialog = false
+                                onBackClick() 
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "Về trang chủ",
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1
+                            )
+                        }
+                        
+                        Button(
+                            onClick = { 
+                                showSuccessDialog = false
+                                onPaymentSuccess() 
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "Xem vé",
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }
@@ -521,40 +719,85 @@ fun PaymentScreen(
     if (showErrorDialog) {
         Dialog(onDismissRequest = { showErrorDialog = false }) {
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                shadowElevation = 8.dp
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier.padding(28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
                         imageVector = Icons.Default.Error,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(72.dp)
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                     Text(
-                        text = "Thanh toán thất bại",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        text = "Thanh toán không thành công",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = errorMessage,
                         textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = { showErrorDialog = false },
-                        modifier = Modifier.fillMaxWidth()
+                    Spacer(modifier = Modifier.height(28.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("Thử lại")
+                        OutlinedButton(
+                            onClick = { 
+                                showErrorDialog = false
+                                onBackClick()
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "Hủy",
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1
+                            )
+                        }
+                        
+                        Button(
+                            onClick = { 
+                                showErrorDialog = false
+                                if (event != null && ticketType != null) {
+                                    val ticketItems = listOf(
+                                        TicketPurchaseItemDto(
+                                            ticketTypeId = ticketType.id,
+                                            quantity = quantity
+                                        )
+                                    )
+                                    
+                                    ticketViewModel.purchaseTickets(
+                                        eventId = event.id,
+                                        ticketItems = ticketItems,
+                                        buyerName = "Guest User",
+                                        buyerEmail = "guest@example.com", 
+                                        buyerPhone = "0123456789"
+                                    )
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "Thử lại",
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }
@@ -570,11 +813,15 @@ fun PaymentMethodSelector(
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        PaymentMethod.values().take(2).forEach { method ->
+        PaymentMethod.values().forEach { method ->
             PaymentMethodItem(
                 method = method,
                 isSelected = selectedMethod == method,
-                onClick = { onMethodSelected(method) }
+                onClick = { 
+                    if (method == PaymentMethod.MOMO) {
+                        onMethodSelected(method)
+                    }
+                }
             )
         }
     }
@@ -587,24 +834,31 @@ fun PaymentMethodItem(
     onClick: () -> Unit
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
+    val isSupported = method == PaymentMethod.MOMO // Chỉ MoMo được hỗ trợ
     
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(enabled = isSupported, onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) 
+            containerColor = if (isSelected && isSupported) 
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) 
+                else if (!isSupported)
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
                 else MaterialTheme.colorScheme.surface,
-            contentColor = if (isSelected) 
+            contentColor = if (isSelected && isSupported) 
                 MaterialTheme.colorScheme.primary 
+                else if (!isSupported)
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 else MaterialTheme.colorScheme.onSurface
         ),
         border = BorderStroke(
-            width = if (isSelected) 2.dp else 1.dp,
-            color = if (isSelected) 
+            width = if (isSelected && isSupported) 2.dp else 1.dp,
+            color = if (isSelected && isSupported) 
                 MaterialTheme.colorScheme.primary 
+                else if (!isSupported)
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
         )
     ) {
@@ -619,7 +873,7 @@ fun PaymentMethodItem(
                 modifier = Modifier
                     .size(20.dp)
                     .then(
-                        if (isSelected) {
+                        if (isSelected && isSupported) {
                             Modifier
                                 .shadow(
                                     elevation = 2.dp,
@@ -633,14 +887,17 @@ fun PaymentMethodItem(
                             Modifier
                                 .border(
                                     width = 2.dp,
-                                    color = MaterialTheme.colorScheme.outline,
+                                    color = if (isSupported) 
+                                        MaterialTheme.colorScheme.outline
+                                    else 
+                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                                     shape = CircleShape
                                 )
                         }
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                if (isSelected) {
+                if (isSelected && isSupported) {
                     Icon(
                         imageVector = Icons.Filled.Check,
                         contentDescription = null,
@@ -657,7 +914,7 @@ fun PaymentMethodItem(
                 Icon(
                     painter = painterResource(id = method.iconRes),
                     contentDescription = null,
-                    tint = Color.Unspecified,
+                    tint = if (isSupported) Color.Unspecified else Color.Unspecified.copy(alpha = 0.4f),
                     modifier = Modifier.size(32.dp)
                 )
             } else {
@@ -668,20 +925,43 @@ fun PaymentMethodItem(
                         else -> Icons.Filled.Payment
                     },
                     contentDescription = null,
-                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (isSelected && isSupported) 
+                        MaterialTheme.colorScheme.primary 
+                    else if (!isSupported)
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    else 
+                        MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
             }
             
             Spacer(modifier = Modifier.width(16.dp))
             
-            // Method name
-            Text(
-                text = method.displayName,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            )
+            // Method name and status
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = method.displayName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (isSelected && isSupported) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isSelected && isSupported) 
+                        MaterialTheme.colorScheme.primary 
+                    else if (!isSupported)
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    else 
+                        MaterialTheme.colorScheme.onSurface
+                )
+                
+                if (!isSupported) {
+                    Text(
+                        text = "Chưa hỗ trợ",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        fontStyle = FontStyle.Italic
+                    )
+                }
+            }
         }
     }
 } 

@@ -23,6 +23,31 @@ import android.content.Context
 object NetworkUtil {
     
     /**
+     * Kiểm tra kết nối mạng
+     */
+    fun isNetworkAvailable(): Boolean {
+        return try {
+            val context = EventTicketingApp.instance.applicationContext
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val network = connectivityManager.activeNetwork ?: return false
+                val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+                return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+            } else {
+                @Suppress("DEPRECATION")
+                val networkInfo = connectivityManager.activeNetworkInfo
+                return networkInfo?.isConnected == true
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error checking network availability")
+            false
+        }
+    }
+    
+    /**
      * Parse response body từ lỗi
      *
      * @param T Type của dữ liệu trả về

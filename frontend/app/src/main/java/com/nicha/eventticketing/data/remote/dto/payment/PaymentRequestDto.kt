@@ -7,7 +7,7 @@ data class PaymentRequestDto(
     val ticketId: String,
     val amount: Double,
     val paymentMethod: String,
-    val returnUrl: String,
     val description: String? = null,
-    val metadata: Map<String, String>? = null
-) 
+    val returnUrl: String = "",
+    val metadata: Map<String, Any>? = null
+)

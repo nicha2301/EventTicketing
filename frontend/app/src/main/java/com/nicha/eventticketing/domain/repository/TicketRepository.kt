@@ -5,6 +5,8 @@ import com.nicha.eventticketing.data.remote.dto.ticket.CheckInRequestDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseResponseDto
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseRequestDto
+import com.nicha.eventticketing.data.remote.dto.ticket.PendingOrderDto
 import com.nicha.eventticketing.domain.model.Resource
 import kotlinx.coroutines.flow.Flow
 
@@ -14,10 +16,10 @@ import kotlinx.coroutines.flow.Flow
 interface TicketRepository {
     /**
      * Mua vé
-     * @param purchaseDto Thông tin mua vé
+     * @param purchaseRequest Thông tin mua vé
      * @return Flow<Resource<TicketPurchaseResponseDto>> Flow chứa thông tin kết quả mua vé
      */
-    fun purchaseTickets(purchaseDto: TicketPurchaseDto): Flow<Resource<TicketPurchaseResponseDto>>
+    fun purchaseTickets(purchaseRequest: TicketPurchaseRequestDto): Flow<Resource<TicketPurchaseResponseDto>>
     
     /**
      * Lấy thông tin vé theo ID
@@ -41,6 +43,12 @@ interface TicketRepository {
      * @return Flow<Resource<PageDto<TicketDto>>> Flow chứa danh sách vé theo trang
      */
     fun getMyTickets(status: String? = null, page: Int = 0, size: Int = 10): Flow<Resource<PageDto<TicketDto>>>
+    
+    /**
+     * Lấy danh sách đơn hàng đang chờ thanh toán
+     * @return Flow<Resource<List<PendingOrderDto>>> Flow chứa danh sách đơn hàng pending
+     */
+    fun getMyPendingTickets(): Flow<Resource<List<PendingOrderDto>>>
     
     /**
      * Check-in vé

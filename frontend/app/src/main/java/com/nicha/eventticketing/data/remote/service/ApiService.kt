@@ -28,6 +28,8 @@ import com.nicha.eventticketing.data.remote.dto.organizer.OrganizerUpdateDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseResponseDto
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseRequestDto
+import com.nicha.eventticketing.data.remote.dto.ticket.PendingTicketsResponseDto
 import com.nicha.eventticketing.data.remote.dto.payment.PaymentDto
 import com.nicha.eventticketing.data.remote.dto.payment.PaymentRequestDto
 import com.nicha.eventticketing.data.remote.dto.payment.PaymentResponseDto
@@ -204,6 +206,9 @@ interface ApiService {
         @Query("size") size: Int = 10
     ): Response<ApiResponse<PageDto<TicketDto>>>
     
+    @GET("api/tickets/my-pending-tickets")
+    suspend fun getMyPendingTickets(): Response<PendingTicketsResponseDto>
+    
     @POST("api/tickets/check-in")
     suspend fun checkInTicket(@Body request: CheckInRequestDto): Response<ApiResponse<TicketDto>>
     
@@ -301,30 +306,38 @@ interface ApiService {
         @Query("size") size: Int = 20
     ): Response<ApiResponse<PageDto<EventDto>>>
     
-    // Payments
-    @GET("api/payments")
-    suspend fun getPayments(
-        @Query("page") page: Int = 0,
-        @Query("size") size: Int = 20
-    ): Response<ApiResponse<PageDto<PaymentDto>>>
+    // Tickets
+    @POST("api/tickets/purchase")
+    suspend fun purchaseTickets(@Body request: TicketPurchaseRequestDto): Response<ApiResponse<TicketPurchaseResponseDto>>
     
-    @GET("api/payments/{paymentId}")
-    suspend fun getPaymentById(@Path("paymentId") paymentId: String): Response<ApiResponse<PaymentDto>>
-    
+    // Payments  
     @POST("api/payments/create")
-    suspend fun createPayment(@Body payment: PaymentRequestDto): Response<ApiResponse<PaymentResponseDto>>
+    suspend fun createPayment(@Body payment: PaymentRequestDto): Response<PaymentResponseDto>
     
-    @PUT("api/payments/{paymentId}/status")
-    suspend fun updatePaymentStatus(
-        @Path("paymentId") paymentId: String,
-        @Body statusUpdate: PaymentStatusUpdateDto
-    ): Response<ApiResponse<PaymentDto>>
-    
-    @GET("api/payments/methods")
-    suspend fun getPaymentMethods(): Response<ApiResponse<List<PaymentMethodDto>>>
+    @GET("api/payments/momo-return")
+    suspend fun processMomoReturn(
+        @Query("partnerCode") partnerCode: String,
+        @Query("orderId") orderId: String,
+        @Query("requestId") requestId: String,
+        @Query("amount") amount: String,
+        @Query("orderInfo") orderInfo: String,
+        @Query("orderType") orderType: String,
+        @Query("transId") transId: String,
+        @Query("resultCode") resultCode: String,
+        @Query("message") message: String,
+        @Query("payType") payType: String,
+        @Query("responseTime") responseTime: String,
+        @Query("extraData") extraData: String,
+        @Query("signature") signature: String
+    ): Response<ApiResponse<PaymentResponseDto>>
     
     @GET("api/users/me/payments")
-    suspend fun getCurrentUserPayments(): Response<ApiResponse<List<PaymentResponseDto>>>
+    suspend fun getUserPayments(
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 20,
+        @Query("status") status: String? = null,
+        @Query("paymentMethod") paymentMethod: String? = null
+    ): Response<List<PaymentResponseDto>>  // Trả về List trực tiếp thay vì PageDto
     
     @POST("api/payments/{id}/refund")
     suspend fun refundPayment(

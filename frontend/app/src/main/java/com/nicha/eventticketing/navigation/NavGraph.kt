@@ -186,8 +186,12 @@ fun NavGraph(
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onBuyTicketsClick = { eventId, ticketTypeId ->
-                    navController.navigate(NavDestination.Payment.createRoute(eventId, ticketTypeId, 1))
+                onBuyTicketsClick = { eventId, ticketTypeId, existingTicketId ->
+                    if (existingTicketId != null) {
+                        navController.navigate(NavDestination.Payment.createRoute(eventId, ticketTypeId, 1, existingTicketId))
+                    } else {
+                        navController.navigate(NavDestination.Payment.createRoute(eventId, ticketTypeId, 1))
+                    }
                 },
                 onViewTicketClick = { ticketId ->
                     navController.navigate(NavDestination.TicketDetail.createRoute(ticketId))
@@ -356,33 +360,50 @@ fun NavGraph(
                 ticketId = ticketId,
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onNavigateToPayment = { eventId, ticketTypeId, quantity, existingTicketId ->
+                    val route = if (existingTicketId != null) {
+                        "${NavDestination.Payment.route}/$eventId/$ticketTypeId/$quantity?existingTicketId=$existingTicketId"
+                    } else {
+                        "${NavDestination.Payment.route}/$eventId/$ticketTypeId/$quantity"
+                    }
+                    navController.navigate(route)
                 }
             )
         }
         
         // Payment Screen
         composable(
-            route = NavDestination.Payment.route + "/{eventId}/{ticketType}/{quantity}",
+            route = NavDestination.Payment.route + "/{eventId}/{ticketType}/{quantity}?existingTicketId={existingTicketId}",
             arguments = listOf(
                 navArgument("eventId") { type = NavType.StringType },
                 navArgument("ticketType") { type = NavType.StringType },
-                navArgument("quantity") { type = NavType.IntType }
+                navArgument("quantity") { type = NavType.IntType },
+                navArgument("existingTicketId") { 
+                    type = NavType.StringType 
+                    nullable = true
+                    defaultValue = null
+                }
             )
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
             val ticketType = backStackEntry.arguments?.getString("ticketType") ?: ""
             val quantity = backStackEntry.arguments?.getInt("quantity") ?: 1
+            val existingTicketId = backStackEntry.arguments?.getString("existingTicketId")
             
             PaymentScreen(
                 eventId = eventId,
                 ticketTypeId = ticketType,
                 quantity = quantity,
+                existingTicketId = existingTicketId,
                 onBackClick = {
                     navController.popBackStack()
                 },
                 onPaymentSuccess = {
                     navController.navigate(NavDestination.TicketWallet.route) {
-                        popUpTo(NavDestination.Payment.route) { inclusive = true }
+                        popUpTo(NavDestination.Home.route) { 
+                            inclusive = false 
+                        }
                     }
                 }
             )
@@ -640,6 +661,12 @@ sealed class NavDestination(val route: String) {
     object Payment : NavDestination("payment") {
         fun createRoute(eventId: String, ticketTypeId: String, quantity: Int) = 
             "$route/$eventId/$ticketTypeId/$quantity"
+        fun createRoute(eventId: String, ticketTypeId: String, quantity: Int, existingTicketId: String?) = 
+            if (existingTicketId != null) {
+                "$route/$eventId/$ticketTypeId/$quantity?existingTicketId=$existingTicketId"
+            } else {
+                "$route/$eventId/$ticketTypeId/$quantity"
+            }
     }
     object PaymentResult : NavDestination("payment_result") {
         fun createRoute(status: String, paymentId: String) = 

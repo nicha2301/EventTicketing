@@ -54,6 +54,7 @@ import com.nicha.eventticketing.util.NetworkStatusObserver
 fun TicketDetailScreen(
     ticketId: String,
     onBackClick: () -> Unit,
+    onNavigateToPayment: (eventId: String, ticketTypeId: String, quantity: Int, existingTicketId: String?) -> Unit = { _, _, _, _ -> },
     viewModel: TicketViewModel = hiltViewModel()
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
@@ -394,10 +395,36 @@ fun TicketDetailScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                     
                     // Action buttons
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        if (ticket.status == "RESERVED" || ticket.status == "PENDING" || ticket.status == "UNPAID") {
+                            Button(
+                                onClick = {
+                                    onNavigateToPayment(ticket.eventId, ticket.ticketTypeId, 1, ticket.id)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Payment,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                
+                                Spacer(modifier = Modifier.width(8.dp))
+                                
+                                Text("Thanh toán ngay")
+                            }
+                        }
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
                         // Add to Calendar Button
                         Button(
                             onClick = {
@@ -441,6 +468,7 @@ fun TicketDetailScreen(
                             }
                         }
                     }
+                }
                 }
                 
                 // Cancel Ticket Dialog
@@ -581,6 +609,12 @@ fun TicketStatusBadge(status: String) {
             textColor = MaterialTheme.colorScheme.secondary,
             icon = Icons.Default.Pending,
             text = "Đã đặt chỗ"
+        )
+        "PENDING" -> StatusInfo(
+            backgroundColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+            textColor = MaterialTheme.colorScheme.error,
+            icon = Icons.Default.Payment,
+            text = "Chưa thanh toán"
         )
         "CHECKED_IN" -> StatusInfo(
             backgroundColor = Color(0xFF4CAF50).copy(alpha = 0.1f),

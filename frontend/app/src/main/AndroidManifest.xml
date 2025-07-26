@@ -35,6 +35,7 @@
         android:theme="@style/Theme.EventTicketing"
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config"
+        android:enableOnBackInvokedCallback="true"
         tools:targetApi="31">
         <activity
             android:name=".MainActivity"
@@ -45,7 +46,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             
-            <!-- Deep link filter for VNPay callback -->
+            <!-- Deep link filter for Payment callback -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

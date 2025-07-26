@@ -66,7 +66,7 @@ import com.nicha.eventticketing.util.NetworkStatusObserver
 fun EventDetailScreen(
     eventId: String,
     onBackClick: () -> Unit,
-    onBuyTicketsClick: (String, String) -> Unit,
+    onBuyTicketsClick: (String, String, String?) -> Unit,
     onViewTicketClick: (String) -> Unit = {},
     viewModel: EventViewModel = hiltViewModel(),
     ticketViewModel: TicketViewModel = hiltViewModel()
@@ -88,6 +88,34 @@ fun EventDetailScreen(
     val myTicketState by ticketViewModel.myTicketForEventState.collectAsState()
     LaunchedEffect(eventId) {
         ticketViewModel.getMyTicketsByEventId(eventId)
+    }
+
+    val allPendingTicketsState by ticketViewModel.allPendingTicketsState.collectAsState()
+    LaunchedEffect(eventId) {
+        ticketViewModel.getAllPendingTickets()
+    }
+    
+    var selectedTicketType by remember { mutableStateOf<TicketTypeDto?>(null) }
+    
+    val existingUnpaidTicket = remember(selectedTicketType, allPendingTicketsState) {
+        if (selectedTicketType != null) {
+            val pendingOrders = (allPendingTicketsState as? ResourceState.Success)?.data
+            val existingOrder = pendingOrders?.find { order ->
+                order.eventId == eventId && 
+                order.paymentStatus.equals("PENDING", ignoreCase = true) &&
+                order.tickets.any { ticket -> 
+                    ticket.ticketTypeId == selectedTicketType!!.id && 
+                    ticket.status.equals("RESERVED", ignoreCase = true)
+                }
+            }
+            
+            existingOrder?.tickets?.find { ticket ->
+                ticket.ticketTypeId == selectedTicketType!!.id && 
+                ticket.status.equals("RESERVED", ignoreCase = true)
+            }
+        } else {
+            null
+        }
     }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -179,7 +207,6 @@ fun EventDetailScreen(
             is ResourceState.Success -> {
                 val event = (eventDetailState as ResourceState.Success<EventDto>).data
                 var isDescriptionExpanded by remember { mutableStateOf(false) }
-                var selectedTicketType by remember { mutableStateOf<TicketTypeDto?>(null) }
 
                 // Lọc danh sách vé để chỉ hiển thị vé thường và vé VIP
                 val filteredTicketTypes = remember(event.ticketTypes) {
@@ -595,13 +622,23 @@ fun EventDetailScreen(
                                       Text("Xem chi tiết vé của bạn")
                                   }
                               } else if (!filteredTicketTypes.isNullOrEmpty()) {
-                                  // Chưa có vé, cho phép mua
+                                  val hasPendingTicket = existingUnpaidTicket != null
+                                  val buttonText = when {
+                                      !isOnline -> "Không thể mua vé khi offline"
+                                      selectedTicketType == null -> "Chọn loại vé để mua"
+                                      hasPendingTicket -> "Thanh toán ngay"
+                                      else -> "Mua vé ngay"
+                                  }
+                                  val buttonIcon = if (hasPendingTicket) Icons.Default.Payment else Icons.Default.ConfirmationNumber
+                                  
                                   Surface(
                                       modifier = Modifier
                                           .fillMaxWidth()
                                           .padding(16.dp),
                                       shape = RoundedCornerShape(28.dp),
-                                      color = if (selectedTicketType != null && isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                      color = if (selectedTicketType != null && isOnline) {
+                                          if (hasPendingTicket) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+                                      } else MaterialTheme.colorScheme.surfaceVariant,
                                       shadowElevation = 6.dp
                                   ) {
                                       Row(
@@ -610,7 +647,7 @@ fun EventDetailScreen(
                                               .clickable(enabled = selectedTicketType != null && isOnline) {
                                                   if (isOnline) {
                                                       selectedTicketType?.let { ticketType ->
-                                                          onBuyTicketsClick(event.id, ticketType.id)
+                                                          onBuyTicketsClick(event.id, ticketType.id, existingUnpaidTicket?.id)
                                                       }
                                                   }
                                               }
@@ -619,13 +656,13 @@ fun EventDetailScreen(
                                           verticalAlignment = Alignment.CenterVertically
                                       ) {
                                           Icon(
-                                              imageVector = Icons.Default.ConfirmationNumber,
-                                              contentDescription = "Buy tickets",
+                                              imageVector = buttonIcon,
+                                              contentDescription = if (hasPendingTicket) "Pay now" else "Buy tickets",
                                               tint = if (selectedTicketType != null && isOnline) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                           )
                                           Spacer(modifier = Modifier.width(8.dp))
                                           Text(
-                                              text = if (!isOnline) "Không thể mua vé khi offline" else if (selectedTicketType != null) "Mua vé ngay" else "Chọn loại vé để mua",
+                                              text = buttonText,
                                               style = MaterialTheme.typography.titleMedium,
                                               color = if (selectedTicketType != null && isOnline) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                           )
@@ -634,14 +671,24 @@ fun EventDetailScreen(
                               }
                           }
                           is ResourceState.Error -> {
-                              // Nếu lỗi, vẫn cho phép mua vé như cũ
                               if (!filteredTicketTypes.isNullOrEmpty()) {
+                                  val hasPendingTicket = existingUnpaidTicket != null
+                                  val buttonText = when {
+                                      !isOnline -> "Không thể mua vé khi offline"
+                                      selectedTicketType == null -> "Chọn loại vé để mua"
+                                      hasPendingTicket -> "Thanh toán ngay"
+                                      else -> "Mua vé ngay"
+                                  }
+                                  val buttonIcon = if (hasPendingTicket) Icons.Default.Payment else Icons.Default.ConfirmationNumber
+                                  
                                   Surface(
                                       modifier = Modifier
                                           .fillMaxWidth()
                                           .padding(16.dp),
                                       shape = RoundedCornerShape(28.dp),
-                                      color = if (selectedTicketType != null && isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                      color = if (selectedTicketType != null && isOnline) {
+                                          if (hasPendingTicket) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+                                      } else MaterialTheme.colorScheme.surfaceVariant,
                                       shadowElevation = 6.dp
                                   ) {
                                       Row(
@@ -650,7 +697,7 @@ fun EventDetailScreen(
                                               .clickable(enabled = selectedTicketType != null && isOnline) {
                                                   if (isOnline) {
                                                       selectedTicketType?.let { ticketType ->
-                                                          onBuyTicketsClick(event.id, ticketType.id)
+                                                          onBuyTicketsClick(event.id, ticketType.id, existingUnpaidTicket?.id)
                                                       }
                                                   }
                                               }
@@ -659,13 +706,13 @@ fun EventDetailScreen(
                                           verticalAlignment = Alignment.CenterVertically
                                       ) {
                                           Icon(
-                                              imageVector = Icons.Default.ConfirmationNumber,
-                                              contentDescription = "Buy tickets",
+                                              imageVector = buttonIcon,
+                                              contentDescription = if (hasPendingTicket) "Pay now" else "Buy tickets",
                                               tint = if (selectedTicketType != null && isOnline) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                           )
                                           Spacer(modifier = Modifier.width(8.dp))
                                           Text(
-                                              text = if (!isOnline) "Không thể mua vé khi offline" else if (selectedTicketType != null) "Mua vé ngay" else "Chọn loại vé để mua",
+                                              text = buttonText,
                                               style = MaterialTheme.typography.titleMedium,
                                               color = if (selectedTicketType != null && isOnline) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                           )

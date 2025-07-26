@@ -6,6 +6,8 @@ import com.nicha.eventticketing.data.remote.dto.ticket.CheckInRequestDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseResponseDto
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseRequestDto
+import com.nicha.eventticketing.data.remote.dto.ticket.PendingOrderDto
 import com.nicha.eventticketing.data.remote.service.ApiService
 import com.nicha.eventticketing.domain.mapper.TicketMapper
 import com.nicha.eventticketing.domain.model.Resource
@@ -14,7 +16,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
-import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.nicha.eventticketing.data.remote.dto.event.PageableDto
@@ -33,23 +34,35 @@ class TicketRepositoryImpl @Inject constructor(
             }
         }
     
-    override fun purchaseTickets(purchaseDto: TicketPurchaseDto): Flow<Resource<TicketPurchaseResponseDto>> = flow {
+    override fun purchaseTickets(purchaseRequest: TicketPurchaseRequestDto): Flow<Resource<TicketPurchaseResponseDto>> = flow {
         emit(Resource.Loading())
+        
         try {
-            val response = apiService.purchaseTickets(purchaseDto)
-            if (response.isSuccessful && response.body()?.success == true) {
-                val purchaseResponse = response.body()?.data
-                if (purchaseResponse != null) {
-                    emit(Resource.Success(purchaseResponse))
-                } else {
-                    emit(Resource.Error("Không thể hoàn tất việc mua vé"))
+            if (!NetworkUtil.isNetworkAvailable()) {
+                emit(Resource.Error("Không có kết nối mạng"))
+                return@flow
+            }
+            
+            val response = apiService.purchaseTickets(purchaseRequest)
+            
+            if (response.isSuccessful) {
+                response.body()?.let { apiResponse ->
+                    if (apiResponse.success && apiResponse.data != null) {
+                        emit(Resource.Success(apiResponse.data))
+                    } else {
+                        val errorMsg = apiResponse.message ?: "Mua vé thất bại"
+                        emit(Resource.Error(errorMsg))
+                    }
+                } ?: run {
+                    emit(Resource.Error("Phản hồi từ server không hợp lệ"))
                 }
             } else {
-                emit(Resource.Error(response.body()?.message ?: "Mua vé thất bại"))
+                val errorMsg = "Mua vé thất bại: ${response.code()} - ${response.message()}"
+                emit(Resource.Error(errorMsg))
             }
         } catch (e: Exception) {
-            Timber.e(e, "Lỗi khi mua vé cho sự kiện: ${purchaseDto.eventId}")
-            emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
+            val errorMsg = "Lỗi khi mua vé: ${e.message}"
+            emit(Resource.Error(errorMsg))
         }
     }
     
@@ -172,6 +185,29 @@ class TicketRepositoryImpl @Inject constructor(
         }
     }
     
+    override fun getMyPendingTickets(): Flow<Resource<List<PendingOrderDto>>> = flow {
+        emit(Resource.Loading())
+        if (isOnline) {
+            try {
+                val response = apiService.getMyPendingTickets()
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val pendingOrders = response.body()?.data
+                    if (pendingOrders != null) {
+                        emit(Resource.Success(pendingOrders))
+                    } else {
+                        emit(Resource.Success(emptyList()))
+                    }
+                } else {
+                    emit(Resource.Error(response.body()?.message ?: "Không thể lấy danh sách đơn hàng pending"))
+                }
+            } catch (e: Exception) {
+                emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
+            }
+        } else {
+            emit(Resource.Success(emptyList()))
+        }
+    }
+    
     override fun checkInTicket(request: CheckInRequestDto): Flow<Resource<TicketDto>> = flow {
         emit(Resource.Loading())
         try {
@@ -188,7 +224,6 @@ class TicketRepositoryImpl @Inject constructor(
                 emit(Resource.Error(response.body()?.message ?: "Check-in vé thất bại"))
             }
         } catch (e: Exception) {
-            Timber.e(e, "Lỗi khi check-in vé: ${request.ticketId}")
             emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
         }
     }
@@ -209,7 +244,6 @@ class TicketRepositoryImpl @Inject constructor(
                 emit(Resource.Error(response.body()?.message ?: "Hủy vé thất bại"))
             }
         } catch (e: Exception) {
-            Timber.e(e, "Lỗi khi hủy vé: $ticketId")
             emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
         }
     }
@@ -226,7 +260,6 @@ class TicketRepositoryImpl @Inject constructor(
             // Tạm thời chưa triển khai
             emit(Resource.Error("Chức năng chưa được hỗ trợ"))
         } catch (e: Exception) {
-            Timber.e(e, "Lỗi khi lấy danh sách vé của sự kiện: $eventId")
             emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
         }
     }
@@ -238,7 +271,6 @@ class TicketRepositoryImpl @Inject constructor(
             // Tạm thời chưa triển khai
             emit(Resource.Error("Chức năng chưa được hỗ trợ"))
         } catch (e: Exception) {
-            Timber.e(e, "Lỗi khi gửi lại email xác nhận vé: $ticketId")
             emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
         }
     }
@@ -250,7 +282,6 @@ class TicketRepositoryImpl @Inject constructor(
             // Tạm thời chưa triển khai
             emit(Resource.Error("Chức năng chưa được hỗ trợ"))
         } catch (e: Exception) {
-            Timber.e(e, "Lỗi khi xác thực vé: $ticketId")
             emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
         }
     }
@@ -262,7 +293,6 @@ class TicketRepositoryImpl @Inject constructor(
             // Tạm thời chưa triển khai
             emit(Resource.Error("Chức năng chưa được hỗ trợ"))
         } catch (e: Exception) {
-            Timber.e(e, "Lỗi khi chuyển nhượng vé: $ticketId")
             emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
         }
     }

@@ -6,8 +6,11 @@ import com.nicha.eventticketing.data.preferences.PreferencesManager
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseResponseDto
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseRequestDto
+import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseItemDto
 import com.nicha.eventticketing.data.remote.dto.ticket.CheckInRequestDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeDto
+import com.nicha.eventticketing.data.remote.dto.ticket.PendingOrderDto
 import com.nicha.eventticketing.domain.model.Resource
 import com.nicha.eventticketing.domain.model.ResourceState
 import com.nicha.eventticketing.domain.repository.TicketRepository
@@ -16,7 +19,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -55,6 +57,14 @@ class TicketViewModel @Inject constructor(
     private val _ticketTypeState = MutableStateFlow<ResourceState<TicketTypeDto>>(ResourceState.Initial)
     val ticketTypeState: StateFlow<ResourceState<TicketTypeDto>> = _ticketTypeState.asStateFlow()
 
+    // State cho existing unpaid ticket
+    private val _existingUnpaidTicketState = MutableStateFlow<ResourceState<TicketDto?>>(ResourceState.Initial)
+    val existingUnpaidTicketState: StateFlow<ResourceState<TicketDto?>> = _existingUnpaidTicketState.asStateFlow()
+
+    // State cho tất cả pending tickets
+    private val _allPendingTicketsState = MutableStateFlow<ResourceState<List<PendingOrderDto>>>(ResourceState.Initial)
+    val allPendingTicketsState: StateFlow<ResourceState<List<PendingOrderDto>>> = _allPendingTicketsState.asStateFlow()
+
     /**
      * Lấy danh sách vé của người dùng
      */
@@ -69,14 +79,11 @@ class TicketViewModel @Inject constructor(
                         if (pageDto != null) {
                             val tickets = pageDto.content
                             _ticketsState.value = ResourceState.Success(tickets)
-                            Timber.d("Lấy danh sách vé thành công: ${tickets.size} vé")
                         } else {
-                            Timber.e("Không tìm thấy vé")
                             _ticketsState.value = ResourceState.Error("Không tìm thấy vé")
                         }
                     }
                     is Resource.Error -> {
-                        Timber.e("Lấy danh sách vé thất bại: ${result.message}")
                         _ticketsState.value = ResourceState.Error(result.message ?: "Không thể lấy danh sách vé")
                     }
                     is Resource.Loading -> {
@@ -120,14 +127,11 @@ class TicketViewModel @Inject constructor(
                             }
                             
                             _ticketsState.value = ResourceState.Success(tickets)
-                            Timber.d("Lấy danh sách vé thành công: ${tickets.size} vé")
                         } else {
-                            Timber.e("Không tìm thấy vé")
                             _ticketsState.value = ResourceState.Error("Không tìm thấy vé")
                         }
                     }
                     is Resource.Error -> {
-                        Timber.e("Lấy danh sách vé thất bại: ${result.message}")
                         _ticketsState.value = ResourceState.Error(result.message ?: "Không thể lấy danh sách vé")
                     }
                     is Resource.Loading -> {
@@ -151,14 +155,11 @@ class TicketViewModel @Inject constructor(
                         val ticket = result.data
                         if (ticket != null) {
                             _ticketDetailState.value = ResourceState.Success(ticket)
-                            Timber.d("Lấy chi tiết vé thành công: ${ticket.ticketNumber}")
                         } else {
-                            Timber.e("Không tìm thấy vé")
                             _ticketDetailState.value = ResourceState.Error("Không tìm thấy vé")
                         }
                     }
                     is Resource.Error -> {
-                        Timber.e("Lấy chi tiết vé thất bại: ${result.message}")
                         _ticketDetailState.value = ResourceState.Error(result.message ?: "Không thể lấy chi tiết vé")
                     }
                     is Resource.Loading -> {
@@ -182,49 +183,15 @@ class TicketViewModel @Inject constructor(
                         val ticket = result.data
                         if (ticket != null) {
                             _ticketDetailState.value = ResourceState.Success(ticket)
-                            Timber.d("Lấy chi tiết vé thành công: ${ticket.ticketNumber}")
                         } else {
-                            Timber.e("Không tìm thấy vé")
                             _ticketDetailState.value = ResourceState.Error("Không tìm thấy vé")
                         }
                     }
                     is Resource.Error -> {
-                        Timber.e("Lấy chi tiết vé thất bại: ${result.message}")
                         _ticketDetailState.value = ResourceState.Error(result.message ?: "Không thể lấy chi tiết vé")
                     }
                     is Resource.Loading -> {
                         _ticketDetailState.value = ResourceState.Loading
-                    }
-                }
-            }
-        }
-    }
-    
-    /**
-     * Mua vé
-     */
-    fun purchaseTickets(purchaseDto: TicketPurchaseDto) {
-        _purchaseState.value = ResourceState.Loading
-        
-        viewModelScope.launch {
-            ticketRepository.purchaseTickets(purchaseDto).collect { result ->
-                when (result) {
-                    is Resource.Success -> {
-                        val purchaseResponse = result.data
-                        if (purchaseResponse != null) {
-                            _purchaseState.value = ResourceState.Success(purchaseResponse)
-                            Timber.d("Mua vé thành công: ${purchaseResponse.paymentId}")
-                        } else {
-                            Timber.e("Không thể hoàn tất việc mua vé")
-                            _purchaseState.value = ResourceState.Error("Không thể hoàn tất việc mua vé")
-                        }
-                    }
-                    is Resource.Error -> {
-                        Timber.e("Mua vé thất bại: ${result.message}")
-                        _purchaseState.value = ResourceState.Error(result.message ?: "Không thể mua vé")
-                    }
-                    is Resource.Loading -> {
-                        _purchaseState.value = ResourceState.Loading
                     }
                 }
             }
@@ -250,14 +217,11 @@ class TicketViewModel @Inject constructor(
                         val ticket = result.data
                         if (ticket != null) {
                             _checkInState.value = ResourceState.Success(ticket)
-                            Timber.d("Check-in vé thành công: ${ticket.ticketNumber}")
                         } else {
-                            Timber.e("Không thể hoàn tất việc check-in vé")
                             _checkInState.value = ResourceState.Error("Không thể hoàn tất việc check-in vé")
                         }
                     }
                     is Resource.Error -> {
-                        Timber.e("Check-in vé thất bại: ${result.message}")
                         _checkInState.value = ResourceState.Error(result.message ?: "Không thể check-in vé")
                     }
                     is Resource.Loading -> {
@@ -281,14 +245,11 @@ class TicketViewModel @Inject constructor(
                         val ticket = result.data
                         if (ticket != null) {
                             _ticketDetailState.value = ResourceState.Success(ticket)
-                            Timber.d("Hủy vé thành công: ${ticket.ticketNumber}")
                         } else {
-                            Timber.e("Không thể hoàn tất việc hủy vé")
                             _ticketDetailState.value = ResourceState.Error("Không thể hoàn tất việc hủy vé")
                         }
                     }
                     is Resource.Error -> {
-                        Timber.e("Hủy vé thất bại: ${result.message}")
                         _ticketDetailState.value = ResourceState.Error(result.message ?: "Không thể hủy vé")
                     }
                     is Resource.Loading -> {
@@ -426,8 +387,148 @@ class TicketViewModel @Inject constructor(
             }
             format.parse(dateString)
         } catch (e: Exception) {
-            Timber.e(e, "Lỗi khi phân tích chuỗi ngày: $dateString")
             null
         }
+    }
+
+    /**
+     * Kiểm tra vé chưa thanh toán existing cho event và ticket type cụ thể
+     */
+    fun checkExistingUnpaidTicket(eventId: String, ticketTypeId: String) {
+        _existingUnpaidTicketState.value = ResourceState.Loading
+        
+        viewModelScope.launch {
+            try {
+                ticketRepository.getMyPendingTickets().collect { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            val pendingOrders = result.data
+                            if (pendingOrders != null) {
+                                val existingOrder = pendingOrders.find { order ->
+                                    order.eventId == eventId && 
+                                    order.paymentStatus.equals("PENDING", ignoreCase = true) &&
+                                    order.tickets.any { ticket -> 
+                                        ticket.ticketTypeId == ticketTypeId && 
+                                        ticket.status.equals("RESERVED", ignoreCase = true)
+                                    }
+                                }
+                                
+                                val existingTicket = existingOrder?.tickets?.find { ticket ->
+                                    ticket.ticketTypeId == ticketTypeId && 
+                                    ticket.status.equals("RESERVED", ignoreCase = true)
+                                }
+                                
+                                _existingUnpaidTicketState.value = ResourceState.Success(existingTicket)
+                                
+                                if (existingTicket != null) {
+                                } else {
+                                }
+                            } else {
+                                _existingUnpaidTicketState.value = ResourceState.Success(null)
+                            }
+                        }
+                        is Resource.Error -> {
+                            _existingUnpaidTicketState.value = ResourceState.Error(result.message ?: "Cannot check existing tickets")
+                        }
+                        is Resource.Loading -> {
+                            _existingUnpaidTicketState.value = ResourceState.Loading
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _existingUnpaidTicketState.value = ResourceState.Error("Error checking existing tickets: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Lấy tất cả pending tickets
+     */
+    fun getAllPendingTickets() {
+        if (_allPendingTicketsState.value is ResourceState.Initial || 
+            _allPendingTicketsState.value is ResourceState.Error) {
+            
+            viewModelScope.launch {
+                try {
+                    ticketRepository.getMyPendingTickets().collect { result ->
+                        when (result) {
+                            is Resource.Success -> {
+                                val pendingOrders = result.data ?: emptyList()
+                                _allPendingTicketsState.value = ResourceState.Success(pendingOrders)
+                            }
+                            is Resource.Error -> {
+                                _allPendingTicketsState.value = ResourceState.Error(result.message ?: "Unknown error")
+                            }
+                            is Resource.Loading -> {
+                                _allPendingTicketsState.value = ResourceState.Loading
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    _allPendingTicketsState.value = ResourceState.Error("Error loading pending tickets: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Reset existing unpaid ticket state
+     */
+    fun resetExistingUnpaidTicketState() {
+        _existingUnpaidTicketState.value = ResourceState.Initial
+    }
+
+    /**
+     * Mua vé cho sự kiện
+     */
+    fun purchaseTickets(
+        eventId: String,
+        ticketItems: List<TicketPurchaseItemDto>,
+        buyerName: String,
+        buyerEmail: String,
+        buyerPhone: String,
+        paymentMethod: String = "MOMO"
+    ) {
+        _purchaseState.value = ResourceState.Loading
+        
+        viewModelScope.launch {
+            try {
+                val request = TicketPurchaseRequestDto(
+                    eventId = eventId,
+                    tickets = ticketItems,
+                    buyerName = buyerName,
+                    buyerEmail = buyerEmail,
+                    buyerPhone = buyerPhone,
+                    paymentMethod = paymentMethod
+                )
+                
+                ticketRepository.purchaseTickets(request).collect { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            result.data?.let { data ->
+                                _purchaseState.value = ResourceState.Success(data)
+                            } ?: run {
+                                _purchaseState.value = ResourceState.Error("No data received")
+                            }
+                        }
+                        is Resource.Error -> {
+                            _purchaseState.value = ResourceState.Error(result.message ?: "Unknown error")
+                        }
+                        is Resource.Loading -> {
+                            _purchaseState.value = ResourceState.Loading
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _purchaseState.value = ResourceState.Error(e.message ?: "Unknown error occurred")
+            }
+        }
+    }
+
+    /**
+     * Xóa trạng thái mua vé
+     */
+    fun clearPurchaseState() {
+        _purchaseState.value = ResourceState.Initial
     }
 } 

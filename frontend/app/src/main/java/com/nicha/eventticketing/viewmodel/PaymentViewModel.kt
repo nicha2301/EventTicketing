@@ -6,9 +6,6 @@ import com.nicha.eventticketing.data.preferences.PreferencesManager
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.data.remote.dto.payment.PaymentRequestDto
 import com.nicha.eventticketing.data.remote.dto.payment.PaymentResponseDto
-import com.nicha.eventticketing.data.remote.dto.payment.PaymentMethodDto
-import com.nicha.eventticketing.data.remote.dto.payment.PaymentDto
-import com.nicha.eventticketing.data.remote.dto.payment.PaymentStatusUpdateDto
 import com.nicha.eventticketing.domain.model.Resource
 import com.nicha.eventticketing.domain.model.ResourceState
 import com.nicha.eventticketing.domain.repository.EventRepository
@@ -18,7 +15,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import kotlinx.coroutines.delay
 import javax.inject.Inject
 
@@ -27,8 +23,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class PaymentViewModel @Inject constructor(
-    private val paymentRepository: PaymentRepository,
     private val eventRepository: EventRepository,
+    private val paymentRepository: PaymentRepository,
     private val preferencesManager: PreferencesManager
 ) : ViewModel() {
     
@@ -36,18 +32,22 @@ class PaymentViewModel @Inject constructor(
     private val _eventState = MutableStateFlow<ResourceState<EventDto>>(ResourceState.Initial)
     val eventState: StateFlow<ResourceState<EventDto>> = _eventState.asStateFlow()
     
-    // State cho danh sách phương thức thanh toán
-    private val _paymentMethodsState = MutableStateFlow<ResourceState<List<PaymentMethodDto>>>(ResourceState.Initial)
-    val paymentMethodsState: StateFlow<ResourceState<List<PaymentMethodDto>>> = _paymentMethodsState.asStateFlow()
-    
-    // State cho quá trình thanh toán
+    // State cho payment response
     private val _paymentState = MutableStateFlow<ResourceState<PaymentResponseDto>>(ResourceState.Initial)
     val paymentState: StateFlow<ResourceState<PaymentResponseDto>> = _paymentState.asStateFlow()
     
-    // State cho kết quả thanh toán
-    private val _paymentResultState = MutableStateFlow<ResourceState<PaymentResponseDto>>(ResourceState.Initial)
-    val paymentResultState: StateFlow<ResourceState<PaymentResponseDto>> = _paymentResultState.asStateFlow()
+    // State cho UI loading
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     
+    // State cho selected payment method
+    private val _selectedPaymentMethod = MutableStateFlow<String?>("momo")
+    val selectedPaymentMethod: StateFlow<String?> = _selectedPaymentMethod.asStateFlow()
+    
+    // State cho amount (UI only)
+    private val _paymentAmount = MutableStateFlow(0.0)
+    val paymentAmount: StateFlow<Double> = _paymentAmount.asStateFlow()
+
     /**
      * Lấy thông tin sự kiện
      */
@@ -60,14 +60,12 @@ class PaymentViewModel @Inject constructor(
                     is Resource.Success -> {
                         result.data?.let { event ->
                             _eventState.value = ResourceState.Success(event)
-                            Timber.d("Lấy thông tin sự kiện thành công: ${event.title}")
                         } ?: run {
                             _eventState.value = ResourceState.Error("Không tìm thấy sự kiện")
                         }
                     }
                     is Resource.Error -> {
-                        _eventState.value = ResourceState.Error(result.message ?: "Không thể lấy thông tin sự kiện")
-                        Timber.e("Lấy thông tin sự kiện thất bại: ${result.message}")
+                        _eventState.value = ResourceState.Error(result.message ?: "Lỗi khi lấy thông tin sự kiện")
                     }
                     is Resource.Loading -> {
                         _eventState.value = ResourceState.Loading
@@ -76,206 +74,198 @@ class PaymentViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
-     * Lấy danh sách phương thức thanh toán
-     */
-    fun getPaymentMethods() {
-        _paymentMethodsState.value = ResourceState.Loading
-        
-        viewModelScope.launch {
-            paymentRepository.getPaymentMethods().collect { result ->
-                when (result) {
-                    is Resource.Success -> {
-                        result.data?.let { methods ->
-                            _paymentMethodsState.value = ResourceState.Success(methods)
-                            Timber.d("Lấy danh sách phương thức thanh toán thành công: ${methods.size} phương thức")
-                        } ?: run {
-                            _paymentMethodsState.value = ResourceState.Error("Không tìm thấy phương thức thanh toán")
-                        }
-                    }
-                    is Resource.Error -> {
-                        _paymentMethodsState.value = ResourceState.Error(result.message ?: "Không thể lấy danh sách phương thức thanh toán")
-                        Timber.e("Lấy danh sách phương thức thanh toán thất bại: ${result.message}")
-                    }
-                    is Resource.Loading -> {
-                        _paymentMethodsState.value = ResourceState.Loading
-                    }
-                }
-            }
-        }
-    }
-    
-    /**
-     * Tạo thanh toán mới
+     * Tạo thanh toán
      */
     fun createPayment(
         ticketId: String,
         amount: Double,
-        paymentMethod: String,
-        returnUrl: String,
         description: String? = null
     ) {
         _paymentState.value = ResourceState.Loading
-        
-        viewModelScope.launch {
-            Timber.d("Đang tạo thanh toán với phương thức: $paymentMethod")
-            
-            val paymentRequest = PaymentRequestDto(
-                ticketId = ticketId,
-                amount = amount,
-                paymentMethod = paymentMethod,
-                returnUrl = returnUrl,
-                description = description,
-                metadata = mapOf("platform" to "android", "app_version" to "1.0.0")
-            )
-            
-            paymentRepository.createPayment(paymentRequest).collect { result ->
-                when (result) {
-                    is Resource.Success -> {
-                        result.data?.let { payment ->
-                            _paymentState.value = ResourceState.Success(payment)
-                            Timber.d("Tạo thanh toán thành công: ${payment.id}")
-                        } ?: run {
-                            _paymentState.value = ResourceState.Error("Không tạo được thanh toán")
-                        }
-                    }
-                    is Resource.Error -> {
-                        _paymentState.value = ResourceState.Error(result.message ?: "Không thể tạo thanh toán")
-                        Timber.e("Tạo thanh toán thất bại: ${result.message}")
-                    }
-                    is Resource.Loading -> {
-                        _paymentState.value = ResourceState.Loading
-                    }
-                }
-            }
-        }
-    }
-    
-    /**
-     * Xử lý kết quả thanh toán từ VNPay
-     */
-    fun processVnPayReturn(params: Map<String, String>) {
-        _paymentResultState.value = ResourceState.Loading
+        _isLoading.value = true
         
         viewModelScope.launch {
             try {
-                Timber.d("Đang xử lý kết quả thanh toán từ VNPay")
-                // Trong thực tế, cần gửi params này lên server để xác thực
-                // Ở đây giả định thanh toán thành công nếu có vnp_ResponseCode=00
+                val selectedMethod = _selectedPaymentMethod.value ?: "momo"
                 
-                if (params["vnp_ResponseCode"] == "00") {
-                    val paymentId = params["vnp_TxnRef"] ?: ""
-                    
-                    paymentRepository.getPaymentById(paymentId).collect { result ->
-                        when (result) {
-                            is Resource.Success -> {
-                                result.data?.let { payment ->
-                                    _paymentResultState.value = ResourceState.Success(PaymentResponseDto(
-                                        id = payment.id,
-                                        userId = payment.userId,
-                                        userName = "Current User", // Giả định
-                                        ticketId = payment.orderId,
-                                        eventId = "event-id", // Giả định
-                                        eventTitle = "Event Title", // Giả định
-                                        ticketTypeName = "Ticket Type", // Giả định
-                                        amount = payment.amount,
-                                        paymentMethod = payment.paymentMethod,
-                                        transactionId = payment.transactionId,
-                                        status = payment.status,
-                                        paymentUrl = null,
-                                        createdAt = payment.createdAt,
-                                        updatedAt = payment.updatedAt
-                                    ))
-                                    Timber.d("Xử lý kết quả thanh toán thành công")
-                                } ?: run {
-                                    _paymentResultState.value = ResourceState.Error("Không tìm thấy thông tin thanh toán")
-                                }
-                            }
-                            is Resource.Error -> {
-                                _paymentResultState.value = ResourceState.Error(result.message ?: "Không thể xử lý kết quả thanh toán")
-                                Timber.e("Xử lý kết quả thanh toán thất bại: ${result.message}")
-                            }
-                            is Resource.Loading -> {
-                                _paymentResultState.value = ResourceState.Loading
+                val paymentRequest = PaymentRequestDto(
+                    ticketId = ticketId,
+                    amount = amount,
+                    paymentMethod = selectedMethod,
+                    description = description,
+                    returnUrl = "eventticketing://payment/callback",
+                    metadata = null
+                )
+                
+                
+                paymentRepository.createPayment(paymentRequest).collect { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            result.data?.let { paymentResponse ->
+                                _paymentState.value = ResourceState.Success(paymentResponse)
+                                _isLoading.value = false
+                            } ?: run {
+                                _paymentState.value = ResourceState.Error("Không nhận được phản hồi từ server")
+                                _isLoading.value = false
                             }
                         }
+                        is Resource.Error -> {
+                            _paymentState.value = ResourceState.Error(result.message ?: "Lỗi khi tạo thanh toán")
+                            _isLoading.value = false
+                        }
+                        is Resource.Loading -> {
+                            _paymentState.value = ResourceState.Loading
+                        }
                     }
-                } else {
-                    val errorCode = params["vnp_ResponseCode"] ?: "unknown"
-                    Timber.e("Thanh toán thất bại với mã lỗi: $errorCode")
-                    _paymentResultState.value = ResourceState.Error("Thanh toán thất bại với mã lỗi: $errorCode")
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Lỗi khi xử lý kết quả thanh toán VNPay")
-                _paymentResultState.value = ResourceState.Error(e.message ?: "Đã xảy ra lỗi không xác định")
+                _paymentState.value = ResourceState.Error("Lỗi không mong muốn: ${e.message}")
+                _isLoading.value = false
             }
         }
     }
-    
+
     /**
-     * Xử lý kết quả thanh toán từ MoMo
+     * Kiểm tra trạng thái thanh toán theo ID
      */
-    fun processMomoReturn(params: Map<String, String>) {
-        _paymentResultState.value = ResourceState.Loading
-        
+    fun getPaymentById(paymentId: String) {
         viewModelScope.launch {
             try {
-                Timber.d("Đang xử lý kết quả thanh toán từ MoMo")
-                // Trong thực tế, cần gửi params này lên server để xác thực
-                // Ở đây giả định thanh toán thành công nếu có status=0
                 
-                if (params["status"] == "0") {
-                    val paymentId = params["orderId"] ?: ""
-                    
-                    paymentRepository.getPaymentById(paymentId).collect { result ->
-                        when (result) {
-                            is Resource.Success -> {
-                                result.data?.let { payment ->
-                                    _paymentResultState.value = ResourceState.Success(PaymentResponseDto(
-                                        id = payment.id,
-                                        userId = payment.userId,
-                                        userName = "Current User", // Giả định
-                                        ticketId = payment.orderId,
-                                        eventId = "event-id", // Giả định
-                                        eventTitle = "Event Title", // Giả định
-                                        ticketTypeName = "Ticket Type", // Giả định
-                                        amount = payment.amount,
-                                        paymentMethod = payment.paymentMethod,
-                                        transactionId = payment.transactionId,
-                                        status = payment.status,
-                                        paymentUrl = null,
-                                        createdAt = payment.createdAt,
-                                        updatedAt = payment.updatedAt
-                                    ))
-                                    Timber.d("Xử lý kết quả thanh toán thành công")
-                                } ?: run {
-                                    _paymentResultState.value = ResourceState.Error("Không tìm thấy thông tin thanh toán")
+                paymentRepository.getPaymentById(paymentId).collect { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            result.data?.let { paymentResponse ->
+                                
+                                when (paymentResponse.status.uppercase()) {
+                                    "COMPLETED" -> {
+                                        _paymentState.value = ResourceState.Success(paymentResponse)
+                                    }
+                                    "FAILED", "CANCELLED" -> {
+                                        _paymentState.value = ResourceState.Error("Thanh toán thất bại hoặc bị hủy")
+                                    }
+                                    else -> {
+                                    }
                                 }
                             }
-                            is Resource.Error -> {
-                                _paymentResultState.value = ResourceState.Error(result.message ?: "Không thể xử lý kết quả thanh toán")
-                                Timber.e("Xử lý kết quả thanh toán thất bại: ${result.message}")
-                            }
-                            is Resource.Loading -> {
-                                _paymentResultState.value = ResourceState.Loading
-                            }
+                        }
+                        is Resource.Error -> {
+                        }
+                        is Resource.Loading -> {
                         }
                     }
-                } else {
-                    val errorCode = params["status"] ?: "unknown"
-                    Timber.e("Thanh toán thất bại với mã lỗi: $errorCode")
-                    _paymentResultState.value = ResourceState.Error("Thanh toán thất bại với mã lỗi: $errorCode")
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Lỗi khi xử lý kết quả thanh toán MoMo")
-                _paymentResultState.value = ResourceState.Error(e.message ?: "Đã xảy ra lỗi không xác định")
             }
         }
     }
     
     /**
-     * Reset trạng thái lỗi
+     * Kiểm tra trạng thái thanh toán sau khi return từ MoMo với timeout
+     */
+    fun checkPaymentStatusAfterReturn(paymentId: String, maxRetries: Int = 5) {
+        viewModelScope.launch {
+            try {
+                
+                var retryCount = 0
+                var isCompleted = false
+                
+                while (retryCount < maxRetries && !isCompleted) {
+                    
+                    try {
+                        // Dùng getUserPayments để tìm payment
+                        paymentRepository.getUserPayments(0, 100).collect { result ->
+                            when (result) {
+                                is Resource.Success -> {
+                                    result.data?.let { paymentsList ->
+                                        val payment = paymentsList.find { it.id == paymentId }
+                                        
+                                        if (payment != null) {
+                                            
+                                            when (payment.status.uppercase()) {
+                                                "COMPLETED" -> {
+                                                    _paymentState.value = ResourceState.Success(payment)
+                                                    isCompleted = true
+                                                }
+                                                "FAILED", "CANCELLED" -> {
+                                                    _paymentState.value = ResourceState.Error("Thanh toán thất bại hoặc bị hủy")
+                                                    isCompleted = true
+                                                }
+                                                "PENDING" -> {
+                                                }
+                                                else -> {
+                                                }
+                                            }
+                                        } else {
+                                            paymentsList.take(3).forEach { p ->
+                                            }
+                                            
+                                            if (retryCount == maxRetries - 1) {
+                                                _paymentState.value = ResourceState.Error("Không tìm thấy thông tin thanh toán")
+                                                isCompleted = true
+                                            }
+                                        }
+                                    } ?: run {
+                                        if (retryCount == maxRetries - 1) {
+                                            _paymentState.value = ResourceState.Error("Không nhận được dữ liệu từ server")
+                                            isCompleted = true
+                                        }
+                                    }
+                                }
+                                is Resource.Error -> {
+                                    if (retryCount == maxRetries - 1) {
+                                        _paymentState.value = ResourceState.Error("Lỗi khi kiểm tra trạng thái thanh toán: ${result.message}")
+                                        isCompleted = true
+                                    }
+                                }
+                                is Resource.Loading -> {
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        if (retryCount == maxRetries - 1) {
+                            _paymentState.value = ResourceState.Error("Có lỗi xảy ra khi kiểm tra thanh toán")
+                            isCompleted = true
+                        }
+                    }
+                    
+                    if (!isCompleted) {
+                        retryCount++
+                        if (retryCount < maxRetries) {
+                            val delayTime = 2000L + (retryCount * 1000L) // Increasing delay: 2s, 3s, 4s...
+                            delay(delayTime)
+                        }
+                    }
+                }
+                
+                if (!isCompleted) {
+                    _paymentState.value = ResourceState.Error("Thanh toán mất quá nhiều thời gian. Vui lòng kiểm tra lại trong ví vé hoặc thử thanh toán lại.")
+                }
+                
+            } catch (e: Exception) {
+                _paymentState.value = ResourceState.Error("Có lỗi nghiêm trọng khi kiểm tra thanh toán")
+            }
+        }
+    }
+
+    /**
+     * Set phương thức thanh toán
+     */
+    fun setSelectedPaymentMethod(method: String) {
+        _selectedPaymentMethod.value = method
+    }
+
+    /**
+     * Set số tiền thanh toán
+     */
+    fun setPaymentAmount(amount: Double) {
+        _paymentAmount.value = amount
+    }
+    
+    /**
+     * Reset states
      */
     fun resetEventState() {
         if (_eventState.value is ResourceState.Error) {
@@ -283,21 +273,23 @@ class PaymentViewModel @Inject constructor(
         }
     }
     
-    fun resetPaymentMethodsState() {
-        if (_paymentMethodsState.value is ResourceState.Error) {
-            _paymentMethodsState.value = ResourceState.Initial
-        }
+    fun resetPaymentState() {
+        _paymentState.value = ResourceState.Initial
+    }
+
+    fun resetPaymentData() {
+        _selectedPaymentMethod.value = "momo"
+        _paymentAmount.value = 0.0
+        _isLoading.value = false
+        _paymentState.value = ResourceState.Initial
     }
     
-    fun resetPaymentState() {
+    /**  
+     * Clear payment error state để có thể thử lại
+     */
+    fun clearPaymentError() {
         if (_paymentState.value is ResourceState.Error) {
             _paymentState.value = ResourceState.Initial
         }
     }
-    
-    fun resetPaymentResultState() {
-        if (_paymentResultState.value is ResourceState.Error) {
-            _paymentResultState.value = ResourceState.Initial
-        }
-    }
-} 
+}

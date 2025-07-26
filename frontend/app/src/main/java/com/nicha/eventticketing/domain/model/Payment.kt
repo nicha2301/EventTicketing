@@ -18,20 +18,6 @@ data class Payment(
     val refundStatus: RefundStatus?
 )
 
-enum class PaymentMethod {
-    CREDIT_CARD, BANK_TRANSFER, PAYPAL, MOMO, ZALOPAY, CASH, OTHER, UNKNOWN;
-    
-    companion object {
-        fun fromString(method: String): PaymentMethod {
-            return try {
-                valueOf(method.uppercase())
-            } catch (e: IllegalArgumentException) {
-                UNKNOWN
-            }
-        }
-    }
-}
-
 enum class PaymentStatus {
     PENDING, COMPLETED, FAILED, CANCELLED, REFUNDED, UNKNOWN;
     
@@ -58,4 +44,4 @@ enum class RefundStatus {
             }
         }
     }
-} 
+}
