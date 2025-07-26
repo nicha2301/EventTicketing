@@ -45,6 +45,11 @@ interface TicketRepository : JpaRepository<Ticket, UUID> {
     fun findByUserIdAndStatus(userId: UUID, status: TicketStatus, pageable: Pageable): Page<Ticket>
 
     /**
+     * Tìm tất cả vé của một người dùng theo trạng thái (không phân trang)
+     */
+    fun findByUserIdAndStatus(userId: UUID, status: TicketStatus): List<Ticket>
+
+    /**
      * Tìm tất cả vé của một sự kiện theo trạng thái
      */
     fun findByEventIdAndStatus(eventId: UUID, status: TicketStatus, pageable: Pageable): Page<Ticket>

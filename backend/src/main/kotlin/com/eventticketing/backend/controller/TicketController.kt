@@ -53,6 +53,18 @@ class TicketController(
     }
 
     /**
+     * Lấy danh sách vé chưa thanh toán của người dùng hiện tại
+     */
+    @GetMapping("/my-pending-tickets")
+    fun getMyPendingTickets(): ResponseEntity<ApiResponse<List<TicketPurchaseResponseDto>>> {
+        val currentUser = securityUtils.getCurrentUser()
+            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Người dùng chưa đăng nhập"))
+
+        val pendingOrders = ticketService.getPendingTickets()
+        return ResponseEntity.ok(ApiResponse.success("Danh sách đơn hàng đang chờ thanh toán", pendingOrders))
+    }
+
+    /**
      * Lấy danh sách vé của người dùng hiện tại
      */
     @GetMapping("/my-tickets")

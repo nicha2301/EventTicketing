@@ -24,6 +24,7 @@ import java.time.LocalDateTime
 import java.util.*
 import com.eventticketing.backend.entity.EventStatus
 import com.eventticketing.backend.dto.TicketCheckInRequestDto
+import com.eventticketing.backend.entity.PaymentStatus
 import com.eventticketing.backend.exception.BadRequestException
 
 @Service
@@ -312,5 +313,39 @@ class TicketServiceImpl(
             eventAddress = ticket.event.location.address,
             eventImageUrl = ticket.event.featuredImageUrl
         )
+    }
+
+    override fun getPendingTickets(): List<TicketPurchaseResponseDto> {
+        val currentUser = securityUtils.getCurrentUser()
+            ?: throw TicketException("Người dùng chưa đăng nhập")
+
+        // Lấy tất cả vé RESERVED của người dùng hiện tại
+        val reservedTickets = ticketRepository.findByUserIdAndStatus(currentUser.id!!, TicketStatus.RESERVED)
+
+        val ticketsByOrder = reservedTickets.groupBy { 
+            it.paymentId ?: it.id
+        }
+
+        return ticketsByOrder.map { (orderId, tickets) ->
+            val event = tickets.first().event
+            val ticketDtos = tickets.map { convertToDto(it) }
+            var totalAmount = BigDecimal.ZERO
+            tickets.forEach { ticket ->
+                totalAmount = totalAmount.add(ticket.price)
+            }
+
+            TicketPurchaseResponseDto(
+                orderId = orderId ?: UUID.randomUUID(),
+                eventId = event.id!!,
+                eventTitle = event.title,
+                tickets = ticketDtos,
+                totalAmount = totalAmount,
+                paymentStatus = PaymentStatus.PENDING.toString(),
+                purchaseDate = tickets.first().createdAt,
+                buyerName = currentUser.fullName,
+                buyerEmail = currentUser.email,
+                buyerPhone = currentUser.phoneNumber
+            )
+        }
     }
 } 

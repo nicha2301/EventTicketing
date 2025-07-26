@@ -17,6 +17,11 @@ interface TicketService {
     fun purchaseTickets(ticketPurchaseDto: TicketPurchaseDto): TicketPurchaseResponseDto
 
     /**
+     * Lấy danh sách vé chưa thanh toán của người dùng hiện tại
+     */
+    fun getPendingTickets(): List<TicketPurchaseResponseDto>
+
+    /**
      * Lấy thông tin vé theo ID
      */
     fun getTicketById(ticketId: UUID): TicketDto
