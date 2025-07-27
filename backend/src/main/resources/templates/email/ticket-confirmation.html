@@ -20,7 +20,10 @@
         <p>Vui lòng xuất trình mã QR code dưới đây khi tham gia sự kiện:</p>
         
         <div class="qr-code">
-            <img th:src="'data:image/png;base64,' + ${qrCodeData}" alt="QR Code" />
+            <img th:if="${qrCodeData != null and qrCodeData != ''}" 
+                 th:src="${qrCodeData}" 
+                 alt="QR Code" 
+                 style="max-width: 200px; height: auto; display: block; margin: 0 auto; border: 1px solid #ddd;" />
             <p><strong>Mã vé:</strong> <span th:text="${ticketId}">TICKET-123</span></p>
         </div>
         

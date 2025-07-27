@@ -185,15 +185,11 @@ management:
         enabled: true
 
 payment:
-  vnpay:
-    return-url: http://localhost:8080/api/payments/vnpay-return
-    tmn-code: EVL5NZNI
-    hash-secret: 3NKOGRBUWM008DMQ16ZH1YHIUUZ0FEDX
-    payment-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
   momo:
-    return-url: http://localhost:8080/api/payments/momo-return
-    ipn-url: http://localhost:8080/api/payments/momo-ipn
-    partner-code: MOMOXXXX
-    access-key: AccessKeyXXXX
-    secret-key: SecretKeyXXXX
-    api-endpoint: https://test-payment.momo.vn/v2/gateway/api/create
+    return-url:
+    ipn-url:
+    partner-code:
+    access-key:
+    secret-key:
+    api-endpoint:
+    request-type:

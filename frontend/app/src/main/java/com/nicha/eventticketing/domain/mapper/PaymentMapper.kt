@@ -25,7 +25,7 @@ class PaymentMapper {
             status = com.nicha.eventticketing.domain.model.PaymentStatus.fromString(dto.status),
             transactionId = dto.transactionId,
             transactionDate = parseDate(dto.createdAt),
-            refundStatus = nullz
+            refundStatus = null
         )
     }
 
