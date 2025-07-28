@@ -6,7 +6,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Lớp quản lý điều hướng dựa trên vai trò người dùng
+ * Lớp quản lý điều hướng dựa trên role người dùng
  */
 @Singleton
 class RoleBasedNavigation @Inject constructor(
@@ -26,7 +26,8 @@ class RoleBasedNavigation @Inject constructor(
             NavDestination.OrganizerEventDetail,
             NavDestination.EventImages,
             NavDestination.EventTicketTypes,
-            NavDestination.OrganizerProfile
+            NavDestination.OrganizerProfile,
+            NavDestination.AnalyticsDashboard
         )
         
         // Nếu điểm đến không dành riêng cho người tổ chức, cho phép truy cập

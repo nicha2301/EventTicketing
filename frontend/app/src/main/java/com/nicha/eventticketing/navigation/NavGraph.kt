@@ -14,6 +14,7 @@ import com.nicha.eventticketing.ui.screens.auth.LoginScreen
 import com.nicha.eventticketing.ui.screens.auth.RegisterScreen
 import com.nicha.eventticketing.ui.screens.auth.ResetPasswordScreen
 import com.nicha.eventticketing.ui.screens.checkin.CheckInScreen
+import com.nicha.eventticketing.ui.screens.analytics.AnalyticsDashboardScreen
 import com.nicha.eventticketing.ui.screens.demo.NeumorphicDemoScreen
 import com.nicha.eventticketing.ui.screens.event.EventDetailScreen
 import com.nicha.eventticketing.ui.screens.home.HomeScreen
@@ -270,6 +271,9 @@ fun NavGraph(
                 onEventDashboardClick = {
                     navController.navigate(NavDestination.EventDashboard.route)
                 },
+                onAnalyticsClick = {
+                    navController.navigate(NavDestination.AnalyticsDashboard.route)
+                },
                 onScanQRClick = {
                     navController.navigate(NavDestination.CheckIn.route)
                 },
@@ -448,6 +452,9 @@ fun NavGraph(
                 onCreateEventClick = {
                     navController.navigate(NavDestination.CreateEvent.route)
                 },
+                onAnalyticsClick = {
+                    navController.navigate(NavDestination.AnalyticsDashboard.route)
+                },
                 onEventClick = { eventId ->
                     if (eventId == "profile") {
                         navController.navigate(NavDestination.OrganizerProfile.route)
@@ -577,6 +584,50 @@ fun NavGraph(
             )
         }
         
+        // Analytics Dashboard Screen
+        composable(
+            route = NavDestination.AnalyticsDashboard.route + "?eventId={eventId}",
+            arguments = listOf(
+                navArgument("eventId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId")
+            
+            // Kiểm tra quyền truy cập
+            LaunchedEffect(currentUser) {
+                if (!roleBasedNavigation.canAccessDestination(NavDestination.AnalyticsDashboard, currentUser)) {
+                    navController.navigate(NavDestination.Unauthorized.route)
+                }
+            }
+            
+            AnalyticsDashboardScreen(
+                eventId = eventId,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onNavigateToDetailed = { analyticsType ->
+                    when (analyticsType) {
+                        "revenue" -> {
+                            navController.navigate(NavDestination.EventDashboard.route)
+                        }
+                        "ticket_sales" -> {
+                            navController.navigate(NavDestination.EventDashboard.route)
+                        }
+                        "attendee" -> {
+                            navController.navigate(NavDestination.EventDashboard.route)
+                        }
+                        else -> {
+                            navController.navigate(NavDestination.EventDashboard.route)
+                        }
+                    }
+                }
+            )
+        }
+        
         // Create Event Screen
         composable(route = NavDestination.CreateEvent.route) {
             CreateEventScreen(
@@ -694,4 +745,7 @@ sealed class NavDestination(val route: String) {
     object Notifications : NavDestination("notifications")
     object Security : NavDestination("security")
     object Privacy : NavDestination("privacy")
+    object AnalyticsDashboard : NavDestination("analytics_dashboard") {
+        fun createRoute(eventId: String? = null) = if (eventId != null) "$route/$eventId" else route
+    }
 } 

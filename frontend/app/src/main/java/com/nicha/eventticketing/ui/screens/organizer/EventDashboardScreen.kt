@@ -34,6 +34,7 @@ fun EventDashboardScreen(
     onBackClick: () -> Unit,
     onEventClick: (String) -> Unit,
     onCreateEventClick: () -> Unit,
+    onAnalyticsClick: () -> Unit,
     onScanQRClick: () -> Unit,
     viewModel: OrganizerEventViewModel = hiltViewModel()
 ) {
@@ -89,6 +90,12 @@ fun EventDashboardScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onAnalyticsClick) {
+                        Icon(
+                            imageVector = Icons.Filled.Analytics,
+                            contentDescription = "Thống kê và báo cáo"
+                        )
+                    }
                     IconButton(onClick = onScanQRClick) {
                         Icon(
                             imageVector = Icons.Filled.QrCode2,

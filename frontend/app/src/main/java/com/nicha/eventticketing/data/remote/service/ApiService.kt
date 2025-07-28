@@ -39,6 +39,7 @@ import com.nicha.eventticketing.data.remote.dto.event.EventImageDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypePageResponse
 import com.nicha.eventticketing.data.remote.dto.ticket.CheckInRequestDto
+import com.nicha.eventticketing.data.remote.dto.analytics.RatingStatisticsDto
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -344,4 +345,27 @@ interface ApiService {
         @Path("id") paymentId: String,
         @Body refundRequest: Map<String, Any>
     ): Response<ApiResponse<PaymentResponseDto>>
+    
+    // Analytics/Dashboard APIs
+    @GET("api/reports/dashboard/daily-revenue")
+    suspend fun getDailyRevenue(
+        @Query("eventId") eventId: String? = null,
+        @Query("startDate") startDate: String,
+        @Query("endDate") endDate: String
+    ): Response<Map<String, Any>>
+    
+    @GET("api/reports/dashboard/ticket-sales/{eventId}")
+    suspend fun getTicketSalesByType(
+        @Path("eventId") eventId: String
+    ): Response<Map<String, Any>>
+    
+    @GET("api/reports/dashboard/check-in-statistics/{eventId}")
+    suspend fun getCheckInStatistics(
+        @Path("eventId") eventId: String
+    ): Response<Map<String, Any>>
+    
+    @GET("api/ratings/events/{eventId}/statistics")
+    suspend fun getRatingStatistics(
+        @Path("eventId") eventId: String
+    ): Response<RatingStatisticsDto>
 } 

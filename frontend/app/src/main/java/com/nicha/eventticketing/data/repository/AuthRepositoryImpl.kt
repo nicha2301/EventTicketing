@@ -66,9 +66,16 @@ class AuthRepositoryImpl @Inject constructor(
             if (response.isSuccessful && response.body()?.success == true) {
                 val authResponse = response.body()?.data
                 if (authResponse != null) {
+                    
                     val saveResult = preferencesManager.saveAuthToken(authResponse.token)
                     if (!saveResult) {
                         emit(Resource.Error("Không thể lưu token xác thực"))
+                        return@flow
+                    }
+                    
+                    val saveUserIdResult = preferencesManager.saveUserId(authResponse.id)
+                    if (!saveUserIdResult) {
+                        emit(Resource.Error("Không thể lưu thông tin người dùng"))
                         return@flow
                     }
 
@@ -98,9 +105,16 @@ class AuthRepositoryImpl @Inject constructor(
                 if (response.isSuccessful && response.body()?.success == true) {
                     val authResponse = response.body()?.data
                     if (authResponse != null) {
+                        
                         val saveResult = preferencesManager.saveAuthToken(authResponse.token)
                         if (!saveResult) {
                             emit(Resource.Error("Không thể lưu token xác thực"))
+                            return@flow
+                        }
+
+                        val saveUserIdResult = preferencesManager.saveUserId(authResponse.id)
+                        if (!saveUserIdResult) {
+                            emit(Resource.Error("Không thể lưu thông tin người dùng"))
                             return@flow
                         }
 

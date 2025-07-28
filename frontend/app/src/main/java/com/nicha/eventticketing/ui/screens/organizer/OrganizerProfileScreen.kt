@@ -42,6 +42,7 @@ fun OrganizerProfileScreen(
     onMyEventsClick: () -> Unit,
     onCreateEventClick: () -> Unit,
     onEventDashboardClick: () -> Unit,
+    onAnalyticsClick: () -> Unit,
     onScanQRClick: () -> Unit,
     onLogoutClick: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
@@ -348,6 +349,20 @@ fun OrganizerProfileScreen(
                             title = "Bảng điều khiển",
                             subtitle = "Xem tổng quan các sự kiện",
                             onClick = onEventDashboardClick
+                        )
+                        
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                        )
+                        
+                        // Analytics
+                        ProfileSettingItem(
+                            icon = Icons.Filled.Analytics,
+                            title = "Thống kê & Phân tích",
+                            subtitle = "Xem báo cáo và thống kê sự kiện",
+                            onClick = onAnalyticsClick
                         )
                         
                         HorizontalDivider(
