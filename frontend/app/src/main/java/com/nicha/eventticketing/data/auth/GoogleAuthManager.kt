@@ -24,8 +24,9 @@ class GoogleAuthManager @Inject constructor(
     private lateinit var googleSignInClient: GoogleSignInClient
     
     init {
+        val clientId = context.getString(com.nicha.eventticketing.R.string.google_web_client_id)
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(context.getString(com.nicha.eventticketing.R.string.google_web_client_id))
+            .requestIdToken(clientId)
             .requestEmail()
             .requestProfile()
             .build()
@@ -44,12 +45,16 @@ class GoogleAuthManager @Inject constructor(
      * Xử lý kết quả đăng nhập Google
      */
     fun handleSignInResult(result: ActivityResult): GoogleSignInResult {
+        if (result.resultCode != -1) {
+            return GoogleSignInResult.Cancelled
+        }
+
         return try {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             val account = task.getResult(ApiException::class.java)
             GoogleSignInResult.Success(account)
         } catch (e: ApiException) {
-            GoogleSignInResult.Error("Đăng nhập Google thất bại: ${e.statusCode}")
+            GoogleSignInResult.Error("Đăng nhập Google thất bại: mã lỗi ${e.statusCode}")
         } catch (e: Exception) {
             GoogleSignInResult.Error("Lỗi không xác định: ${e.localizedMessage}")
         }
@@ -59,7 +64,10 @@ class GoogleAuthManager @Inject constructor(
      * Đăng xuất khỏi Google
      */
     fun signOut() {
-        googleSignInClient.signOut()
+        googleSignInClient.signOut().addOnCompleteListener { signOutTask ->
+            googleSignInClient.revokeAccess().addOnCompleteListener { revokeTask ->
+            }
+        }
     }
 }
 
@@ -69,4 +77,5 @@ class GoogleAuthManager @Inject constructor(
 sealed class GoogleSignInResult {
     data class Success(val account: GoogleSignInAccount) : GoogleSignInResult()
     data class Error(val message: String) : GoogleSignInResult()
-} 
+    object Cancelled : GoogleSignInResult()
+}

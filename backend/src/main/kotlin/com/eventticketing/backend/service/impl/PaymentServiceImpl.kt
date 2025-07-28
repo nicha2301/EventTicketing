@@ -409,7 +409,7 @@ class PaymentServiceImpl(
                                 user.email,
                                 user.fullName,
                                 event.id!!,
-                                event.name,
+                                event.title,
                                 event.startDate.toString(),
                                 event.location.name,
                                 ticket.id!!,

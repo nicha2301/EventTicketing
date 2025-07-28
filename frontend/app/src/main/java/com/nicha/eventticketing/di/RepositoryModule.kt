@@ -1,5 +1,6 @@
 package com.nicha.eventticketing.di
 
+import com.nicha.eventticketing.data.auth.GoogleAuthManager
 import com.nicha.eventticketing.data.preferences.PreferencesManager
 import com.nicha.eventticketing.data.remote.service.ApiService
 import com.nicha.eventticketing.domain.mapper.EventMapper
@@ -43,9 +44,10 @@ object RepositoryModule {
     @Singleton
     fun provideAuthRepository(
         apiService: ApiService,
-        preferencesManager: PreferencesManager
+        preferencesManager: PreferencesManager,
+        googleAuthManager: GoogleAuthManager
     ): AuthRepository {
-        return AuthRepositoryImpl(apiService, preferencesManager)
+        return AuthRepositoryImpl(apiService, preferencesManager, googleAuthManager)
     }
 
     @Provides

@@ -31,7 +31,7 @@ class AuthController(private val userService: UserService) {
 
     @PostMapping("/login")
     @SecurityRequirements // Không yêu cầu xác thực
-    @Operation(summary = "Đăng nhập và lấy token")
+    @Operation(summary = "Đăng nhập")
     @RateLimited(maxRequests = 5, windowSeconds = 60)
     fun authenticateUser(@Valid @RequestBody loginRequest: LoginRequestDto): ResponseEntity<ApiResponse<UserAuthResponseDto>> {
         val userAuthResponse = userService.authenticateUser(loginRequest)
@@ -40,7 +40,7 @@ class AuthController(private val userService: UserService) {
     
     @PostMapping("/google")
     @SecurityRequirements // Không yêu cầu xác thực
-    @Operation(summary = "Đăng nhập bằng Google và lấy token")
+    @Operation(summary = "Đăng nhập bằng Google")
     @RateLimited(maxRequests = 5, windowSeconds = 60)
     fun authenticateWithGoogle(@Valid @RequestBody googleAuthRequest: GoogleAuthRequestDto): ResponseEntity<ApiResponse<UserAuthResponseDto>> {
         val userAuthResponse = userService.authenticateWithGoogle(googleAuthRequest)

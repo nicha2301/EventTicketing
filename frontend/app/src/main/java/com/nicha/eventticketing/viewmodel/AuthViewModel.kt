@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -52,21 +51,16 @@ class AuthViewModel @Inject constructor(
             _authState.value = AuthState.Initial
             
             try {
-                Timber.d("Đang kiểm tra trạng thái xác thực")
-                
                 authRepository.isLoggedIn()
                     .collect { isLoggedIn ->
                         if (isLoggedIn) {
-                            Timber.d("Người dùng đã đăng nhập, đang tải thông tin người dùng")
-                    _authState.value = AuthState.Loading
-                fetchCurrentUser()
-            } else {
-                            Timber.d("Người dùng chưa đăng nhập")
-                    _authState.value = AuthState.Unauthenticated
+                            _authState.value = AuthState.Loading
+                            fetchCurrentUser()
+                        } else {
+                            _authState.value = AuthState.Unauthenticated
                         }
-                }
+                    }
             } catch (e: Exception) {
-                Timber.e(e, "Lỗi khi kiểm tra trạng thái đăng nhập")
                 _authState.value = AuthState.Error("Lỗi khi kiểm tra trạng thái xác thực: ${e.message}")
                 _authState.value = AuthState.Unauthenticated
             }
@@ -76,7 +70,7 @@ class AuthViewModel @Inject constructor(
     /**
      * Đăng nhập với email và mật khẩu
      */
-    fun login(email: String, password: String, rememberMe: Boolean) {
+    fun login(email: String, password: String) {
         _authState.value = AuthState.Loading
         
         viewModelScope.launch {
@@ -84,13 +78,11 @@ class AuthViewModel @Inject constructor(
                 .collect { result ->
                     when (result) {
                         is Resource.Success -> {
-                            Timber.d("Đăng nhập thành công, đang tải thông tin người dùng")
                             fetchCurrentUser()
                         }
                         is Resource.Error -> {
-                            Timber.e("Đăng nhập thất bại: ${result.message}")
                             _authState.value = AuthState.Error(result.message ?: "Đăng nhập thất bại")
-            }
+                        }
                         is Resource.Loading -> {
                             _authState.value = AuthState.Loading
                         }
@@ -106,35 +98,32 @@ class AuthViewModel @Inject constructor(
         idToken: String,
         email: String,
         name: String,
-        profilePictureUrl: String?,
-        rememberMe: Boolean
+        profilePictureUrl: String?
     ) {
         _authState.value = AuthState.Loading
-        
+
         viewModelScope.launch {
-                val googleAuthRequest = GoogleAuthRequestDto(
-                    idToken = idToken,
-                    email = email,
-                    name = name,
-                    profilePictureUrl = profilePictureUrl
-                )
-                
+            val googleAuthRequest = GoogleAuthRequestDto(
+                idToken = idToken,
+                email = email,
+                name = name,
+                profilePictureUrl = profilePictureUrl
+            )
+
             authRepository.loginWithGoogle(googleAuthRequest)
                 .collect { result ->
                     when (result) {
                         is Resource.Success -> {
-                            Timber.d("Đăng nhập Google thành công, đang tải thông tin người dùng")
                             fetchCurrentUser()
                         }
                         is Resource.Error -> {
-                            Timber.e("Đăng nhập Google thất bại: ${result.message}")
-                            _authState.value = AuthState.Error(result.message ?: "Đăng nhập Google thất bại")
-                }
+                            _authState.value = AuthState.Error(result.message ?: "Đăng nhập bằng Google thất bại")
+                        }
                         is Resource.Loading -> {
                             _authState.value = AuthState.Loading
                         }
                     }
-            }
+                }
         }
     }
     
@@ -161,13 +150,11 @@ class AuthViewModel @Inject constructor(
                 .collect { result ->
                     when (result) {
                         is Resource.Success -> {
-                            Timber.d("Đăng ký thành công: ${result.data?.email}")
-                    _authState.value = AuthState.RegistrationSuccess(
+                            _authState.value = AuthState.RegistrationSuccess(
                                 "Đăng ký thành công. Vui lòng đăng nhập để tiếp tục."
-                    )
+                            )
                         }
                         is Resource.Error -> {
-                            Timber.e("Đăng ký thất bại: ${result.message}")
                             _authState.value = AuthState.Error(result.message ?: "Đăng ký thất bại")
                 }
                         is Resource.Loading -> {
@@ -189,18 +176,14 @@ class AuthViewModel @Inject constructor(
                 .collect { result ->
                     when (result) {
                         is Resource.Success -> {
-                            Timber.d("Đăng xuất thành công")
                             _currentUser.value = null
                             _authState.value = AuthState.Unauthenticated
                         }
                         is Resource.Error -> {
-                            Timber.e("Đăng xuất thất bại: ${result.message}")
-                            // Vẫn đăng xuất ở local ngay cả khi có lỗi
-            _currentUser.value = null
-            _authState.value = AuthState.Unauthenticated
+                            _currentUser.value = null
+                            _authState.value = AuthState.Unauthenticated
                         }
                         is Resource.Loading -> {
-                            _authState.value = AuthState.Loading
                         }
                     }
                 }
@@ -220,17 +203,14 @@ class AuthViewModel @Inject constructor(
                     if (user != null) {
                         _currentUser.value = user
                         _authState.value = AuthState.Authenticated
-                        Timber.d("Lấy thông tin người dùng thành công: ${user.fullName}")
                         
                         fcmTokenService.registerFcmToken()
                     } else {
-                        Timber.e("Không thể lấy thông tin người dùng từ response")
                         _authState.value = AuthState.Error("Không thể lấy thông tin người dùng")
                         logout()
                     }
                         }
                         is Resource.Error -> {
-                            Timber.e("Lấy thông tin người dùng thất bại: ${result.message}")
                             _authState.value = AuthState.Error(result.message ?: "Không thể lấy thông tin người dùng")
                     logout()
                 }
@@ -253,13 +233,11 @@ class AuthViewModel @Inject constructor(
                 .collect { result ->
                     when (result) {
                         is Resource.Success -> {
-                            Timber.d("Gửi yêu cầu quên mật khẩu thành công")
                             _authState.value = AuthState.ForgotPasswordSuccess(
                                 result.data ?: "Mật khẩu tạm thời đã được gửi đến email của bạn"
                             )
                         }
                         is Resource.Error -> {
-                            Timber.e("Gửi yêu cầu quên mật khẩu thất bại: ${result.message}")
                             _authState.value = AuthState.Error(result.message ?: "Không thể gửi yêu cầu đặt lại mật khẩu")
                         }
                         is Resource.Loading -> {
@@ -281,13 +259,11 @@ class AuthViewModel @Inject constructor(
                 .collect { result ->
                     when (result) {
                         is Resource.Success -> {
-                            Timber.d("Đặt lại mật khẩu thành công")
                             _authState.value = AuthState.ResetPasswordSuccess(
                                 result.data ?: "Đặt lại mật khẩu thành công"
                             )
-            }
+                        }
                         is Resource.Error -> {
-                            Timber.e("Đặt lại mật khẩu thất bại: ${result.message}")
                             _authState.value = AuthState.Error(result.message ?: "Không thể đặt lại mật khẩu")
                         }
                         is Resource.Loading -> {

@@ -90,7 +90,6 @@ fun LoginScreen(
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
     
-    // Google Sign-In Launcher
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -102,12 +101,15 @@ fun LoginScreen(
                     idToken = account.idToken ?: "",
                     email = account.email ?: "",
                     name = account.displayName ?: "",
-                    profilePictureUrl = account.photoUrl?.toString(),
-                    rememberMe = rememberMe
+                    profilePictureUrl = account.photoUrl?.toString()
                 )
             }
             is GoogleSignInResult.Error -> {
-                Toast.makeText(context, signInResult.message, Toast.LENGTH_SHORT).show()
+                val errorMessage = signInResult.message
+                Toast.makeText(context, "Google Sign-In Error: $errorMessage", Toast.LENGTH_LONG).show()
+            }
+            is GoogleSignInResult.Cancelled -> {
+                Toast.makeText(context, "Google Sign-In cancelled.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -122,11 +124,9 @@ fun LoginScreen(
                 val errorMsg = (authState as AuthState.Error).message
                 if (errorMsg.contains("kết nối") || errorMsg.contains("máy chủ") || 
                     errorMsg.contains("timeout") || errorMsg.contains("network")) {
-                    // Hiển thị thông báo lỗi kết nối mạng
                     networkErrorMessage = errorMsg
                     isNetworkErrorDialogVisible = true
                 } else {
-                    // Hiển thị lỗi xác thực thông thường
                     snackbarHostState.showSnackbar(errorMsg)
                 }
                 viewModel.resetError()
@@ -297,7 +297,7 @@ fun LoginScreen(
                         passwordError = ValidationUtils.validatePassword(password)
                         
                         if (emailError == null && passwordError == null) {
-                            viewModel.login(email, password, rememberMe)
+                            viewModel.login(email, password)
                         }
                     },
                     modifier = Modifier
