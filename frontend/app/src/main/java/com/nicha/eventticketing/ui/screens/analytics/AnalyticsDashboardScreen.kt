@@ -187,7 +187,7 @@ private fun SummaryCardsSection(
                 StatsCard(
                     title = "Vé đã bán",
                     value = when (ticketSalesState) {
-                        is ResourceState.Success -> ticketSalesState.data.totalSold.toString()
+                        is ResourceState.Success -> ticketSalesState.data.ticketTypeBreakdown.values.sum().toString()
                         is ResourceState.Loading -> "..."
                         else -> "0"
                     },
@@ -265,7 +265,7 @@ private fun ChartsSection(
             TicketSalesBarChart(
                 data = when (ticketSalesState) {
                     is ResourceState.Success -> {
-                        ticketSalesState.data.ticketTypeData.mapValues { it.value.count }
+                        ticketSalesState.data.ticketTypeBreakdown
                     }
                     else -> emptyMap()
                 },

@@ -27,7 +27,11 @@ class RoleBasedNavigation @Inject constructor(
             NavDestination.EventImages,
             NavDestination.EventTicketTypes,
             NavDestination.OrganizerProfile,
-            NavDestination.AnalyticsDashboard
+            NavDestination.AnalyticsDashboard,
+            NavDestination.RevenueAnalytics,
+            NavDestination.TicketAnalytics,
+            NavDestination.AttendeeAnalytics,
+            NavDestination.EventPerformance
         )
         
         // Nếu điểm đến không dành riêng cho người tổ chức, cho phép truy cập

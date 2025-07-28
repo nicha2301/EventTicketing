@@ -15,6 +15,10 @@ import com.nicha.eventticketing.ui.screens.auth.RegisterScreen
 import com.nicha.eventticketing.ui.screens.auth.ResetPasswordScreen
 import com.nicha.eventticketing.ui.screens.checkin.CheckInScreen
 import com.nicha.eventticketing.ui.screens.analytics.AnalyticsDashboardScreen
+import com.nicha.eventticketing.ui.screens.analytics.RevenueAnalyticsScreen
+import com.nicha.eventticketing.ui.screens.analytics.TicketAnalyticsScreen
+import com.nicha.eventticketing.ui.screens.analytics.AttendeeAnalyticsScreen
+import com.nicha.eventticketing.ui.screens.analytics.EventPerformanceScreen
 import com.nicha.eventticketing.ui.screens.demo.NeumorphicDemoScreen
 import com.nicha.eventticketing.ui.screens.event.EventDetailScreen
 import com.nicha.eventticketing.ui.screens.home.HomeScreen
@@ -612,18 +616,105 @@ fun NavGraph(
                 onNavigateToDetailed = { analyticsType ->
                     when (analyticsType) {
                         "revenue" -> {
-                            navController.navigate(NavDestination.EventDashboard.route)
+                            if (eventId != null) {
+                                navController.navigate(NavDestination.RevenueAnalytics.createRoute(eventId))
+                            }
                         }
                         "ticket_sales" -> {
-                            navController.navigate(NavDestination.EventDashboard.route)
+                            if (eventId != null) {
+                                navController.navigate(NavDestination.TicketAnalytics.createRoute(eventId))
+                            }
                         }
                         "attendee" -> {
-                            navController.navigate(NavDestination.EventDashboard.route)
+                            if (eventId != null) {
+                                navController.navigate(NavDestination.AttendeeAnalytics.createRoute(eventId))
+                            }
+                        }
+                        "performance" -> {
+                            if (eventId != null) {
+                                navController.navigate(NavDestination.EventPerformance.createRoute(eventId))
+                            }
                         }
                         else -> {
                             navController.navigate(NavDestination.EventDashboard.route)
                         }
                     }
+                }
+            )
+        }
+        
+        // Revenue Analytics Screen
+        composable(
+            route = NavDestination.RevenueAnalytics.route + "/{eventId}",
+            arguments = listOf(
+                navArgument("eventId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: return@composable
+            
+            RevenueAnalyticsScreen(
+                eventId = eventId,
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Ticket Analytics Screen
+        composable(
+            route = NavDestination.TicketAnalytics.route + "/{eventId}",
+            arguments = listOf(
+                navArgument("eventId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: return@composable
+            
+            TicketAnalyticsScreen(
+                eventId = eventId,
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Attendee Analytics Screen
+        composable(
+            route = NavDestination.AttendeeAnalytics.route + "/{eventId}",
+            arguments = listOf(
+                navArgument("eventId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: return@composable
+            
+            AttendeeAnalyticsScreen(
+                eventId = eventId,
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Event Performance Screen
+        composable(
+            route = NavDestination.EventPerformance.route + "/{eventId}",
+            arguments = listOf(
+                navArgument("eventId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: return@composable
+            
+            EventPerformanceScreen(
+                eventId = eventId,
+                onBackClick = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -747,5 +838,17 @@ sealed class NavDestination(val route: String) {
     object Privacy : NavDestination("privacy")
     object AnalyticsDashboard : NavDestination("analytics_dashboard") {
         fun createRoute(eventId: String? = null) = if (eventId != null) "$route/$eventId" else route
+    }
+    object RevenueAnalytics : NavDestination("revenue_analytics") {
+        fun createRoute(eventId: String) = "$route/$eventId"
+    }
+    object TicketAnalytics : NavDestination("ticket_analytics") {
+        fun createRoute(eventId: String) = "$route/$eventId"
+    }
+    object AttendeeAnalytics : NavDestination("attendee_analytics") {
+        fun createRoute(eventId: String) = "$route/$eventId"
+    }
+    object EventPerformance : NavDestination("event_performance") {
+        fun createRoute(eventId: String) = "$route/$eventId"
     }
 } 

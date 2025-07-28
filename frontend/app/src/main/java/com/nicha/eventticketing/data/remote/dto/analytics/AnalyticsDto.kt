@@ -179,14 +179,14 @@ data class DailyRevenueResponseDto(
  */
 @JsonClass(generateAdapter = true)
 data class TicketSalesResponseDto(
-    @Json(name = "ticketTypeData")
-    val ticketTypeData: Map<String, TicketTypeStatsDto>,
-    
-    @Json(name = "totalSold")
-    val totalSold: Int,
+    @Json(name = "ticketTypeBreakdown")
+    val ticketTypeBreakdown: Map<String, Int>,
     
     @Json(name = "totalRevenue")
-    val totalRevenue: Double
+    val totalRevenue: Double,
+    
+    @Json(name = "dailySales")
+    val dailySales: Map<String, Int>?
 )
 
 @JsonClass(generateAdapter = true)
@@ -196,4 +196,85 @@ data class TicketTypeStatsDto(
     
     @Json(name = "revenue")
     val revenue: Double
+)
+
+/**
+ * DTO cho phân tích người tham dự
+ */
+@JsonClass(generateAdapter = true)
+data class AttendeeAnalyticsResponseDto(
+    @Json(name = "totalRegistered")
+    val totalRegistered: Int,
+    
+    @Json(name = "totalCheckedIn")
+    val totalCheckedIn: Int,
+    
+    @Json(name = "ageDistribution")
+    val ageDistribution: Map<String, Int>,
+    
+    @Json(name = "genderDistribution")
+    val genderDistribution: Map<String, Int>,
+    
+    @Json(name = "locationDistribution")
+    val locationDistribution: Map<String, Int>,
+    
+    @Json(name = "registrationTimeline")
+    val registrationTimeline: Map<String, Int>?
+)
+
+/**
+ * DTO cho hiệu suất sự kiện
+ */
+@JsonClass(generateAdapter = true)
+data class EventPerformanceResponseDto(
+    @Json(name = "ticketSalesRate")
+    val ticketSalesRate: Int,
+    
+    @Json(name = "attendanceRate")
+    val attendanceRate: Int,
+    
+    @Json(name = "averageRating")
+    val averageRating: Double,
+    
+    @Json(name = "roi")
+    val roi: Int,
+    
+    @Json(name = "totalRevenue")
+    val totalRevenue: Double,
+    
+    @Json(name = "totalCost")
+    val totalCost: Double?,
+    
+    @Json(name = "ticketsSold")
+    val ticketsSold: Int,
+    
+    @Json(name = "revenueTarget")
+    val revenueTarget: Double?,
+    
+    @Json(name = "ticketsTarget")
+    val ticketsTarget: Int?,
+    
+    @Json(name = "npsScore")
+    val npsScore: Int?,
+    
+    @Json(name = "costPerAttendee")
+    val costPerAttendee: Double?
+)
+
+/**
+ * Enhanced TicketSalesResponseDto for detailed ticket analytics
+ */
+@JsonClass(generateAdapter = true)
+data class DetailedTicketSalesResponseDto(
+    @Json(name = "ticketTypeBreakdown")
+    val ticketTypeBreakdown: Map<String, Int>,
+    
+    @Json(name = "totalRevenue")
+    val totalRevenue: Double,
+    
+    @Json(name = "dailySales")
+    val dailySales: Map<String, Int>?,
+    
+    @Json(name = "peakSellingDays")
+    val peakSellingDays: Map<String, Int>?
 )
