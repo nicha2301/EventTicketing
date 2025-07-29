@@ -131,12 +131,12 @@ class ReportGenerator @Inject constructor(
                 // Ticket Sales Analysis
                 writer.append("🎫 TICKET SALES ANALYSIS\n")
                 writer.append("───────────────────────\n")
-                val totalTickets = ticketSales.ticketTypeBreakdown.values.sum()
+                val totalTickets = ticketSales.totalSold
                 writer.append("• Total Tickets Sold: $totalTickets\n")
                 writer.append("• Ticket Type Breakdown:\n")
-                ticketSales.ticketTypeBreakdown.forEach { (type, count) ->
-                    val percentage = if (totalTickets > 0) (count.toDouble() / totalTickets * 100) else 0.0
-                    writer.append("  - $type: $count tickets (${String.format("%.1f", percentage)}%)\n")
+                ticketSales.ticketTypeData.forEach { (type, stats) ->
+                    val percentage = if (totalTickets > 0) (stats.count.toDouble() / totalTickets * 100) else 0.0
+                    writer.append("  - $type: ${stats.count} tickets (${String.format("%.1f", percentage)}%)\n")
                 }
                 writer.append("\n")
                 
@@ -263,7 +263,7 @@ class ReportGenerator @Inject constructor(
         }
         
         // Ticket sales recommendations
-        val totalTickets = ticketSales.ticketTypeBreakdown.values.sum()
+        val totalTickets = ticketSales.totalSold
         if (totalTickets < 50) {
             recommendations.add("• Increase marketing efforts to boost ticket sales")
             recommendations.add("• Consider early bird discounts to encourage advance purchases")

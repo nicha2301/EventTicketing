@@ -65,18 +65,15 @@ class AnalyticsRepositoryImpl @Inject constructor(
                     )
                 }
                 
-                val ticketTypeBreakdown = convertedTicketTypeData.mapValues { (_, stats) ->
-                    stats.count
-                }
-                
                 val ticketSalesResponse = TicketSalesResponseDto(
-                    ticketTypeBreakdown = ticketTypeBreakdown,
+                    ticketTypeData = convertedTicketTypeData,
+                    totalSold = (responseMap["totalSold"] as? Number)?.toInt() ?: 0,
                     totalRevenue = (responseMap["totalRevenue"] as? Number)?.toDouble() ?: 0.0,
                     dailySales = responseMap["dailySales"] as? Map<String, Int>
                 )
                 
                 emit(Resource.Success(ticketSalesResponse))
-                val totalSold = ticketTypeBreakdown.values.sum()
+                Timber.d("Lấy dữ liệu bán vé thành công: ${ticketSalesResponse.totalSold} vé")
             } else {
                 val errorMessage = NetworkUtil.parseErrorResponse(response)
                 emit(Resource.Error(errorMessage ?: "Không thể lấy dữ liệu bán vé"))

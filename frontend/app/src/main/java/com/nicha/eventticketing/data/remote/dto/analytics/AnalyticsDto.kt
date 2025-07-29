@@ -179,14 +179,14 @@ data class DailyRevenueResponseDto(
  */
 @JsonClass(generateAdapter = true)
 data class TicketSalesResponseDto(
-    @Json(name = "ticketTypeBreakdown")
-    val ticketTypeBreakdown: Map<String, Int>,
+    @Json(name = "ticketTypeData")
+    val ticketTypeData: Map<String, TicketTypeStatsDto>,
+    
+    @Json(name = "totalSold")
+    val totalSold: Int,
     
     @Json(name = "totalRevenue")
-    val totalRevenue: Double,
-    
-    @Json(name = "dailySales")
-    val dailySales: Map<String, Int>?
+    val totalRevenue: Double
 )
 
 @JsonClass(generateAdapter = true)
