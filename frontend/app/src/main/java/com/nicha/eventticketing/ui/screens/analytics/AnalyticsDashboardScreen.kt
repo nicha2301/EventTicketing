@@ -20,6 +20,8 @@ import com.nicha.eventticketing.ui.components.analytics.*
 import com.nicha.eventticketing.ui.components.charts.*
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.viewmodel.AnalyticsDashboardViewModel
+import com.nicha.eventticketing.viewmodel.ExportState
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,11 +36,38 @@ fun AnalyticsDashboardScreen(
     val ticketSalesState by viewModel.ticketSalesState.collectAsState()
     val checkInStatsState by viewModel.checkInStatsState.collectAsState()
     val ratingStatsState by viewModel.ratingStatsState.collectAsState()
+    val exportState by viewModel.exportState.collectAsState()
+    
+    // Export dialog states
+    var showExportDialog by remember { mutableStateOf(false) }
+    var showExportSuccess by remember { mutableStateOf(false) }
+    var showExportError by remember { mutableStateOf(false) }
+    var exportedFile by remember { mutableStateOf<java.io.File?>(null) }
+    var exportErrorMessage by remember { mutableStateOf("") }
 
     // Set event ID if provided
     LaunchedEffect(eventId) {
         if (eventId != null) {
             viewModel.updateSelectedEventForDetails(eventId)
+        }
+    }
+    
+    // Handle export state changes
+    LaunchedEffect(exportState) {
+        when (val currentExportState = exportState) {
+            is ExportState.Success -> {
+                showExportDialog = false
+                exportedFile = currentExportState.file
+                showExportSuccess = true
+                viewModel.clearExportState()
+            }
+            is ExportState.Error -> {
+                showExportDialog = false
+                exportErrorMessage = currentExportState.message
+                showExportError = true
+                viewModel.clearExportState()
+            }
+            else -> {}
         }
     }
 
@@ -70,6 +99,17 @@ fun AnalyticsDashboardScreen(
                     }
                 },
                 actions = {
+                    // Export button
+                    IconButton(
+                        onClick = { showExportDialog = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FileDownload,
+                            contentDescription = "Export Report"
+                        )
+                    }
+                    
+                    // Refresh button
                     IconButton(
                         onClick = { viewModel.refreshData() },
                         enabled = !uiState.isRefreshing
@@ -121,13 +161,23 @@ fun AnalyticsDashboardScreen(
                 }
             )
 
-            // Summary Cards
-            SummaryCardsSection(
-                dailyRevenueState = dailyRevenueState,
-                ticketSalesState = ticketSalesState,
-                checkInStatsState = checkInStatsState,
-                ratingStatsState = ratingStatsState
-            )
+            // Summary Cards with loading states
+            when {
+                dailyRevenueState is ResourceState.Loading ||
+                ticketSalesState is ResourceState.Loading ||
+                checkInStatsState is ResourceState.Loading ||
+                ratingStatsState is ResourceState.Loading -> {
+                    SummaryCardSkeleton()
+                }
+                else -> {
+                    SummaryCardsSection(
+                        dailyRevenueState = dailyRevenueState,
+                        ticketSalesState = ticketSalesState,
+                        checkInStatsState = checkInStatsState,
+                        ratingStatsState = ratingStatsState
+                    )
+                }
+            }
 
             // Charts Section
             ChartsSection(
@@ -245,61 +295,107 @@ private fun ChartsSection(
     checkInStatsState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.CheckInStatisticsDto>,
     ratingStatsState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.RatingStatisticsDto>
 ) {
+    // Optimized with remember to avoid recomposition
+    val revenueData = remember(dailyRevenueState) {
+        when (dailyRevenueState) {
+            is ResourceState.Success -> dailyRevenueState.data.dailyRevenue
+            else -> emptyMap()
+        }
+    }
+    
+    val ticketSalesData = remember(ticketSalesState) {
+        when (ticketSalesState) {
+            is ResourceState.Success -> ticketSalesState.data.ticketTypeBreakdown
+            else -> emptyMap()
+        }
+    }
+    
+    val (checkedIn, totalTickets) = remember(checkInStatsState) {
+        when (checkInStatsState) {
+            is ResourceState.Success -> Pair(checkInStatsState.data.checkedIn, checkInStatsState.data.totalTickets)
+            else -> Pair(0, 0)
+        }
+    }
+    
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Revenue Chart
-        RevenueLineChart(
-            data = when (dailyRevenueState) {
-                is ResourceState.Success -> dailyRevenueState.data.dailyRevenue
-                else -> emptyMap()
-            },
-            title = "Doanh thu theo thời gian"
-        )
+        // Revenue Chart with optimized rendering
+        if (revenueData.isNotEmpty()) {
+            RevenueLineChart(
+                data = revenueData,
+                title = "Doanh thu theo thời gian"
+            )
+        } else {
+            ChartPlaceholder(
+                title = "Doanh thu theo thời gian",
+                isLoading = dailyRevenueState is ResourceState.Loading
+            )
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Ticket Sales Chart
-            TicketSalesBarChart(
-                data = when (ticketSalesState) {
-                    is ResourceState.Success -> {
-                        ticketSalesState.data.ticketTypeBreakdown
-                    }
-                    else -> emptyMap()
-                },
-                title = "Bán vé theo loại",
-                modifier = Modifier.weight(1f)
-            )
+            // Ticket Sales Chart with conditional rendering
+            if (ticketSalesData.isNotEmpty()) {
+                TicketSalesBarChart(
+                    data = ticketSalesData,
+                    title = "Bán vé theo loại",
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                ChartPlaceholder(
+                    title = "Bán vé theo loại",
+                    isLoading = ticketSalesState is ResourceState.Loading,
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
-            // Check-in Chart
-            CheckInPieChart(
-                checkedIn = when (checkInStatsState) {
-                    is ResourceState.Success -> checkInStatsState.data.checkedIn
-                    else -> 0
-                },
-                notCheckedIn = when (checkInStatsState) {
-                    is ResourceState.Success -> checkInStatsState.data.notCheckedIn
-                    else -> 0
-                },
-                title = "Thống kê Check-in",
-                modifier = Modifier.weight(1f)
-            )
+            // Check-in Chart with optimized data
+            if (totalTickets > 0) {
+                CheckInPieChart(
+                    checkedIn = checkedIn,
+                    notCheckedIn = totalTickets - checkedIn,
+                    title = "Thống kê Check-in",
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                ChartPlaceholder(
+                    title = "Thống kê Check-in",
+                    isLoading = checkInStatsState is ResourceState.Loading,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
 
-        // Rating Distribution Chart
-        RatingDistributionChart(
-            ratingCounts = when (ratingStatsState) {
+        // Rating Distribution Chart with optimized rendering
+        val ratingData = remember(ratingStatsState) {
+            when (ratingStatsState) {
                 is ResourceState.Success -> ratingStatsState.data.ratingCounts
                 else -> emptyMap()
-            },
-            averageRating = when (ratingStatsState) {
+            }
+        }
+        
+        val averageRating = remember(ratingStatsState) {
+            when (ratingStatsState) {
                 is ResourceState.Success -> ratingStatsState.data.averageRating
                 else -> 0.0
-            },
-            title = "Phân bố đánh giá"
-        )
+            }
+        }
+        
+        if (ratingData.isNotEmpty()) {
+            RatingDistributionChart(
+                ratingCounts = ratingData,
+                averageRating = averageRating,
+                title = "Phân bố đánh giá"
+            )
+        } else {
+            ChartPlaceholder(
+                title = "Phân bố đánh giá",
+                isLoading = ratingStatsState is ResourceState.Loading
+            )
+        }
     }
 }
 
@@ -377,5 +473,59 @@ private fun formatCurrency(amount: Double): String {
         amount >= 1_000_000 -> String.format("%.1fM", amount / 1_000_000)
         amount >= 1_000 -> String.format("%.0fK", amount / 1_000)
         else -> String.format("%.0f", amount)
+    }
+}
+
+// Performance optimized chart placeholder
+@Composable
+private fun ChartPlaceholder(
+    title: String,
+    isLoading: Boolean,
+    modifier: Modifier = Modifier
+) {
+    NeumorphicCard(
+        modifier = modifier.height(200.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    strokeWidth = 3.dp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Đang tải...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.BarChart,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Chưa có dữ liệu",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }

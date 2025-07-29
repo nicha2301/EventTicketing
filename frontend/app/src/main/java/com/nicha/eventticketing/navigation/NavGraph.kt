@@ -532,6 +532,9 @@ fun NavGraph(
                 },
                 onManageImagesClick = { eventIdForImages ->
                     navController.navigate(NavDestination.EventImages.createRoute(eventIdForImages))
+                },
+                onAnalyticsClick = { eventIdForAnalytics ->
+                    navController.navigate(NavDestination.AnalyticsDashboard.createRoute(eventIdForAnalytics))
                 }
             )
         }

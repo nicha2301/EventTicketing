@@ -278,3 +278,30 @@ data class DetailedTicketSalesResponseDto(
     @Json(name = "peakSellingDays")
     val peakSellingDays: Map<String, Int>?
 )
+
+/**
+ * DTO for Analytics Summary used in Export functionality
+ */
+@JsonClass(generateAdapter = true)
+data class AnalyticsSummaryResponseDto(
+    @Json(name = "totalRevenue")
+    val totalRevenue: Double,
+    
+    @Json(name = "totalTickets")
+    val totalTickets: Int,
+    
+    @Json(name = "checkInRate")
+    val checkInRate: Double,
+    
+    @Json(name = "averageRating")
+    val averageRating: Double,
+    
+    @Json(name = "dailyRevenue")
+    val dailyRevenue: Map<String, Double>,
+    
+    @Json(name = "ticketSales")
+    val ticketSales: Map<String, Int>,
+    
+    @Json(name = "checkInStats")
+    val checkInStats: Map<String, Any>
+)

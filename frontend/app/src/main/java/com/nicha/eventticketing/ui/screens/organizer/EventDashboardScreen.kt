@@ -1,5 +1,6 @@
 package com.nicha.eventticketing.ui.screens.organizer
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -174,6 +175,16 @@ fun EventDashboardScreen(
                             value = "$totalTicketsSold",
                             label = "Vé đã bán"
                         )
+                        
+                        Box(
+                            modifier = Modifier.clickable { onAnalyticsClick() }
+                        ) {
+                            DashboardStatCard(
+                                icon = Icons.Default.Analytics,
+                                value = "📊",
+                                label = "Thống kê"
+                            )
+                        }
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))

@@ -42,6 +42,7 @@ fun OrganizerEventDetailScreen(
     onEditClick: (String) -> Unit,
     onManageTicketsClick: (String) -> Unit,
     onManageImagesClick: (String) -> Unit,
+    onAnalyticsClick: (String) -> Unit,
     viewModel: OrganizerEventViewModel = hiltViewModel()
 ) {
     val eventDetailState by viewModel.eventDetailState.collectAsState()
@@ -244,7 +245,7 @@ fun OrganizerEventDetailScreen(
                             ActionButton(
                                 icon = Icons.Default.Analytics,
                                 text = "Thống kê",
-                                onClick = { /* TODO */ }
+                                onClick = { onAnalyticsClick(eventId) }
                             )
                             
                             ActionButton(
