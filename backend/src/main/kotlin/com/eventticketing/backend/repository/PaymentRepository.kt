@@ -103,4 +103,16 @@ interface PaymentRepository : JpaRepository<Payment, UUID> {
         AND p.status = 'COMPLETED'
     """)
     fun sumRevenueByTicketTypeId(@Param("ticketTypeId") ticketTypeId: UUID): BigDecimal
+    
+    @Query("""
+        SELECT p.paymentMethod, COUNT(p), SUM(p.amount) 
+        FROM Payment p
+        JOIN p.ticket t
+        JOIN t.ticketType tt
+        JOIN tt.event e
+        WHERE e.id = :eventId
+        AND p.status = 'COMPLETED'
+        GROUP BY p.paymentMethod
+    """)
+    fun getPaymentMethodStatsForEvent(@Param("eventId") eventId: UUID): List<Array<Any>>
 } 

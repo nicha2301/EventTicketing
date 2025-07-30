@@ -97,6 +97,12 @@ data class Event(
     
     @Column(name = "rating_count")
     var ratingCount: Int = 0,
+    
+    @Column(name = "revenue_target", precision = 12, scale = 2)
+    var revenueTarget: BigDecimal? = null,
+    
+    @Column(name = "ticket_capacity")
+    var ticketCapacity: Int? = null,
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

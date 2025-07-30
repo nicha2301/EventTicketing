@@ -40,6 +40,15 @@ class User(
     @Column(name = "profile_picture_url")
     var profilePictureUrl: String? = null,
     
+    @Column(name = "birth_date")
+    var birthDate: LocalDateTime? = null,
+    
+    @Column(name = "gender")
+    var gender: String? = null,
+    
+    @Column(name = "location")
+    var location: String? = null,
+    
     @Column(name = "notification_preferences", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     var notificationPreferences: Map<String, Any> = emptyMap(),
