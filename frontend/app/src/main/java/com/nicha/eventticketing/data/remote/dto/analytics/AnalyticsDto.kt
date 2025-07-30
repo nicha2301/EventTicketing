@@ -186,7 +186,10 @@ data class TicketSalesResponseDto(
     val totalSold: Int,
     
     @Json(name = "totalRevenue")
-    val totalRevenue: Double
+    val totalRevenue: Double,
+    
+    @Json(name = "dailySales")
+    val dailySales: Map<String, Int>? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -266,8 +269,11 @@ data class EventPerformanceResponseDto(
  */
 @JsonClass(generateAdapter = true)
 data class DetailedTicketSalesResponseDto(
-    @Json(name = "ticketTypeBreakdown")
-    val ticketTypeBreakdown: Map<String, Int>,
+    @Json(name = "ticketTypeData")
+    val ticketTypeData: Map<String, TicketTypeStatsDto>,
+    
+    @Json(name = "totalSold")
+    val totalSold: Int,
     
     @Json(name = "totalRevenue")
     val totalRevenue: Double,

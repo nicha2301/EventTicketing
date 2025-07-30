@@ -237,7 +237,7 @@ private fun SummaryCardsSection(
                 StatsCard(
                     title = "Vé đã bán",
                     value = when (ticketSalesState) {
-                        is ResourceState.Success -> ticketSalesState.data.ticketTypeBreakdown.values.sum().toString()
+                        is ResourceState.Success -> ticketSalesState.data.totalSold.toString()
                         is ResourceState.Loading -> "..."
                         else -> "0"
                     },
@@ -254,7 +254,10 @@ private fun SummaryCardsSection(
                 PercentageCard(
                     title = "Tỷ lệ check-in",
                     percentage = when (checkInStatsState) {
-                        is ResourceState.Success -> checkInStatsState.data.checkInRate * 100
+                        is ResourceState.Success -> {
+                            val rate = checkInStatsState.data.checkInRate
+                            if (rate > 100) rate / 100.0 else rate
+                        }
                         else -> 0.0
                     },
                     description = when (checkInStatsState) {
@@ -305,7 +308,7 @@ private fun ChartsSection(
     
     val ticketSalesData = remember(ticketSalesState) {
         when (ticketSalesState) {
-            is ResourceState.Success -> ticketSalesState.data.ticketTypeBreakdown
+            is ResourceState.Success -> ticketSalesState.data.ticketTypeData.mapValues { it.value.count }
             else -> emptyMap()
         }
     }
@@ -322,10 +325,25 @@ private fun ChartsSection(
     ) {
         // Revenue Chart with optimized rendering
         if (revenueData.isNotEmpty()) {
-            RevenueLineChart(
-                data = revenueData,
-                title = "Doanh thu theo thời gian"
-            )
+            NeumorphicCard(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Doanh thu theo thời gian",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    LineChart(
+                        data = revenueData.mapValues { it.value.toFloat() },
+                        modifier = Modifier.height(200.dp),
+                        lineColor = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         } else {
             ChartPlaceholder(
                 title = "Doanh thu theo thời gian",
@@ -339,11 +357,24 @@ private fun ChartsSection(
         ) {
             // Ticket Sales Chart with conditional rendering
             if (ticketSalesData.isNotEmpty()) {
-                TicketSalesBarChart(
-                    data = ticketSalesData,
-                    title = "Bán vé theo loại",
+                NeumorphicCard(
                     modifier = Modifier.weight(1f)
-                )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Bán vé theo loại",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        DoughnutChart(
+                            data = ticketSalesData.mapValues { it.value.toFloat() },
+                            modifier = Modifier.height(160.dp)
+                        )
+                    }
+                }
             } else {
                 ChartPlaceholder(
                     title = "Bán vé theo loại",
@@ -354,12 +385,31 @@ private fun ChartsSection(
 
             // Check-in Chart with optimized data
             if (totalTickets > 0) {
-                CheckInPieChart(
-                    checkedIn = checkedIn,
-                    notCheckedIn = totalTickets - checkedIn,
-                    title = "Thống kê Check-in",
+                NeumorphicCard(
                     modifier = Modifier.weight(1f)
-                )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Thống kê Check-in",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        DoughnutChart(
+                            data = mapOf(
+                                "Đã check-in" to checkedIn.toFloat(),
+                                "Chưa check-in" to (totalTickets - checkedIn).toFloat()
+                            ),
+                            modifier = Modifier.height(160.dp),
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        )
+                    }
+                }
             } else {
                 ChartPlaceholder(
                     title = "Thống kê Check-in",
@@ -436,7 +486,7 @@ private fun QuickActionsSection(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 OutlinedButton(
-                    onClick = { onNavigateToDetailed("tickets") },
+                    onClick = { onNavigateToDetailed("ticket_sales") },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
@@ -451,7 +501,7 @@ private fun QuickActionsSection(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 OutlinedButton(
-                    onClick = { onNavigateToDetailed("attendees") },
+                    onClick = { onNavigateToDetailed("attendee") },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(

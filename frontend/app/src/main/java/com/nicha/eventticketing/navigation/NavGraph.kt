@@ -593,12 +593,11 @@ fun NavGraph(
         
         // Analytics Dashboard Screen
         composable(
-            route = NavDestination.AnalyticsDashboard.route + "?eventId={eventId}",
+            route = NavDestination.AnalyticsDashboard.route + "/{eventId}",
             arguments = listOf(
                 navArgument("eventId") {
                     type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
+                    nullable = false
                 }
             )
         ) { backStackEntry ->
@@ -840,7 +839,7 @@ sealed class NavDestination(val route: String) {
     object Security : NavDestination("security")
     object Privacy : NavDestination("privacy")
     object AnalyticsDashboard : NavDestination("analytics_dashboard") {
-        fun createRoute(eventId: String? = null) = if (eventId != null) "$route/$eventId" else route
+        fun createRoute(eventId: String) = "$route/$eventId"
     }
     object RevenueAnalytics : NavDestination("revenue_analytics") {
         fun createRoute(eventId: String) = "$route/$eventId"
