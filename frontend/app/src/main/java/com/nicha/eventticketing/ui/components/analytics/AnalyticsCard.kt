@@ -1,26 +1,55 @@
 package com.nicha.eventticketing.ui.components.analytics
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -135,31 +164,37 @@ fun ForecastCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
-            
             Spacer(modifier = Modifier.height(4.dp))
-            
             Text(
                 text = amount,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
-            
             Spacer(modifier = Modifier.height(4.dp))
-            
-            Surface(
-                modifier = Modifier.clip(MaterialTheme.shapes.small),
-                color = trendColor.copy(alpha = 0.1f)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = trend,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = trendColor,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                )
+                Surface(
+                    modifier = Modifier.clip(MaterialTheme.shapes.small),
+                    color = trendColor.copy(alpha = 0.1f)
+                ) {
+                    Text(
+                        text = trend,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = trendColor,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
             }
         }
     }
@@ -709,37 +744,26 @@ fun TicketTypesLegend(
         Color(0xFF9C27B0), Color(0xFFF44336)
     )
     
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp)
     ) {
-        data.entries.toList().chunked(2).forEach { rowItems ->
+        itemsIndexed(data.entries.toList()) { index, (type, count) ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                rowItems.forEachIndexed { localIndex, (type, count) ->
-                    val globalIndex = data.entries.toList().indexOfFirst { entry -> entry.key == type && entry.value == count }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Surface(
-                            modifier = Modifier.size(8.dp),
-                            color = colors[globalIndex % colors.size],
-                            shape = CircleShape
-                        ) {}
-                        
-                        Spacer(modifier = Modifier.width(4.dp))
-                        
-                        Text(
-                            text = "$type ($count)",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-                if (rowItems.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+                Surface(
+                    modifier = Modifier.size(8.dp),
+                    color = colors[index % colors.size],
+                    shape = CircleShape
+                ) {}
+                
+                Spacer(modifier = Modifier.width(4.dp))
+                
+                Text(
+                    text = "$type ($count)",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }

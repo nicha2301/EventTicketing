@@ -1,23 +1,57 @@
 package com.nicha.eventticketing.ui.screens.analytics
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nicha.eventticketing.data.remote.dto.analytics.DailyRevenueResponseDto
+import com.nicha.eventticketing.data.remote.dto.analytics.PaymentMethodsResponseDto
 import com.nicha.eventticketing.domain.model.ResourceState
-import com.nicha.eventticketing.ui.components.analytics.*
-import com.nicha.eventticketing.ui.components.charts.*
+import com.nicha.eventticketing.ui.components.analytics.DateRangeFilterCard
+import com.nicha.eventticketing.ui.components.analytics.ErrorMessage
+import com.nicha.eventticketing.ui.components.analytics.ForecastCard
+import com.nicha.eventticketing.ui.components.analytics.RevenueCard
+import com.nicha.eventticketing.ui.components.analytics.ShimmerChart
+import com.nicha.eventticketing.ui.components.analytics.ShimmerRevenueCard
+import com.nicha.eventticketing.ui.components.charts.RevenueLineChart
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.viewmodel.AnalyticsDashboardViewModel
 import java.time.LocalDate
@@ -32,7 +66,8 @@ fun RevenueAnalyticsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val dailyRevenueState by viewModel.dailyRevenueState.collectAsState()
-    
+    val paymentMethodsState by viewModel.paymentMethodsState.collectAsState()
+
     var selectedPeriod by remember { mutableStateOf("Daily") }
     val periods = listOf("Daily", "Weekly", "Monthly")
     
@@ -120,8 +155,8 @@ fun RevenueAnalyticsScreen(
             // Date Range Filter
             item {
                 DateRangeFilterCard(
-                    startDate = java.time.LocalDate.now().minusDays(30).toString(),
-                    endDate = java.time.LocalDate.now().toString(),
+                    startDate = LocalDate.now().minusDays(30).toString(),
+                    endDate = LocalDate.now().toString(),
                     onDateRangeChanged = { start, end ->
                         viewModel.updateDateRange(start, end)
                     }
@@ -154,7 +189,7 @@ fun RevenueAnalyticsScreen(
             // Payment Methods Analysis
             item {
                 PaymentMethodsAnalysis(
-                    // This would need additional API endpoint
+                    paymentMethodsState = paymentMethodsState
                 )
             }
             
@@ -170,7 +205,7 @@ fun RevenueAnalyticsScreen(
 
 @Composable
 private fun RevenueSummarySection(
-    dailyRevenueState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.DailyRevenueResponseDto>,
+    dailyRevenueState: ResourceState<DailyRevenueResponseDto>,
     selectedPeriod: String
 ) {
     NeumorphicCard(
@@ -257,7 +292,7 @@ private fun RevenueSummarySection(
 
 @Composable
 private fun RevenueTrendChart(
-    dailyRevenueState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.DailyRevenueResponseDto>,
+    dailyRevenueState: ResourceState<DailyRevenueResponseDto>,
     period: String
 ) {
     NeumorphicCard(
@@ -313,7 +348,7 @@ private fun RevenueTrendChart(
 
 @Composable
 private fun RevenueBreakdownSection(
-    dailyRevenueState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.DailyRevenueResponseDto>
+    dailyRevenueState: ResourceState<DailyRevenueResponseDto>
 ) {
     NeumorphicCard(
         modifier = Modifier.fillMaxWidth()
@@ -405,7 +440,9 @@ private fun RevenueBreakdownSection(
 }
 
 @Composable
-private fun PaymentMethodsAnalysis() {
+private fun PaymentMethodsAnalysis(
+    paymentMethodsState: ResourceState<PaymentMethodsResponseDto>
+) {
     NeumorphicCard(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -420,19 +457,74 @@ private fun PaymentMethodsAnalysis() {
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // This would require additional API endpoints
-            Text(
-                text = "Tính năng sẽ được thêm trong phiên bản tiếp theo",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            when (paymentMethodsState) {
+                is ResourceState.Success -> {
+                    val data = paymentMethodsState.data
+                    
+                    // Payment methods summary
+                    data.paymentMethods.forEach { (method, stats) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = method,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Column(
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                Text(
+                                    text = "${stats.transactionCount} giao dịch",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    text = String.format("%,.0f VNĐ", stats.totalAmount),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                        )
+                    }
+                }
+                is ResourceState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is ResourceState.Error -> {
+                    ErrorMessage(
+                        message = "Không thể tải dữ liệu phương thức thanh toán",
+                        onRetry = { /* Retry logic */ }
+                    )
+                }
+                else -> {
+                    Text(
+                        text = "Chưa có dữ liệu phương thức thanh toán",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun RevenueForecastSection(
-    dailyRevenueState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.DailyRevenueResponseDto>
+    dailyRevenueState: ResourceState<DailyRevenueResponseDto>
 ) {
     NeumorphicCard(
         modifier = Modifier.fillMaxWidth()
@@ -457,23 +549,31 @@ private fun RevenueForecastSection(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        ForecastCard(
-                            title = "Tuần tới",
-                            amount = formatCurrency(forecast.nextWeek),
-                            trend = if (forecast.weeklyGrowth > 0) "Tăng" else "Giảm",
-                            trendColor = if (forecast.weeklyGrowth > 0) Color.Green else Color.Red,
-                            modifier = Modifier.weight(1f)
-                        )
-                        
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            ForecastCard(
+                                title = "Tuần tới",
+                                amount = formatCurrency(forecast.nextWeek),
+                                trend = if (forecast.weeklyGrowth > 0) "Tăng" else "Giảm",
+                                trendColor = if (forecast.weeklyGrowth > 0) Color.Green else Color.Red,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                         Spacer(modifier = Modifier.width(8.dp))
-                        
-                        ForecastCard(
-                            title = "Tháng tới",
-                            amount = formatCurrency(forecast.nextMonth),
-                            trend = if (forecast.monthlyGrowth > 0) "Tăng" else "Giảm",
-                            trendColor = if (forecast.monthlyGrowth > 0) Color.Green else Color.Red,
-                            modifier = Modifier.weight(1f)
-                        )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            ForecastCard(
+                                title = "Tháng tới",
+                                amount = formatCurrency(forecast.nextMonth),
+                                trend = if (forecast.monthlyGrowth > 0) "Tăng" else "Giảm",
+                                trendColor = if (forecast.monthlyGrowth > 0) Color.Green else Color.Red,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
                 else -> {

@@ -41,12 +41,12 @@ fun RevenueLineChart(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
             if (data.isEmpty()) {
                 EmptyChartPlaceholder("Không có dữ liệu doanh thu")
             } else {
-                SimpleLineChart(
-                    data = data,
+                // Use the enhanced LineChart from ChartComponents.kt for full info
+                com.nicha.eventticketing.ui.components.charts.LineChart(
+                    data = data.mapValues { it.value.toFloat() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
@@ -181,47 +181,68 @@ private fun SimpleLineChart(
     
     Canvas(modifier = modifier) {
         if (data.isEmpty()) return@Canvas
-        
+
         val dataList = data.values.toList()
         val maxValue = dataList.maxOrNull() ?: 0.0
         val minValue = dataList.minOrNull() ?: 0.0
         val range = maxValue - minValue
-        
+
         if (range == 0.0) return@Canvas
-        
+
         val width = size.width
         val height = size.height
         val stepX = width / (dataList.size - 1).coerceAtLeast(1)
-        
+
         // Draw line
         val path = Path()
         dataList.forEachIndexed { index, value ->
             val x = index * stepX
             val y = height - ((value - minValue) / range * height).toFloat()
-            
+
             if (index == 0) {
                 path.moveTo(x, y)
             } else {
                 path.lineTo(x, y)
             }
         }
-        
+
         drawPath(
             path = path,
             color = primaryColor,
             style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
         )
-        
+
         // Draw points
         dataList.forEachIndexed { index, value ->
             val x = index * stepX
             val y = height - ((value - minValue) / range * height).toFloat()
-            
+
             drawCircle(
                 color = primaryColor,
                 radius = 4.dp.toPx(),
                 center = Offset(x, y)
             )
+        }
+
+        // Draw value labels above points
+        dataList.forEachIndexed { index, value ->
+            val x = index * stepX
+            val y = height - ((value - minValue) / range * height).toFloat()
+            drawContext.canvas.nativeCanvas.apply {
+                val label = String.format("%.0f", value)
+                val paint = android.graphics.Paint().apply {
+                    color = android.graphics.Color.BLACK
+                    textSize = 28f
+                    isAntiAlias = true
+                    textAlign = android.graphics.Paint.Align.CENTER
+                }
+                drawText(
+                    label,
+                    x,
+                    y - 16.dp.toPx(),
+                    paint
+                )
+            }
         }
     }
 }

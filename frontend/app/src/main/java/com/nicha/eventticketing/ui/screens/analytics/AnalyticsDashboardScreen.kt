@@ -1,12 +1,11 @@
 package com.nicha.eventticketing.ui.screens.analytics
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,13 +14,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nicha.eventticketing.data.remote.dto.analytics.CheckInStatisticsDto
+import com.nicha.eventticketing.data.remote.dto.analytics.DailyRevenueResponseDto
+import com.nicha.eventticketing.data.remote.dto.analytics.RatingStatisticsDto
+import com.nicha.eventticketing.data.remote.dto.analytics.TicketSalesResponseDto
 import com.nicha.eventticketing.domain.model.ResourceState
 import com.nicha.eventticketing.ui.components.analytics.*
 import com.nicha.eventticketing.ui.components.charts.*
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.viewmodel.AnalyticsDashboardViewModel
 import com.nicha.eventticketing.viewmodel.ExportState
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,7 +76,6 @@ fun AnalyticsDashboardScreen(
     // Handle export message
     uiState.exportMessage?.let { message ->
         LaunchedEffect(message) {
-            // Show snackbar or handle export message
             viewModel.clearExportMessage()
         }
     }
@@ -101,14 +102,15 @@ fun AnalyticsDashboardScreen(
                 actions = {
                     // Export button
                     IconButton(
-                        onClick = { showExportDialog = true }
+                        onClick = {
+                            viewModel.exportData()
+                        }
                     ) {
                         Icon(
                             imageVector = Icons.Default.FileDownload,
                             contentDescription = "Export Report"
                         )
                     }
-                    
                     // Refresh button
                     IconButton(
                         onClick = { viewModel.refreshData() },
@@ -141,25 +143,7 @@ fun AnalyticsDashboardScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Filter Section
-            AnalyticsFilter(
-                selectedDateRange = uiState.selectedDateRange,
-                selectedPeriod = uiState.selectedPeriod,
-                selectedEvents = uiState.selectedEvents,
-                availableEvents = emptyList(), // TODO: Load from repository
-                onDateRangeChange = { dateRange ->
-                    viewModel.updateDateRange(dateRange.first, dateRange.second)
-                },
-                onPeriodChange = { period ->
-                    viewModel.updateSelectedPeriod(period)
-                },
-                onEventsChange = { events ->
-                    viewModel.updateSelectedEvents(events)
-                },
-                onExportClick = {
-                    viewModel.exportData()
-                }
-            )
+
 
             // Summary Cards with loading states
             when {
@@ -197,10 +181,10 @@ fun AnalyticsDashboardScreen(
 
 @Composable
 private fun SummaryCardsSection(
-    dailyRevenueState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.DailyRevenueResponseDto>,
-    ticketSalesState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.TicketSalesResponseDto>,
-    checkInStatsState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.CheckInStatisticsDto>,
-    ratingStatsState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.RatingStatisticsDto>
+    dailyRevenueState: ResourceState<DailyRevenueResponseDto>,
+    ticketSalesState: ResourceState<TicketSalesResponseDto>,
+    checkInStatsState: ResourceState<CheckInStatisticsDto>,
+    ratingStatsState: ResourceState<RatingStatisticsDto>
 ) {
     NeumorphicCard(
         modifier = Modifier.fillMaxWidth()
@@ -293,10 +277,10 @@ private fun SummaryCardsSection(
 
 @Composable
 private fun ChartsSection(
-    dailyRevenueState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.DailyRevenueResponseDto>,
-    ticketSalesState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.TicketSalesResponseDto>,
-    checkInStatsState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.CheckInStatisticsDto>,
-    ratingStatsState: ResourceState<com.nicha.eventticketing.data.remote.dto.analytics.RatingStatisticsDto>
+    dailyRevenueState: ResourceState<DailyRevenueResponseDto>,
+    ticketSalesState: ResourceState<TicketSalesResponseDto>,
+    checkInStatsState: ResourceState<CheckInStatisticsDto>,
+    ratingStatsState: ResourceState<RatingStatisticsDto>
 ) {
     // Optimized with remember to avoid recomposition
     val revenueData = remember(dailyRevenueState) {
@@ -321,9 +305,8 @@ private fun ChartsSection(
     }
     
     Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Revenue Chart with optimized rendering
         if (revenueData.isNotEmpty()) {
             NeumorphicCard(
                 modifier = Modifier.fillMaxWidth()
@@ -339,7 +322,7 @@ private fun ChartsSection(
                     )
                     LineChart(
                         data = revenueData.mapValues { it.value.toFloat() },
-                        modifier = Modifier.height(200.dp),
+                        modifier = Modifier.height(250.dp),
                         lineColor = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -369,9 +352,11 @@ private fun ChartsSection(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
+                        val chartColors = defaultChartColors()
                         DoughnutChart(
                             data = ticketSalesData.mapValues { it.value.toFloat() },
-                            modifier = Modifier.height(160.dp)
+                            modifier = Modifier.height(250.dp),
+                            colors = chartColors
                         )
                     }
                 }
@@ -402,7 +387,7 @@ private fun ChartsSection(
                                 "Đã check-in" to checkedIn.toFloat(),
                                 "Chưa check-in" to (totalTickets - checkedIn).toFloat()
                             ),
-                            modifier = Modifier.height(160.dp),
+                            modifier = Modifier.height(250.dp),
                             colors = listOf(
                                 MaterialTheme.colorScheme.primary,
                                 MaterialTheme.colorScheme.surfaceVariant
