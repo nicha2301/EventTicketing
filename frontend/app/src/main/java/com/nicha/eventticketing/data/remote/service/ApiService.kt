@@ -18,6 +18,9 @@ import com.nicha.eventticketing.data.remote.dto.notification.NotificationDto
 import com.nicha.eventticketing.data.remote.dto.notification.NotificationPreferencesDto
 import com.nicha.eventticketing.data.remote.dto.notification.DeviceTokenDto
 import com.nicha.eventticketing.data.remote.dto.notification.DeviceTokenRequestDto
+import com.nicha.eventticketing.data.remote.dto.analytics.AttendeeAnalyticsResponseDto
+import com.nicha.eventticketing.data.remote.dto.analytics.EventPerformanceResponseDto
+import com.nicha.eventticketing.data.remote.dto.analytics.PaymentMethodsResponseDto
 import com.nicha.eventticketing.data.remote.dto.notification.TopicSubscriptionDto
 import com.nicha.eventticketing.data.remote.dto.notification.UnreadCountDto
 import com.nicha.eventticketing.data.remote.dto.notification.MarkAllReadResultDto
@@ -368,4 +371,39 @@ interface ApiService {
     suspend fun getRatingStatistics(
         @Path("eventId") eventId: String
     ): Response<RatingStatisticsDto>
+    
+    @GET("api/analytics/attendee/{eventId}")
+    suspend fun getAttendeeAnalytics(
+        @Path("eventId") eventId: String
+    ): Response<AttendeeAnalyticsResponseDto>
+    
+    @GET("api/analytics/performance/{eventId}")
+    suspend fun getEventPerformance(
+        @Path("eventId") eventId: String
+    ): Response<EventPerformanceResponseDto>
+    
+    @GET("api/analytics/payment/methods/{eventId}")
+    suspend fun getPaymentMethodsAnalysis(
+        @Path("eventId") eventId: String
+    ): Response<PaymentMethodsResponseDto>
+    
+    @GET("api/analytics/performance/{eventId}/roi")
+    suspend fun getROIAnalysis(
+        @Path("eventId") eventId: String
+    ): Response<Map<String, Any>>
+    
+    @GET("api/analytics/performance/{eventId}/kpi")
+    suspend fun getKPIDashboard(
+        @Path("eventId") eventId: String
+    ): Response<Map<String, Any>>
+    
+    @GET("api/analytics/attendee/{eventId}/demographics")
+    suspend fun getAttendeeDemographics(
+        @Path("eventId") eventId: String
+    ): Response<Map<String, Any>>
+    
+    @GET("api/analytics/attendee/{eventId}/timeline")
+    suspend fun getRegistrationTimeline(
+        @Path("eventId") eventId: String
+    ): Response<Map<String, Any>>
 } 

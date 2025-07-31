@@ -709,26 +709,37 @@ fun TicketTypesLegend(
         Color(0xFF9C27B0), Color(0xFFF44336)
     )
     
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(horizontal = 8.dp)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        itemsIndexed(data.entries.toList()) { index, (type, count) ->
+        data.entries.toList().chunked(2).forEach { rowItems ->
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Surface(
-                    modifier = Modifier.size(8.dp),
-                    color = colors[index % colors.size],
-                    shape = CircleShape
-                ) {}
-                
-                Spacer(modifier = Modifier.width(4.dp))
-                
-                Text(
-                    text = "$type ($count)",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                rowItems.forEachIndexed { localIndex, (type, count) ->
+                    val globalIndex = data.entries.toList().indexOfFirst { entry -> entry.key == type && entry.value == count }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(8.dp),
+                            color = colors[globalIndex % colors.size],
+                            shape = CircleShape
+                        ) {}
+                        
+                        Spacer(modifier = Modifier.width(4.dp))
+                        
+                        Text(
+                            text = "$type ($count)",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                if (rowItems.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
         }
     }

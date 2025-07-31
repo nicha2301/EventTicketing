@@ -146,6 +146,57 @@ class AnalyticsRepositoryImpl @Inject constructor(
         }
     }
     
+    override fun getAttendeeAnalytics(eventId: String): Flow<Resource<AttendeeAnalyticsResponseDto>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = apiService.getAttendeeAnalytics(eventId)
+            if (response.isSuccessful && response.body() != null) {
+                emit(Resource.Success(response.body()!!))
+                Timber.d("Attendee analytics loaded successfully")
+            } else {
+                emit(Resource.Error("Failed to load attendee analytics: ${response.message()}"))
+                Timber.e("API error: ${response.code()} - ${response.message()}")
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.message ?: "Unknown error"))
+            Timber.e(e, "Exception khi lấy thống kê người tham dự")
+        }
+    }
+    
+    override fun getEventPerformance(eventId: String): Flow<Resource<EventPerformanceResponseDto>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = apiService.getEventPerformance(eventId)
+            if (response.isSuccessful && response.body() != null) {
+                emit(Resource.Success(response.body()!!))
+                Timber.d("Event performance loaded successfully")
+            } else {
+                emit(Resource.Error("Failed to load event performance: ${response.message()}"))
+                Timber.e("API error: ${response.code()} - ${response.message()}")
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.message ?: "Unknown error"))
+            Timber.e(e, "Exception khi lấy thống kê hiệu suất sự kiện")
+        }
+    }
+    
+    override fun getPaymentMethodsAnalysis(eventId: String): Flow<Resource<PaymentMethodsResponseDto>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = apiService.getPaymentMethodsAnalysis(eventId)
+            if (response.isSuccessful && response.body() != null) {
+                emit(Resource.Success(response.body()!!))
+                Timber.d("Payment methods analysis loaded successfully")
+            } else {
+                emit(Resource.Error("Failed to load payment methods analysis: ${response.message()}"))  
+                Timber.e("API error: ${response.code()} - ${response.message()}")
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.message ?: "Unknown error"))
+            Timber.e(e, "Exception khi lấy thống kê phương thức thanh toán")
+        }
+    }
+    
     override fun getAnalyticsSummary(
         filter: AnalyticsFilterDto
     ): Flow<Resource<AnalyticsDashboardDto>> = flow {
@@ -207,6 +258,74 @@ class AnalyticsRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             emit(Resource.Error(e.message ?: "Lỗi khi export Excel"))
             Timber.e(e, "Exception khi export Excel")
+        }
+    }
+    
+    override fun getROIAnalysis(eventId: String): Flow<Resource<Map<String, Any>>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = apiService.getROIAnalysis(eventId)
+            if (response.isSuccessful && response.body() != null) {
+                emit(Resource.Success(response.body()!!))
+                Timber.d("ROI analysis loaded successfully for event: $eventId")
+            } else {
+                emit(Resource.Error("Failed to load ROI analysis: ${response.message()}"))  
+                Timber.e("API error: ${response.code()} - ${response.message()}")
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.message ?: "Unknown error"))
+            Timber.e(e, "Exception khi lấy phân tích ROI")
+        }
+    }
+    
+    override fun getKPIDashboard(eventId: String): Flow<Resource<Map<String, Any>>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = apiService.getKPIDashboard(eventId)
+            if (response.isSuccessful && response.body() != null) {
+                emit(Resource.Success(response.body()!!))
+                Timber.d("KPI dashboard loaded successfully for event: $eventId")
+            } else {
+                emit(Resource.Error("Failed to load KPI dashboard: ${response.message()}"))  
+                Timber.e("API error: ${response.code()} - ${response.message()}")
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.message ?: "Unknown error"))
+            Timber.e(e, "Exception khi lấy KPI dashboard")
+        }
+    }
+    
+    override fun getAttendeeDemographics(eventId: String): Flow<Resource<Map<String, Any>>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = apiService.getAttendeeDemographics(eventId)
+            if (response.isSuccessful && response.body() != null) {
+                emit(Resource.Success(response.body()!!))
+                Timber.d("Attendee demographics loaded successfully for event: $eventId")
+            } else {
+                emit(Resource.Error("Failed to load attendee demographics: ${response.message()}"))  
+                Timber.e("API error: ${response.code()} - ${response.message()}")
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.message ?: "Unknown error"))
+            Timber.e(e, "Exception khi lấy phân tích nhân khẩu học")
+        }
+    }
+    
+    override fun getRegistrationTimeline(eventId: String): Flow<Resource<Map<String, Any>>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = apiService.getRegistrationTimeline(eventId)
+            if (response.isSuccessful && response.body() != null) {
+                emit(Resource.Success(response.body()!!))
+                Timber.d("Registration timeline loaded successfully for event: $eventId")
+            } else {
+                emit(Resource.Error("Failed to load registration timeline: ${response.message()}"))  
+                Timber.e("API error: ${response.code()} - ${response.message()}")
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.message ?: "Unknown error"))
+            Timber.e(e, "Exception khi lấy timeline đăng ký")
         }
     }
 }

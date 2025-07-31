@@ -311,3 +311,36 @@ data class AnalyticsSummaryResponseDto(
     @Json(name = "checkInStats")
     val checkInStats: Map<String, Any>
 )
+
+/**
+ * DTO for Payment Methods Analytics
+ */
+@JsonClass(generateAdapter = true)
+data class PaymentMethodsResponseDto(
+    @Json(name = "paymentMethods")
+    val paymentMethods: Map<String, PaymentMethodStatsDto>,
+    
+    @Json(name = "totalTransactions")
+    val totalTransactions: Int,
+    
+    @Json(name = "totalAmount")
+    val totalAmount: Double,
+    
+    @Json(name = "averageTransactionAmount")
+    val averageTransactionAmount: Double
+)
+
+@JsonClass(generateAdapter = true)
+data class PaymentMethodStatsDto(
+    @Json(name = "transactionCount")
+    val transactionCount: Int,
+    
+    @Json(name = "totalAmount")
+    val totalAmount: Double,
+    
+    @Json(name = "averageAmount")
+    val averageAmount: Double,
+    
+    @Json(name = "percentage")
+    val percentage: Double
+)

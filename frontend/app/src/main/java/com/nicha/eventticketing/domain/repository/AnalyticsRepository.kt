@@ -50,6 +50,69 @@ interface AnalyticsRepository {
     ): Flow<Resource<RatingStatisticsDto>>
     
     /**
+     * Lấy thống kê người tham dự
+     * @param eventId ID sự kiện
+     * @return Flow<Resource<AttendeeAnalyticsResponseDto>>
+     */
+    fun getAttendeeAnalytics(
+        eventId: String
+    ): Flow<Resource<AttendeeAnalyticsResponseDto>>
+    
+    /**
+     * Lấy thống kê hiệu suất sự kiện
+     * @param eventId ID sự kiện
+     * @return Flow<Resource<EventPerformanceResponseDto>>
+     */
+    fun getEventPerformance(
+        eventId: String
+    ): Flow<Resource<EventPerformanceResponseDto>>
+    
+    /**
+     * Lấy thống kê phương thức thanh toán
+     * @param eventId ID sự kiện
+     * @return Flow<Resource<PaymentMethodsResponseDto>>
+     */
+    fun getPaymentMethodsAnalysis(
+        eventId: String
+    ): Flow<Resource<PaymentMethodsResponseDto>>
+    
+    /**
+     * Lấy phân tích ROI của sự kiện
+     * @param eventId ID sự kiện
+     * @return Flow<Resource<Map<String, Any>>>
+     */
+    fun getROIAnalysis(
+        eventId: String
+    ): Flow<Resource<Map<String, Any>>>
+    
+    /**
+     * Lấy KPI dashboard của sự kiện
+     * @param eventId ID sự kiện
+     * @return Flow<Resource<Map<String, Any>>>
+     */
+    fun getKPIDashboard(
+        eventId: String
+    ): Flow<Resource<Map<String, Any>>>
+    
+    /**
+     * Lấy phân tích nhân khẩu học người tham dự
+     * @param eventId ID sự kiện
+     * @return Flow<Resource<Map<String, Any>>>
+     */
+    fun getAttendeeDemographics(
+        eventId: String
+    ): Flow<Resource<Map<String, Any>>>
+    
+    /**
+     * Lấy timeline đăng ký của sự kiện
+     * @param eventId ID sự kiện
+     * @return Flow<Resource<Map<String, Any>>>
+     */
+    fun getRegistrationTimeline(
+        eventId: String
+    ): Flow<Resource<Map<String, Any>>>
+    
+    /**
      * Lấy tổng quan Analytics Dashboard
      * @param filter Bộ lọc analytics
      * @return Flow<Resource<AnalyticsDashboardDto>>
