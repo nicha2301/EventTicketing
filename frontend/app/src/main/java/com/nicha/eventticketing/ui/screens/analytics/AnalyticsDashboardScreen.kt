@@ -46,6 +46,8 @@ fun AnalyticsDashboardScreen(
     var showExportError by remember { mutableStateOf(false) }
     var exportedFile by remember { mutableStateOf<java.io.File?>(null) }
     var exportErrorMessage by remember { mutableStateOf("") }
+    
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Set event ID if provided
     LaunchedEffect(eventId) {
@@ -61,21 +63,37 @@ fun AnalyticsDashboardScreen(
                 showExportDialog = false
                 exportedFile = currentExportState.file
                 showExportSuccess = true
+                
+                snackbarHostState.showSnackbar(
+                    message = "File đã được lưu: ${currentExportState.file.name}",
+                    duration = SnackbarDuration.Long
+                )
+                
                 viewModel.clearExportState()
             }
             is ExportState.Error -> {
                 showExportDialog = false
                 exportErrorMessage = currentExportState.message
                 showExportError = true
+                
+                // Show error snackbar
+                snackbarHostState.showSnackbar(
+                    message = "Lỗi export: ${currentExportState.message}",
+                    duration = SnackbarDuration.Long
+                )
+                
                 viewModel.clearExportState()
             }
             else -> {}
         }
     }
 
-    // Handle export message
     uiState.exportMessage?.let { message ->
         LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(
+                message = "$message",
+                duration = SnackbarDuration.Long
+            )
             viewModel.clearExportMessage()
         }
     }
@@ -133,6 +151,9 @@ fun AnalyticsDashboardScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
         }
     ) { paddingValues ->
         Column(

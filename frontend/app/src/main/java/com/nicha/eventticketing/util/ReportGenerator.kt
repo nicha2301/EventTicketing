@@ -1,13 +1,16 @@
-package com.nicha.eventticketing.util.export
+package com.nicha.eventticketing.util
 
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import com.nicha.eventticketing.data.remote.dto.analytics.*
+import com.opencsv.CSVWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import timber.log.Timber
 import java.io.File
 import java.io.FileWriter
 import java.text.SimpleDateFormat
@@ -34,62 +37,94 @@ class ReportGenerator @Inject constructor(
     suspend fun generateCsvReport(
         analytics: AnalyticsSummaryResponseDto,
         eventName: String,
-        dateRange: String
+        dateRange: String,
+        exporterName: String,
+        exporterEmail: String,
+        organizerName: String
     ): File? = withContext(Dispatchers.IO) {
         try {
             val timestamp = SimpleDateFormat(DATE_FORMAT, Locale.getDefault()).format(Date())
             val fileName = "Analytics_Report_${eventName}_$timestamp.csv"
-            val file = createReportFile(fileName)
             
-            FileWriter(file).use { writer ->
-                // Header
-                writer.append("Analytics Report - $eventName\n")
-                writer.append("Generated: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}\n")
-                writer.append("Period: $dateRange\n\n")
+            val file = createReportFileDirectlyInDownloads(fileName)
+            
+            file.outputStream().use { fos ->
+                fos.write(byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()))
                 
-                // Summary Section
-                writer.append("SUMMARY STATISTICS\n")
-                writer.append("Metric,Value\n")
-                writer.append("Total Revenue,${analytics.totalRevenue}\n")
-                writer.append("Total Tickets Sold,${analytics.totalTickets}\n")
-                writer.append("Check-in Rate,${analytics.checkInRate}%\n")
-                writer.append("Average Rating,${analytics.averageRating}\n\n")
-                
-                // Revenue Breakdown
-                writer.append("DAILY REVENUE\n")
-                writer.append("Date,Revenue\n")
-                analytics.dailyRevenue.forEach { (date, amount) ->
-                    writer.append("$date,$amount\n")
-                }
-                writer.append("\n")
-                
-                // Ticket Sales by Type
-                writer.append("TICKET SALES BY TYPE\n")
-                writer.append("Ticket Type,Quantity Sold\n")
-                analytics.ticketSales.forEach { (type, count) ->
-                    writer.append("$type,$count\n")
-                }
-                writer.append("\n")
-                
-                // Check-in Statistics
-                writer.append("CHECK-IN STATISTICS\n")
-                writer.append("Metric,Value\n")
-                analytics.checkInStats.forEach { (key, value) ->
-                    writer.append("$key,$value\n")
+                fos.writer(Charsets.UTF_8).use { writer ->
+                    CSVWriter(writer).use { csvWriter ->
+                        csvWriter.writeNext(arrayOf("ANALYTICS REPORT"))
+                        csvWriter.writeNext(arrayOf("================"))
+                        csvWriter.writeNext(arrayOf(""))
+                        
+                        csvWriter.writeNext(arrayOf("Event Information"))
+                        csvWriter.writeNext(arrayOf("Event Name", eventName))
+                        csvWriter.writeNext(arrayOf("Organizer", organizerName))
+                        csvWriter.writeNext(arrayOf("Report Period", dateRange))
+                        csvWriter.writeNext(arrayOf(""))
+                        
+                        csvWriter.writeNext(arrayOf("Export Information"))
+                        csvWriter.writeNext(arrayOf("Exported By", exporterName))
+                        csvWriter.writeNext(arrayOf("Exporter Email", exporterEmail))
+                        csvWriter.writeNext(arrayOf("Export Date", SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())))
+                        csvWriter.writeNext(arrayOf("Export Source", "EventTicketing Mobile App"))
+                        csvWriter.writeNext(arrayOf(""))
+                        
+                        csvWriter.writeNext(arrayOf("SUMMARY STATISTICS"))
+                        csvWriter.writeNext(arrayOf("Metric", "Value", "Description"))
+                        csvWriter.writeNext(arrayOf("Total Revenue", analytics.totalRevenue.toString(), "Total revenue generated from ticket sales"))
+                        csvWriter.writeNext(arrayOf("Total Tickets Sold", analytics.totalTickets.toString(), "Number of tickets sold during the period"))
+                        csvWriter.writeNext(arrayOf("Check-in Rate", "${analytics.checkInRate}%", "Percentage of ticket holders who checked in"))
+                        csvWriter.writeNext(arrayOf("Average Rating", analytics.averageRating.toString(), "Average customer rating (1-5 stars)"))
+                        csvWriter.writeNext(arrayOf(""))
+                        
+                        csvWriter.writeNext(arrayOf("DAILY REVENUE BREAKDOWN"))
+                        csvWriter.writeNext(arrayOf("Date", "Revenue (USD)", "Notes"))
+                        analytics.dailyRevenue.forEach { (date, amount) ->
+                            csvWriter.writeNext(arrayOf(date, amount.toString(), "Daily revenue for $eventName"))
+                        }
+                        csvWriter.writeNext(arrayOf(""))
+                        
+                        csvWriter.writeNext(arrayOf("TICKET SALES BY TYPE"))
+                        csvWriter.writeNext(arrayOf("Ticket Type", "Quantity Sold", "Event"))
+                        analytics.ticketSales.forEach { (type, count) ->
+                            csvWriter.writeNext(arrayOf(type, count.toString(), eventName))
+                        }
+                        csvWriter.writeNext(arrayOf(""))
+                        
+                        csvWriter.writeNext(arrayOf("CHECK-IN STATISTICS"))
+                        csvWriter.writeNext(arrayOf("Metric", "Value", "Event"))
+                        analytics.checkInStats.forEach { (key, value) ->
+                            csvWriter.writeNext(arrayOf(key, value.toString(), eventName))
+                        }
+                        csvWriter.writeNext(arrayOf(""))
+                        
+                        csvWriter.writeNext(arrayOf("REPORT FOOTER"))
+                        csvWriter.writeNext(arrayOf("Generated by", "EventTicketing Analytics System"))
+                        csvWriter.writeNext(arrayOf("Data Accuracy", "This report contains accurate data as of export time"))
+                        csvWriter.writeNext(arrayOf("Contact Support", "support@eventticketing.com"))
+                        csvWriter.writeNext(arrayOf("Report Version", "1.0"))
+                        
+                        csvWriter.flush()
+                        writer.flush()
+                    }
                 }
             }
             
-            Timber.d("CSV report generated: ${file.absolutePath}")
-            file
+            if (file.exists() && file.length() > 0) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    copyToDownloadsFolder(file, fileName)
+                }
+                
+                file
+            } else {
+                null
+            }
         } catch (e: Exception) {
-            Timber.e(e, "Failed to generate CSV report")
             null
         }
     }
 
-    /**
-     * Generate detailed analytics report in text format
-     */
     suspend fun generateDetailedReport(
         analytics: AnalyticsSummaryResponseDto,
         ticketSales: TicketSalesResponseDto,
@@ -99,7 +134,7 @@ class ReportGenerator @Inject constructor(
         try {
             val timestamp = SimpleDateFormat(DATE_FORMAT, Locale.getDefault()).format(Date())
             val fileName = "Detailed_Analytics_${eventName}_$timestamp.txt"
-            val file = createReportFile(fileName)
+            val file = createReportFileInAppDirectory(fileName)
             
             FileWriter(file).use { writer ->
                 writer.append("═══════════════════════════════════════\n")
@@ -110,7 +145,6 @@ class ReportGenerator @Inject constructor(
                 writer.append("Report Period: $dateRange\n")
                 writer.append("Generated: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}\n\n")
                 
-                // Executive Summary
                 writer.append("📊 EXECUTIVE SUMMARY\n")
                 writer.append("───────────────────\n")
                 writer.append("• Total Revenue: \$${String.format("%.2f", analytics.totalRevenue)}\n")
@@ -118,7 +152,6 @@ class ReportGenerator @Inject constructor(
                 writer.append("• Check-in Rate: ${String.format("%.1f", analytics.checkInRate)}%\n")
                 writer.append("• Customer Rating: ${String.format("%.1f", analytics.averageRating)}/5.0\n\n")
                 
-                // Revenue Analysis
                 writer.append("💰 REVENUE ANALYSIS\n")
                 writer.append("──────────────────\n")
                 val totalRevenue = analytics.dailyRevenue.values.sum()
@@ -128,7 +161,6 @@ class ReportGenerator @Inject constructor(
                 writer.append("• Peak Revenue Day: ${analytics.dailyRevenue.maxByOrNull { it.value }?.key ?: "N/A"}\n")
                 writer.append("• Revenue per Ticket: \$${String.format("%.2f", if (analytics.totalTickets > 0) totalRevenue / analytics.totalTickets else 0.0)}\n\n")
                 
-                // Ticket Sales Analysis
                 writer.append("🎫 TICKET SALES ANALYSIS\n")
                 writer.append("───────────────────────\n")
                 val totalTickets = ticketSales.totalSold
@@ -140,7 +172,6 @@ class ReportGenerator @Inject constructor(
                 }
                 writer.append("\n")
                 
-                // Performance Metrics
                 writer.append("📈 PERFORMANCE METRICS\n")
                 writer.append("─────────────────────\n")
                 writer.append("• Check-in Rate: ${String.format("%.1f", analytics.checkInRate)}%\n")
@@ -150,7 +181,6 @@ class ReportGenerator @Inject constructor(
                 writer.append("• Overall Performance Score: ${String.format("%.1f", performanceScore)}/100\n")
                 writer.append("• Performance Level: ${getPerformanceLevel(performanceScore)}\n\n")
                 
-                // Recommendations
                 writer.append("💡 RECOMMENDATIONS\n")
                 writer.append("─────────────────\n")
                 writer.append(generateRecommendations(analytics, ticketSales))
@@ -160,17 +190,12 @@ class ReportGenerator @Inject constructor(
                 writer.append("═══════════════════════════════════════\n")
             }
             
-            Timber.d("Detailed report generated: ${file.absolutePath}")
             file
         } catch (e: Exception) {
-            Timber.e(e, "Failed to generate detailed report")
             null
         }
     }
 
-    /**
-     * Share report file via system share intent
-     */
     fun shareReport(file: File, title: String = "Analytics Report") {
         try {
             val uri = FileProvider.getUriForFile(
@@ -182,50 +207,83 @@ class ReportGenerator @Inject constructor(
             val shareIntent = Intent().apply {
                 action = Intent.ACTION_SEND
                 type = when (file.extension.lowercase()) {
-                    "csv" -> "text/csv"
+                    "csv" -> "application/vnd.ms-excel" 
                     "txt" -> "text/plain"
                     else -> "application/octet-stream"
                 }
                 putExtra(Intent.EXTRA_STREAM, uri)
                 putExtra(Intent.EXTRA_SUBJECT, title)
+                putExtra(Intent.EXTRA_TEXT, "Analytics report generated on ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
             }
             
-            val chooser = Intent.createChooser(shareIntent, "Share Report")
+            val chooser = Intent.createChooser(shareIntent, "Open/Share Report")
             chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(chooser)
             
         } catch (e: Exception) {
-            Timber.e(e, "Failed to share report")
         }
     }
 
-    /**
-     * Create report file in app's external files directory
-     */
-    private fun createReportFile(fileName: String): File {
-        val reportsDir = File(context.getExternalFilesDir(null), EXPORT_FOLDER)
+    private fun createReportFileDirectlyInDownloads(fileName: String): File {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val tempFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
+            tempFile
+        } else {
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val file = File(downloadsDir, fileName)
+            file
+        }
+    }
+
+    private fun createReportFileInAppDirectory(fileName: String): File {
+        val reportsDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), EXPORT_FOLDER)
         if (!reportsDir.exists()) {
-            reportsDir.mkdirs()
+            val created = reportsDir.mkdirs()
         }
-        return File(reportsDir, fileName)
+        
+        val file = File(reportsDir, fileName)
+        return file
+    }
+    
+    private fun copyToDownloadsFolder(sourceFile: File, fileName: String) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                    put(MediaStore.Downloads.MIME_TYPE, "text/csv")
+                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS) // Direct to Downloads
+                }
+                
+                val resolver = context.contentResolver
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                
+                uri?.let { downloadUri ->
+                    resolver.openOutputStream(downloadUri)?.use { outputStream ->
+                        sourceFile.inputStream().use { inputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
+                    }
+                }
+            } else {
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val targetFile = File(downloadsDir, fileName)
+                sourceFile.copyTo(targetFile, overwrite = true)
+            }
+        } catch (e: Exception) {
+        }
     }
 
-    /**
-     * Calculate overall performance score
-     */
     private fun calculatePerformanceScore(analytics: AnalyticsSummaryResponseDto): Double {
-        val revenueScore = minOf(analytics.totalRevenue / 10000 * 30, 30.0) // Max 30 points
-        val ticketScore = minOf(analytics.totalTickets.toDouble() / 100.0 * 25, 25.0) // Max 25 points
-        val checkInScore = analytics.checkInRate / 100 * 25 // Max 25 points
-        val ratingScore = analytics.averageRating / 5 * 20 // Max 20 points
+        val revenueScore = minOf(analytics.totalRevenue / 10000 * 30, 30.0)
+        val ticketScore = minOf(analytics.totalTickets.toDouble() / 100.0 * 25, 25.0)
+        val checkInScore = analytics.checkInRate / 100 * 25
+        val ratingScore = analytics.averageRating / 5 * 20
         
         return revenueScore + ticketScore + checkInScore + ratingScore
     }
 
-    /**
-     * Get performance level based on score
-     */
     private fun getPerformanceLevel(score: Double): String {
         return when {
             score >= 80 -> "Excellent"
@@ -236,33 +294,26 @@ class ReportGenerator @Inject constructor(
         }
     }
 
-    /**
-     * Generate personalized recommendations
-     */
     private fun generateRecommendations(
         analytics: AnalyticsSummaryResponseDto,
         ticketSales: TicketSalesResponseDto
     ): String {
         val recommendations = mutableListOf<String>()
         
-        // Revenue recommendations
         if (analytics.totalRevenue < 5000) {
             recommendations.add("• Consider implementing promotional pricing strategies to boost revenue")
         }
         
-        // Check-in recommendations
         if (analytics.checkInRate < 80) {
             recommendations.add("• Improve check-in rate by sending reminder notifications to attendees")
             recommendations.add("• Consider implementing QR code check-in for faster processing")
         }
         
-        // Rating recommendations
         if (analytics.averageRating < 4.0) {
             recommendations.add("• Focus on improving customer experience to increase ratings")
             recommendations.add("• Collect detailed feedback to identify areas for improvement")
         }
         
-        // Ticket sales recommendations
         val totalTickets = ticketSales.totalSold
         if (totalTickets < 50) {
             recommendations.add("• Increase marketing efforts to boost ticket sales")

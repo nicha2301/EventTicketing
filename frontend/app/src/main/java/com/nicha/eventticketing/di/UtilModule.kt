@@ -1,7 +1,7 @@
 package com.nicha.eventticketing.di
 
 import android.content.Context
-import com.nicha.eventticketing.util.export.ReportGenerator
+import com.nicha.eventticketing.util.ReportGenerator
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

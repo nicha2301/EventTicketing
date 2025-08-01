@@ -12,10 +12,14 @@ import com.nicha.eventticketing.data.remote.dto.analytics.PaymentMethodsResponse
 import com.nicha.eventticketing.data.remote.dto.analytics.RatingStatisticsDto
 import com.nicha.eventticketing.data.remote.dto.analytics.TicketSalesResponseDto
 import com.nicha.eventticketing.data.remote.dto.analytics.TicketTypeStatsDto
+import com.nicha.eventticketing.data.remote.dto.auth.UserDto
+import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.domain.model.Resource
 import com.nicha.eventticketing.domain.model.ResourceState
 import com.nicha.eventticketing.domain.repository.AnalyticsRepository
-import com.nicha.eventticketing.util.export.ReportGenerator
+import com.nicha.eventticketing.domain.repository.EventRepository
+import com.nicha.eventticketing.domain.repository.UserRepository
+import com.nicha.eventticketing.util.ReportGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -33,6 +37,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AnalyticsDashboardViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
+    private val userRepository: UserRepository,
+    private val eventRepository: EventRepository,
     private val reportGenerator: ReportGenerator,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -41,7 +47,7 @@ class AnalyticsDashboardViewModel @Inject constructor(
     private var dataLoadingJob: Job? = null
     private var lastDataLoadTime = 0L
     private val dataLoadDebounceMs = 500L
-    
+
     // Data caching
     private val dataCache = mutableMapOf<String, Any>()
     private val cacheValidityMs = 5 * 60 * 1000L
@@ -49,44 +55,44 @@ class AnalyticsDashboardViewModel @Inject constructor(
     // UI State
     private val _uiState = MutableStateFlow(AnalyticsDashboardUiState())
     val uiState: StateFlow<AnalyticsDashboardUiState> = _uiState.asStateFlow()
-    
+
     // Export State
     private val _exportState = MutableStateFlow<ExportState>(ExportState.Idle)
     val exportState: StateFlow<ExportState> = _exportState.asStateFlow()
-    
+
     // Data States
     private val _dailyRevenueState = MutableStateFlow<ResourceState<DailyRevenueResponseDto>>(ResourceState.Initial)
     val dailyRevenueState: StateFlow<ResourceState<DailyRevenueResponseDto>> = _dailyRevenueState.asStateFlow()
-    
+
     private val _ticketSalesState = MutableStateFlow<ResourceState<TicketSalesResponseDto>>(ResourceState.Initial)
     val ticketSalesState: StateFlow<ResourceState<TicketSalesResponseDto>> = _ticketSalesState.asStateFlow()
-    
+
     private val _checkInStatsState = MutableStateFlow<ResourceState<CheckInStatisticsDto>>(ResourceState.Initial)
     val checkInStatsState: StateFlow<ResourceState<CheckInStatisticsDto>> = _checkInStatsState.asStateFlow()
-    
+
     private val _ratingStatsState = MutableStateFlow<ResourceState<RatingStatisticsDto>>(ResourceState.Initial)
     val ratingStatsState: StateFlow<ResourceState<RatingStatisticsDto>> = _ratingStatsState.asStateFlow()
-    
+
     // Additional States for Detailed Analytics Screens
     private val _attendeeAnalyticsState = MutableStateFlow<ResourceState<AttendeeAnalyticsResponseDto>>(ResourceState.Initial)
     val attendeeAnalyticsState: StateFlow<ResourceState<AttendeeAnalyticsResponseDto>> = _attendeeAnalyticsState.asStateFlow()
-    
+
     private val _eventPerformanceState = MutableStateFlow<ResourceState<EventPerformanceResponseDto>>(ResourceState.Initial)
     val eventPerformanceState: StateFlow<ResourceState<EventPerformanceResponseDto>> = _eventPerformanceState.asStateFlow()
-    
+
     private val _paymentMethodsState = MutableStateFlow<ResourceState<PaymentMethodsResponseDto>>(ResourceState.Initial)
     val paymentMethodsState: StateFlow<ResourceState<PaymentMethodsResponseDto>> = _paymentMethodsState.asStateFlow()
-    
+
     // New Analytics States for Additional APIs
     private val _roiAnalysisState = MutableStateFlow<ResourceState<Map<String, Any>>>(ResourceState.Initial)
     val roiAnalysisState: StateFlow<ResourceState<Map<String, Any>>> = _roiAnalysisState.asStateFlow()
-    
+
     private val _kpiDashboardState = MutableStateFlow<ResourceState<Map<String, Any>>>(ResourceState.Initial)
     val kpiDashboardState: StateFlow<ResourceState<Map<String, Any>>> = _kpiDashboardState.asStateFlow()
-    
+
     private val _attendeeDemographicsState = MutableStateFlow<ResourceState<Map<String, Any>>>(ResourceState.Initial)
     val attendeeDemographicsState: StateFlow<ResourceState<Map<String, Any>>> = _attendeeDemographicsState.asStateFlow()
-    
+
     private val _registrationTimelineState = MutableStateFlow<ResourceState<Map<String, Any>>>(ResourceState.Initial)
     val registrationTimelineState: StateFlow<ResourceState<Map<String, Any>>> = _registrationTimelineState.asStateFlow()
 
@@ -94,12 +100,12 @@ class AnalyticsDashboardViewModel @Inject constructor(
         // Initialize with default date range (last 30 days)
         val endDate = LocalDate.now()
         val startDate = endDate.minusDays(30)
-        
+
         updateDateRange(
             startDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
             endDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
         )
-        
+
         loadAnalyticsData()
     }
 
@@ -107,6 +113,14 @@ class AnalyticsDashboardViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             selectedDateRange = startDate to endDate
         )
+
+        val eventId = _uiState.value.selectedEventForDetails
+        if (eventId != null) {
+            loadDailyRevenueOptimized(eventId)
+            loadEventSpecificDataOptimized(eventId)
+        } else {
+            loadDailyRevenueOptimized()
+        }
     }
 
     fun updateSelectedPeriod(period: String) {
@@ -125,19 +139,17 @@ class AnalyticsDashboardViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             selectedEventForDetails = eventId
         )
-        
-        // Reload data for specific event
+
         if (eventId != null) {
             loadEventSpecificDataOptimized(eventId)
         }
     }
 
     fun refreshData() {
-        // Clear cache when explicitly refreshing
         clearCache()
-        
+
         _uiState.value = _uiState.value.copy(isRefreshing = true)
-        
+
         viewModelScope.launch {
             try {
                 loadAnalyticsData()
@@ -151,26 +163,43 @@ class AnalyticsDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isExporting = true)
-                
-                // Use ReportGenerator for real export
+
+                val (startDate, endDate) = _uiState.value.selectedDateRange
+                val eventId = _uiState.value.selectedEventForDetails
+
+                if (eventId != null) {
+                    loadDailyRevenueOptimized(eventId)
+                    loadEventSpecificDataOptimized(eventId)
+                } else {
+                    loadDailyRevenueOptimized()
+                }
+
+                delay(1000)
+
                 val analyticsSummary = createAnalyticsSummary()
-                val eventName = "Event_Analytics"
-                val dateRange = "${_uiState.value.selectedDateRange.first} - ${_uiState.value.selectedDateRange.second}"
-                
+                val eventName = eventId ?: "All_Events"
+                val dateRange = "$startDate to $endDate"
+
+                val exportInfo = getExportInformation(eventId)
+
                 val csvFile = reportGenerator.generateCsvReport(
                     analytics = analyticsSummary,
-                    eventName = eventName,
-                    dateRange = dateRange
+                    eventName = exportInfo.eventName,
+                    dateRange = dateRange,
+                    exporterName = exportInfo.exporterName,
+                    exporterEmail = exportInfo.exporterEmail,
+                    organizerName = exportInfo.organizerName
                 )
-                
+
                 if (csvFile != null) {
+                    reportGenerator.shareReport(csvFile, "Analytics Report")
+
                     _uiState.value = _uiState.value.copy(
                         isExporting = false,
-                        exportMessage = "Xuất báo cáo CSV thành công: ${csvFile.name}"
+                        exportMessage = "Báo cáo đã được xuất và lưu vào Downloads: ${csvFile.name}"
                     )
-                    
-                    // Clear message after 3 seconds
-                    delay(3000)
+
+                    delay(5000)
                     _uiState.value = _uiState.value.copy(exportMessage = null)
                 } else {
                     _uiState.value = _uiState.value.copy(
@@ -193,24 +222,22 @@ class AnalyticsDashboardViewModel @Inject constructor(
     }
 
     private fun loadAnalyticsData() {
-        // Cancel previous loading job to avoid redundant calls
         dataLoadingJob?.cancel()
-        
+
         dataLoadingJob = viewModelScope.launch {
             val currentTime = System.currentTimeMillis()
-            
+
             if (currentTime - lastDataLoadTime < dataLoadDebounceMs) {
                 delay(dataLoadDebounceMs - (currentTime - lastDataLoadTime))
             }
-            
+
             lastDataLoadTime = System.currentTimeMillis()
-            
+
             val currentState = _uiState.value
             val eventId = currentState.selectedEventForDetails
-            
-            // Load data with cache check
+
             loadDailyRevenueOptimized(eventId)
-            
+
             if (eventId != null) {
                 loadEventSpecificDataOptimized(eventId)
             }
@@ -222,13 +249,13 @@ class AnalyticsDashboardViewModel @Inject constructor(
             val currentState = _uiState.value
             val (startDate, endDate) = currentState.selectedDateRange
             val cacheKey = "daily_revenue_${eventId}_${startDate}_${endDate}"
-            
+
             val cachedData = getCachedData<DailyRevenueResponseDto>(cacheKey)
             if (cachedData != null) {
                 _dailyRevenueState.value = ResourceState.Success(cachedData)
                 return@launch
             }
-            
+
             analyticsRepository.getDailyRevenue(eventId, startDate, endDate).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
@@ -255,7 +282,6 @@ class AnalyticsDashboardViewModel @Inject constructor(
             launch { loadTicketSalesOptimized(eventId) }
             launch { loadCheckInStatsOptimized(eventId) }
             launch { loadRatingStatsOptimized(eventId) }
-            // Load new analytics APIs
             launch { loadAttendeeAnalytics(eventId) }
             launch { loadEventPerformance(eventId) }
             launch { loadPaymentMethodsAnalysis(eventId) }
@@ -325,9 +351,9 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     // Methods for Detailed Analytics Screens
-    
+
     fun loadTicketSalesData(eventId: String) {
         viewModelScope.launch {
             _ticketSalesState.value = ResourceState.Loading
@@ -348,11 +374,11 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun loadAttendeeAnalytics(eventId: String) {
         viewModelScope.launch {
             _attendeeAnalyticsState.value = ResourceState.Loading
-            
+
             analyticsRepository.getAttendeeAnalytics(eventId).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
@@ -371,11 +397,11 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun loadEventPerformance(eventId: String) {
         viewModelScope.launch {
             _eventPerformanceState.value = ResourceState.Loading
-            
+
             analyticsRepository.getEventPerformance(eventId).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
@@ -394,11 +420,11 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun loadPaymentMethodsAnalysis(eventId: String) {
         viewModelScope.launch {
             _paymentMethodsState.value = ResourceState.Loading
-            
+
             analyticsRepository.getPaymentMethodsAnalysis(eventId).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
@@ -417,11 +443,11 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun loadROIAnalysis(eventId: String) {
         viewModelScope.launch {
             _roiAnalysisState.value = ResourceState.Loading
-            
+
             analyticsRepository.getROIAnalysis(eventId).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
@@ -440,11 +466,11 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun loadKPIDashboard(eventId: String) {
         viewModelScope.launch {
             _kpiDashboardState.value = ResourceState.Loading
-            
+
             analyticsRepository.getKPIDashboard(eventId).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
@@ -463,11 +489,11 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun loadAttendeeDemographics(eventId: String) {
         viewModelScope.launch {
             _attendeeDemographicsState.value = ResourceState.Loading
-            
+
             analyticsRepository.getAttendeeDemographics(eventId).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
@@ -486,11 +512,11 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun loadRegistrationTimeline(eventId: String) {
         viewModelScope.launch {
             _registrationTimelineState.value = ResourceState.Loading
-            
+
             analyticsRepository.getRegistrationTimeline(eventId).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
@@ -509,21 +535,21 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun exportData(dataType: String, format: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isExporting = true)
-            
+
             try {
                 delay(2000)
                 _uiState.value = _uiState.value.copy(
                     isExporting = false,
                     exportMessage = "Xuất báo cáo $dataType thành công!"
                 )
-                
+
                 delay(3000)
                 _uiState.value = _uiState.value.copy(exportMessage = null)
-                
+
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isExporting = false,
@@ -533,84 +559,106 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     // Export Functions
     fun exportCsvReport(eventName: String) {
         viewModelScope.launch {
             try {
                 _exportState.value = ExportState.Loading
-                
-                // Get current analytics data
+
+                // Get current date range and force reload data
+                val (startDate, endDate) = _uiState.value.selectedDateRange
+                val eventId = _uiState.value.selectedEventForDetails
+
+                // Force reload data with current date range
+                if (eventId != null) {
+                    loadDailyRevenueOptimized(eventId)
+                    loadEventSpecificDataOptimized(eventId)
+                } else {
+                    loadDailyRevenueOptimized()
+                }
+
+                // Wait for data to load
+                delay(1000)
+
+                // Get current analytics data with applied date filter
                 val analyticsSummary = createAnalyticsSummary()
-                val dateRange = "${_uiState.value.selectedDateRange.first} - ${_uiState.value.selectedDateRange.second}"
-                
+                val dateRange = "$startDate to $endDate"
+
+                // Get real user and event information
+                val eventIdForInfo = _uiState.value.selectedEventForDetails
+                val exportInfo = getExportInformation(eventIdForInfo)
+
                 val file = reportGenerator.generateCsvReport(
                     analytics = analyticsSummary,
-                    eventName = eventName,
-                    dateRange = dateRange
+                    eventName = exportInfo.eventName,
+                    dateRange = dateRange,
+                    exporterName = exportInfo.exporterName,
+                    exporterEmail = exportInfo.exporterEmail,
+                    organizerName = exportInfo.organizerName
                 )
-                
+
                 if (file != null) {
                     _exportState.value = ExportState.Success(file)
                     Timber.d("CSV report generated successfully: ${file.name}")
                 } else {
                     _exportState.value = ExportState.Error("Failed to generate CSV report")
                 }
-                
+
             } catch (e: Exception) {
                 _exportState.value = ExportState.Error(e.message ?: "Unknown error occurred")
                 Timber.e(e, "Failed to export CSV report")
             }
         }
     }
-    
+
     fun exportDetailedReport(eventName: String) {
         viewModelScope.launch {
             try {
                 _exportState.value = ExportState.Loading
-                
+
                 // Get current analytics data
                 val analyticsSummary = createAnalyticsSummary()
-                val ticketSales = (_ticketSalesState.value as? ResourceState.Success)?.data 
+                val ticketSales = (_ticketSalesState.value as? ResourceState.Success)?.data
                     ?: createDefaultTicketSales()
                 val dateRange = "${_uiState.value.selectedDateRange.first} - ${_uiState.value.selectedDateRange.second}"
-                
+
                 val file = reportGenerator.generateDetailedReport(
                     analytics = analyticsSummary,
                     ticketSales = ticketSales,
                     eventName = eventName,
                     dateRange = dateRange
                 )
-                
+
                 if (file != null) {
                     _exportState.value = ExportState.Success(file)
                     Timber.d("Detailed report generated successfully: ${file.name}")
                 } else {
                     _exportState.value = ExportState.Error("Failed to generate detailed report")
                 }
-                
+
             } catch (e: Exception) {
                 _exportState.value = ExportState.Error(e.message ?: "Unknown error occurred")
                 Timber.e(e, "Failed to export detailed report")
             }
         }
     }
-    
+
     fun shareReport(file: File, title: String) {
         reportGenerator.shareReport(file, title)
     }
-    
+
     fun clearExportState() {
         _exportState.value = ExportState.Idle
     }
-    
+
     private fun createAnalyticsSummary(): AnalyticsSummaryResponseDto {
         val dailyRevenue = (_dailyRevenueState.value as? ResourceState.Success)?.data?.dailyRevenue ?: emptyMap()
         val ticketSalesData = (_ticketSalesState.value as? ResourceState.Success)?.data
         val ticketSales = ticketSalesData?.ticketTypeData?.mapValues { it.value.count } ?: emptyMap()
         val checkInData = (_checkInStatsState.value as? ResourceState.Success)?.data
         val ratingStats = (_ratingStatsState.value as? ResourceState.Success)?.data
-        
+
         return AnalyticsSummaryResponseDto(
             totalRevenue = dailyRevenue.values.sum(),
             totalTickets = ticketSalesData?.totalSold ?: 0,
@@ -626,13 +674,13 @@ class AnalyticsDashboardViewModel @Inject constructor(
             )
         )
     }
-    
+
     // Performance optimization utilities
     private data class CacheEntry<T>(
         val data: T,
         val timestamp: Long
     )
-    
+
     @Suppress("UNCHECKED_CAST")
     private fun <T> getCachedData(key: String): T? {
         val entry = dataCache[key] as? CacheEntry<T>
@@ -643,26 +691,26 @@ class AnalyticsDashboardViewModel @Inject constructor(
             null
         }
     }
-    
+
     private fun <T> setCachedData(key: String, data: T) {
         dataCache[key] = CacheEntry(data, System.currentTimeMillis())
     }
-    
+
     private fun clearCache() {
         dataCache.clear()
     }
-    
+
     // Optimized load functions
     private fun loadTicketSalesOptimized(eventId: String) {
         viewModelScope.launch {
             val cacheKey = "ticket_sales_$eventId"
             val cachedData = getCachedData<TicketSalesResponseDto>(cacheKey)
-            
+
             if (cachedData != null) {
                 _ticketSalesState.value = ResourceState.Success(cachedData)
                 return@launch
             }
-            
+
             analyticsRepository.getTicketSalesByType(eventId).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
@@ -683,17 +731,17 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun loadCheckInStatsOptimized(eventId: String) {
         viewModelScope.launch {
             val cacheKey = "checkin_stats_$eventId"
             val cachedData = getCachedData<CheckInStatisticsDto>(cacheKey)
-            
+
             if (cachedData != null) {
                 _checkInStatsState.value = ResourceState.Success(cachedData)
                 return@launch
             }
-            
+
             analyticsRepository.getCheckInStatistics(eventId).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
@@ -714,17 +762,17 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun loadRatingStatsOptimized(eventId: String) {
         viewModelScope.launch {
             val cacheKey = "rating_stats_$eventId"
             val cachedData = getCachedData<RatingStatisticsDto>(cacheKey)
-            
+
             if (cachedData != null) {
                 _ratingStatsState.value = ResourceState.Success(cachedData)
                 return@launch
             }
-            
+
             analyticsRepository.getRatingStatistics(eventId).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
@@ -745,7 +793,7 @@ class AnalyticsDashboardViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun createDefaultTicketSales(): TicketSalesResponseDto {
         return TicketSalesResponseDto(
             ticketTypeData = mapOf(
@@ -758,6 +806,43 @@ class AnalyticsDashboardViewModel @Inject constructor(
             dailySales = emptyMap()
         )
     }
+
+    /**
+     * Get export information including user and event details
+     */
+    private suspend fun getExportInformation(eventId: String?): ExportInformation {
+        return try {
+            var currentUser: UserDto? = null
+            userRepository.getCurrentUser().collect { result ->
+                if (result is Resource.Success) {
+                    currentUser = result.data
+                }
+            }
+
+            var currentEvent: EventDto? = null
+            if (eventId != null) {
+                eventRepository.getEventById(eventId).collect { result ->
+                    if (result is Resource.Success) {
+                        currentEvent = result.data
+                    }
+                }
+            }
+
+            ExportInformation(
+                exporterName = currentUser?.fullName!!,
+                exporterEmail = currentUser?.email!!,
+                organizerName = currentEvent?.organizerName!!,
+                eventName = currentEvent?.title!!
+            )
+        } catch (e: Exception) {
+            ExportInformation(
+                exporterName = "Event Organizer",
+                exporterEmail = "organizer@eventticketing.com",
+                organizerName = "EventTicketing Organization",
+                eventName = eventId ?: "All_Events"
+            )
+        }
+    }
 }
 
 /**
@@ -769,6 +854,16 @@ sealed class ExportState {
     data class Success(val file: File) : ExportState()
     data class Error(val message: String) : ExportState()
 }
+
+/**
+ * Export Information data class
+ */
+data class ExportInformation(
+    val exporterName: String,
+    val exporterEmail: String,
+    val organizerName: String,
+    val eventName: String
+)
 
 /**
  * UI State for Analytics Dashboard
