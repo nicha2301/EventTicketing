@@ -36,6 +36,11 @@ gson = "2.10.1"
 zxingCore = "3.5.2"
 zxingAndroidEmbedded = "4.3.0"
 androidxSecurityCrypto = "1.1.0-alpha06"
+mpAndroidChart = "v3.1.0"
+yCharts = "2.1.0"
+composeMaterialDialogsDatetime = "0.9.0"
+kotlinxDatetime = "0.4.1"
+openCsv = "5.7.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -133,6 +138,17 @@ gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
 # Security
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "androidxSecurityCrypto" }
+
+# Charts
+mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpAndroidChart" }
+ycharts = { group = "co.yml", name = "ycharts", version.ref = "yCharts" }
+
+# Date/Time handling (Third-party specific, distinct from kotlinx-datetime or java.time)
+compose-material-dialogs-datetime = { group = "io.github.vanpra.compose-material-dialogs", name = "datetime", version.ref = "composeMaterialDialogsDatetime" }
+kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }
+
+# Export functionality
+opencsv = { group = "com.opencsv", name = "opencsv", version.ref = "openCsv" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

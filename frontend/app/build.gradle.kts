@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.nicha.eventticketing"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -156,4 +156,15 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+    
+    // Analytics & Charts
+    implementation(libs.mpandroidchart)
+    implementation(libs.ycharts)
+
+    // Date/Time handling
+    implementation(libs.compose.material.dialogs.datetime)
+    implementation(libs.kotlinx.datetime)
+
+    // Export functionality
+    implementation(libs.opencsv)
 }
