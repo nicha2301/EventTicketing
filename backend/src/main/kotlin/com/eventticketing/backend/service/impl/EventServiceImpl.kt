@@ -8,9 +8,10 @@ import com.eventticketing.backend.exception.UnauthorizedException
 import com.eventticketing.backend.repository.*
 import com.eventticketing.backend.service.EventService
 import com.eventticketing.backend.util.FileStorageService
+import com.eventticketing.backend.service.CloudinaryStorageService
+import com.eventticketing.backend.entity.StorageProvider
 import com.eventticketing.backend.util.SecurityUtils
 import jakarta.persistence.criteria.Predicate
-import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.cache.annotation.Caching
@@ -31,10 +32,9 @@ class EventServiceImpl(
     private val categoryRepository: CategoryRepository,
     private val locationRepository: LocationRepository,
     private val fileStorageService: FileStorageService,
+    private val cloudinaryStorageService: CloudinaryStorageService,
     private val securityUtils: SecurityUtils
 ) : EventService {
-
-    private val logger = LoggerFactory.getLogger(EventServiceImpl::class.java)
 
     @Transactional
     @Caching(evict = [
@@ -87,7 +87,6 @@ class EventServiceImpl(
 
         // Lưu sự kiện
         val savedEvent = eventRepository.save(event)
-        logger.info("Đã tạo sự kiện mới: ${savedEvent.id}")
 
         return mapToEventDto(savedEvent)
     }
@@ -137,7 +136,6 @@ class EventServiceImpl(
         }
 
         val updatedEvent = eventRepository.save(event)
-        logger.info("Đã cập nhật sự kiện: ${updatedEvent.id}")
 
         return mapToEventDto(updatedEvent)
     }
@@ -169,14 +167,11 @@ class EventServiceImpl(
     }
 
     override fun getEventsByOrganizer(organizerId: UUID, pageable: Pageable): Page<EventDto> {
-        // Kiểm tra xem có phải người tổ chức đang xem sự kiện của chính họ không
         val isOwnEvents = securityUtils.isCurrentUser(organizerId)
         
         val events = if (isOwnEvents || securityUtils.isAdmin()) {
-            // Người tổ chức có thể xem tất cả sự kiện của họ
             eventRepository.findByOrganizerId(organizerId, pageable)
         } else {
-            // Người dùng thông thường chỉ xem được sự kiện đã công bố
             val spec = Specification<Event> { root, query, criteriaBuilder ->
                 val predicates = mutableListOf<Predicate>()
                 predicates.add(criteriaBuilder.equal(root.get<UUID>("organizer").get<UUID>("id"), organizerId))
@@ -206,7 +201,6 @@ class EventServiceImpl(
         val spec = Specification<Event> { root, query, criteriaBuilder ->
             val predicates = mutableListOf<Predicate>()
             
-            // Mặc định chỉ hiện sự kiện đã công bố, trừ khi là admin
             if (!securityUtils.isAdmin()) {
                 predicates.add(criteriaBuilder.equal(root.get<EventStatus>("status"), EventStatus.PUBLISHED))
             } else if (status != null) {
@@ -214,8 +208,6 @@ class EventServiceImpl(
                     val eventStatus = EventStatus.valueOf(status.uppercase())
                     predicates.add(criteriaBuilder.equal(root.get<EventStatus>("status"), eventStatus))
                 } catch (e: IllegalArgumentException) {
-                    // Bỏ qua nếu status không hợp lệ
-                    logger.warn("Trạng thái không hợp lệ: $status")
                 }
             }
 
@@ -325,14 +317,11 @@ class EventServiceImpl(
     override fun deleteEvent(id: UUID, organizerId: UUID): Boolean {
         val event = findEventAndCheckPermission(id, organizerId)
         
-        // Kiểm tra xem sự kiện có thể xóa không (ví dụ: chưa có vé nào được bán)
-        // Giả sử có một phương thức kiểm tra
         if (hasTicketsSold(event)) {
             throw BadRequestException("Không thể xóa sự kiện đã có vé được bán")
         }
         
         eventRepository.delete(event)
-        logger.info("Đã xóa sự kiện: $id")
         
         return true
     }
@@ -353,7 +342,6 @@ class EventServiceImpl(
         
         event.status = EventStatus.PUBLISHED
         val publishedEvent = eventRepository.save(event)
-        logger.info("Đã công bố sự kiện: $id")
         
         return mapToEventDto(publishedEvent)
     }
@@ -375,10 +363,7 @@ class EventServiceImpl(
         event.status = EventStatus.CANCELLED
         event.cancellationReason = reason
         val cancelledEvent = eventRepository.save(event)
-        logger.info("Đã hủy sự kiện: $id, lý do: $reason")
         
-        // Gửi thông báo cho người đã mua vé
-        // notificationService.notifyCancelledEvent(event, reason)
         
         return mapToEventDto(cancelledEvent)
     }
@@ -388,38 +373,40 @@ class EventServiceImpl(
     override fun uploadEventImage(id: UUID, image: MultipartFile, isPrimary: Boolean): ImageDto {
         val event = findEventAndCheckPermission(id, null)
         
-        // Lưu file và lấy URL
-        val fileName = "${UUID.randomUUID()}-${image.originalFilename}"
-        val subfolder = "events/$id"
-        val filePath = fileStorageService.storeFile(image, subfolder)
+        val uploadResult = cloudinaryStorageService.uploadImage(image, "events")
         
-        // Tạo đối tượng Image
+        if (!uploadResult.success) {
+            throw RuntimeException("Không thể tải lên hình ảnh: ${uploadResult.error}")
+        }
+        
         val eventImage = EventImage(
             event = event,
-            url = filePath,
+            url = uploadResult.cloudinaryUrl, 
+            cloudinaryPublicId = uploadResult.cloudinaryPublicId,
+            cloudinaryUrl = uploadResult.cloudinaryUrl,
+            thumbnailUrl = uploadResult.thumbnailUrl,
+            mediumUrl = uploadResult.mediumUrl,
+            storageProvider = StorageProvider.CLOUDINARY, 
             isPrimary = isPrimary
         )
         
-        // Nếu là ảnh chính, cập nhật các ảnh khác thành không phải ảnh chính
         if (isPrimary) {
             event.images.forEach { it.isPrimary = false }
         }
         
-        // Thêm ảnh mới vào danh sách ảnh của sự kiện
         event.addImage(eventImage)
         
-        // Lưu sự kiện và cập nhật eventImage
         val savedEvent = eventRepository.save(event)
         
-        // Lấy đối tượng eventImage đã được lưu với ID đã được sinh ra
-        val savedImage = savedEvent.images.find { it.url == filePath }
-            ?: throw RuntimeException("Không thể lưu hình ảnh sự kiện")
+        val savedImage = savedEvent.images.find { 
+            it.cloudinaryPublicId == uploadResult.cloudinaryPublicId
+        } ?: throw RuntimeException("Không thể lưu hình ảnh sự kiện")
         
-        logger.info("Đã tải lên ảnh cho sự kiện: $id, isPrimary: $isPrimary")
+        val finalUrl = cloudinaryStorageService.getImageUrl(savedImage)
         
         return ImageDto(
             id = savedImage.id,
-            url = savedImage.url,
+            url = finalUrl,
             eventId = id,
             isPrimary = savedImage.isPrimary,
             createdAt = savedImage.createdAt
@@ -431,19 +418,22 @@ class EventServiceImpl(
     override fun deleteEventImage(id: UUID, imageId: UUID): Boolean {
         val event = findEventAndCheckPermission(id, null)
         
-        // Tìm ảnh cần xóa
-            val imageToDelete = event.images.find { it.id == imageId }
+        // Find image to delete
+        val imageToDelete = event.images.find { it.id == imageId }
             ?: throw ResourceNotFoundException("Không tìm thấy ảnh với ID $imageId cho sự kiện $id")
         
-        // Xóa file từ storage
-        fileStorageService.deleteFile(imageToDelete.url)
+        // Delete file from Cloudinary storage
+        val deleteSuccess = cloudinaryStorageService.deleteImage(imageToDelete)
         
-        // Xóa ảnh khỏi danh sách
-        event.images.removeIf { it.id == imageId }
-        
-        // Lưu sự kiện
-        eventRepository.save(event)
-        logger.info("Đã xóa ảnh $imageId của sự kiện: $id")
+        if (deleteSuccess) {
+            // Remove image from event's image list
+            event.images.removeIf { it.id == imageId }
+            
+            eventRepository.save(event)
+        } else {
+            event.images.removeIf { it.id == imageId }
+            eventRepository.save(event)
+        }
         
         return true
     }
@@ -455,7 +445,7 @@ class EventServiceImpl(
         return event.images.map {
             ImageDto(
                 id = it.id!!,
-                url = it.url,
+                url = cloudinaryStorageService.getImageUrl(it),
                 eventId = id,
                 isPrimary = it.isPrimary,
                 createdAt = it.createdAt
@@ -520,13 +510,15 @@ class EventServiceImpl(
     }
     
     private fun mapToEventDto(event: Event): EventDto {
-        // Tìm ảnh chính của sự kiện
-        val primaryImage = event.images.find { it.isPrimary }?.url
+        // Find primary image URL using Cloudinary storage
+        val primaryImage = event.images.find { it.isPrimary }?.let { 
+            cloudinaryStorageService.getImageUrl(it) 
+        }
         
-        // Danh sách URL hình ảnh
-        val imageUrls = event.images.map { it.url }
+        // List of image URLs using Cloudinary storage
+        val imageUrls = event.images.map { cloudinaryStorageService.getImageUrl(it) }
         
-        // Tính giá vé thấp nhất và cao nhất
+        // Calculate min and max ticket prices
         val ticketPrices = event.ticketTypes.map { it.price }
         val minTicketPrice = if (ticketPrices.isNotEmpty()) ticketPrices.minOrNull() else null
         val maxTicketPrice = if (ticketPrices.isNotEmpty()) ticketPrices.maxOrNull() else null

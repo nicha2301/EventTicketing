@@ -160,8 +160,24 @@ data class EventImage(
     @GeneratedValue(strategy = GenerationType.UUID)
     val id: UUID? = null,
 
-    @Column(nullable = false)
-    var url: String,
+    @Column(name = "url")
+    var url: String? = null,
+    
+    @Column(name = "cloudinary_public_id")
+    var cloudinaryPublicId: String? = null,
+    
+    @Column(name = "cloudinary_url", length = 500)
+    var cloudinaryUrl: String? = null,
+    
+    @Column(name = "thumbnail_url", length = 500)
+    var thumbnailUrl: String? = null,
+    
+    @Column(name = "medium_url", length = 500)
+    var mediumUrl: String? = null,
+    
+    @Column(name = "storage_provider")
+    @Enumerated(EnumType.STRING)
+    var storageProvider: StorageProvider? = StorageProvider.LOCAL,
 
     @Column(name = "is_primary", nullable = false)
     var isPrimary: Boolean = false,
@@ -173,7 +189,25 @@ data class EventImage(
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()
-)
+) {
+    // Helper property to get the current active URL
+    val activeUrl: String
+        get() = when (storageProvider ?: StorageProvider.LOCAL) {
+            StorageProvider.CLOUDINARY -> cloudinaryUrl ?: url ?: ""
+            StorageProvider.LOCAL -> url ?: ""
+        }
+        
+    val activeThumbnailUrl: String
+        get() = when (storageProvider ?: StorageProvider.LOCAL) {
+            StorageProvider.CLOUDINARY -> thumbnailUrl ?: cloudinaryUrl ?: url ?: ""
+            StorageProvider.LOCAL -> url ?: ""
+        }
+}
+
+enum class StorageProvider {
+    LOCAL,
+    CLOUDINARY
+}
 
 enum class EventStatus {
     DRAFT,       // Bản nháp, chưa công bố

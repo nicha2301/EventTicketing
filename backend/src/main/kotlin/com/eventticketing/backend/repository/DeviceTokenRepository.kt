@@ -22,7 +22,12 @@ interface DeviceTokenRepository : JpaRepository<DeviceToken, UUID> {
     /**
      * Tìm token theo token value
      */
-    fun findByToken(token: String): Optional<DeviceToken>
+    fun findByToken(token: String): List<DeviceToken>
+    
+    /**
+     * Tìm token duy nhất theo token value
+     */
+    fun findFirstByToken(token: String): Optional<DeviceToken>
     
     /**
      * Tìm token theo userId và deviceType

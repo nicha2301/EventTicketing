@@ -18,7 +18,7 @@ data class DeviceToken(
     @JoinColumn(name = "user_id", nullable = false)
     val user: User,
     
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     val token: String,
     
     @Column(name = "device_type", nullable = false)
