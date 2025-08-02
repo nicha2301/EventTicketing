@@ -35,8 +35,8 @@ fun EventDashboardScreen(
     onBackClick: () -> Unit,
     onEventClick: (String) -> Unit,
     onCreateEventClick: () -> Unit,
-    onAnalyticsClick: () -> Unit,
     onScanQRClick: () -> Unit,
+    showBackButton: Boolean = true,
     viewModel: OrganizerEventViewModel = hiltViewModel()
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -82,21 +82,19 @@ fun EventDashboardScreen(
                         )
                     )
                 },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Quay lại"
-                        )
+                navigationIcon = if (showBackButton) {
+                    {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Quay lại"
+                            )
+                        }
                     }
+                } else {
+                    {}
                 },
                 actions = {
-                    IconButton(onClick = onAnalyticsClick) {
-                        Icon(
-                            imageVector = Icons.Filled.Analytics,
-                            contentDescription = "Thống kê và báo cáo"
-                        )
-                    }
                     IconButton(onClick = onScanQRClick) {
                         Icon(
                             imageVector = Icons.Filled.QrCode2,
@@ -108,7 +106,7 @@ fun EventDashboardScreen(
                             imageVector = Icons.Filled.Person,
                             contentDescription = "Hồ sơ nhà tổ chức"
                         )
-                }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
@@ -175,16 +173,6 @@ fun EventDashboardScreen(
                             value = "$totalTicketsSold",
                             label = "Vé đã bán"
                         )
-                        
-                        Box(
-                            modifier = Modifier.clickable { onAnalyticsClick() }
-                        ) {
-                            DashboardStatCard(
-                                icon = Icons.Default.Analytics,
-                                value = "📊",
-                                label = "Thống kê"
-                            )
-                        }
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))

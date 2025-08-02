@@ -77,6 +77,7 @@ fun LoginScreen(
     googleAuthManager: GoogleAuthManager = com.nicha.eventticketing.data.auth.GoogleAuthManager(LocalContext.current)
 ) {
     val authState by viewModel.authState.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var isNetworkErrorDialogVisible by remember { mutableStateOf(false) }
@@ -115,10 +116,12 @@ fun LoginScreen(
     }
     
     // Xử lý trạng thái xác thực
-    LaunchedEffect(authState) {
+    LaunchedEffect(authState, currentUser) {
         when (authState) {
             is AuthState.Authenticated -> {
-                onLoginSuccess()
+                if (currentUser != null) {
+                    onLoginSuccess()
+                }
             }
             is AuthState.Error -> {
                 val errorMsg = (authState as AuthState.Error).message

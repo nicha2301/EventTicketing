@@ -103,7 +103,7 @@ fun AnalyticsDashboardScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        "Analytics Dashboard",
+                        "Bảng phân tích",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         )

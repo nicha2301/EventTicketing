@@ -4,6 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -37,6 +40,7 @@ import com.nicha.eventticketing.ui.screens.tickets.TicketWalletScreen
 import com.nicha.eventticketing.ui.screens.profile.EditProfileScreen
 import com.nicha.eventticketing.ui.screens.auth.UnauthorizedScreen
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nicha.eventticketing.viewmodel.AuthState
 import com.nicha.eventticketing.viewmodel.AuthViewModel
 import com.nicha.eventticketing.ui.screens.organizer.EditEventScreen
 import com.nicha.eventticketing.ui.screens.organizer.CreateEventScreen
@@ -51,7 +55,6 @@ fun NavGraph(
     roleBasedNavigation: RoleBasedNavigation,
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
-    val authState by authViewModel.authState.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
 
     NavHost(
@@ -84,10 +87,12 @@ fun NavGraph(
         composable(route = NavDestination.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
-                    // Điều hướng dựa trên vai trò
-                    val homeDestination = roleBasedNavigation.getHomeDestinationForUser(currentUser)
-                    navController.navigate(homeDestination.route) {
-                        popUpTo(NavDestination.Login.route) { inclusive = true }
+                    currentUser?.let { user ->
+                        val homeDestination = roleBasedNavigation.getHomeDestinationForUser(user)
+                        navController.navigate(homeDestination.route) {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
                     }
                 },
                 onNavigateToRegister = {
@@ -103,9 +108,7 @@ fun NavGraph(
         composable(route = NavDestination.Register.route) {
             RegisterScreen(
                 onRegisterSuccess = {
-                    // Điều hướng dựa trên vai trò
-                    val homeDestination = roleBasedNavigation.getHomeDestinationForUser(currentUser)
-                    navController.navigate(homeDestination.route) {
+                    navController.navigate(NavDestination.Login.route) {
                         popUpTo(NavDestination.Register.route) { inclusive = true }
                     }
                 },
@@ -449,15 +452,13 @@ fun NavGraph(
                 }
             }
             
+            // Không hiển thị back button vì đây là trang home của oranizer
             EventDashboardScreen(
                 onBackClick = {
-                    navController.popBackStack()
                 },
+                showBackButton = false,
                 onCreateEventClick = {
                     navController.navigate(NavDestination.CreateEvent.route)
-                },
-                onAnalyticsClick = {
-                    navController.navigate(NavDestination.AnalyticsDashboard.route)
                 },
                 onEventClick = { eventId ->
                     if (eventId == "profile") {
