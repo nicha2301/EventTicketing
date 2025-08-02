@@ -57,8 +57,7 @@ import com.nicha.eventticketing.util.TicketUtils
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
 import com.nicha.eventticketing.viewmodel.TicketViewModel
 import com.nicha.eventticketing.util.ImageUtils
-import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
-import com.nicha.eventticketing.util.ImageUtils.getFullImageUrls
+import com.nicha.eventticketing.util.ImageUtils.getAllImageUrls
 import com.nicha.eventticketing.util.NetworkStatusObserver
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -208,16 +207,11 @@ fun EventDetailScreen(
                 val event = (eventDetailState as ResourceState.Success<EventDto>).data
                 var isDescriptionExpanded by remember { mutableStateOf(false) }
 
-                // Lọc danh sách vé để chỉ hiển thị vé thường và vé VIP
                 val filteredTicketTypes = remember(event.ticketTypes) {
                     TicketUtils.filterTicketTypes(event.ticketTypes)
                 }
 
-                val imageUrls = if (event.imageUrls.isNullOrEmpty() && event.featuredImageUrl != null) {
-                    listOf(ImageUtils.getFullImageUrl(event.featuredImageUrl))
-                } else {
-                    ImageUtils.getFullImageUrls(event.imageUrls)
-                }
+                val imageUrls = event.getAllImageUrls()
 
                 val pagerState = rememberPagerState(pageCount = { imageUrls.size })
 

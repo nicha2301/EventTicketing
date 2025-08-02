@@ -34,7 +34,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.util.FormatUtils
-import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
+import com.nicha.eventticketing.util.ImageUtils.getPrimaryImageUrl
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
@@ -80,11 +80,12 @@ fun EventCarousel(
                 // Event image
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(event.getFullFeaturedImageUrl())
+                        .data(event.getPrimaryImageUrl())
                         .crossfade(true)
                         .build(),
                     contentDescription = event.title,
                     contentScale = ContentScale.Crop,
+                    alignment = Alignment.Center,
                     modifier = Modifier.fillMaxSize()
                 )
                 

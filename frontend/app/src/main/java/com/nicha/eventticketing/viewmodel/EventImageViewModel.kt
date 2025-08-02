@@ -110,6 +110,50 @@ class EventImageViewModel @Inject constructor(
             }
         }
     }
+
+    fun saveCloudinaryImageToDatabase(
+        eventId: String, 
+        cloudinaryUrl: String, 
+        publicId: String, 
+        width: Int, 
+        height: Int, 
+        isPrimary: Boolean = false
+    ) {
+        _uploadImageState.value = ResourceState.Loading
+        _uploadProgress.value = 0.8f 
+        
+        viewModelScope.launch {
+            try {
+                (eventImageRepository as? com.nicha.eventticketing.data.repository.EventImageRepositoryImpl)
+                    ?.saveCloudinaryImage(eventId, cloudinaryUrl, publicId, width, height, isPrimary)
+                    ?.collect { result ->
+                        when (result) {
+                            is Resource.Success -> {
+                                val savedImage = result.data
+                                if (savedImage != null) {
+                                    _uploadImageState.value = ResourceState.Success(savedImage)
+                                    _uploadProgress.value = 1f
+                                    Timber.d("Lưu thông tin Cloudinary thành công: ${savedImage.id}")
+                                } else {
+                                    Timber.e("Không thể lưu thông tin Cloudinary")
+                                    _uploadImageState.value = ResourceState.Error("Không thể lưu thông tin Cloudinary")
+                                }
+                            }
+                            is Resource.Error -> {
+                                Timber.e("Lưu thông tin Cloudinary thất bại: ${result.message}")
+                                _uploadImageState.value = ResourceState.Error(result.message ?: "Không thể lưu thông tin Cloudinary")
+                            }
+                            is Resource.Loading -> {
+                                _uploadImageState.value = ResourceState.Loading
+                            }
+                        }
+                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Lỗi khi lưu thông tin Cloudinary")
+                _uploadImageState.value = ResourceState.Error("Lỗi khi xử lý thông tin Cloudinary: ${e.message}")
+            }
+        }
+    }
     
     /**
      * Xóa hình ảnh sự kiện

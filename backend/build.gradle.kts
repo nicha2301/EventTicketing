@@ -54,6 +54,10 @@ dependencies {
 	implementation("com.itextpdf:itextpdf:5.5.13.3")
 	implementation("com.itextpdf:html2pdf:4.0.5")
 	
+	// Cloudinary for image storage
+	implementation("com.cloudinary:cloudinary-http44:1.36.0")
+	implementation("com.cloudinary:cloudinary-core:1.36.0")
+	
 	// JSON processing
 	implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 	implementation("org.json:json:20240303")

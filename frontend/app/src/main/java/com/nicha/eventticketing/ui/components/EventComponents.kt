@@ -21,7 +21,7 @@ import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.ui.theme.LocalNeumorphismStyle
 import java.text.SimpleDateFormat
 import java.util.Locale
-import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
+import com.nicha.eventticketing.util.ImageUtils.getPrimaryImageUrl
 
 /**
  * Thẻ hiển thị thông tin sự kiện với thiết kế neumorphic hiện đại
@@ -43,12 +43,13 @@ fun EventCard(
         ) {
             // Event image
             AsyncImage(
-                model = event.getFullFeaturedImageUrl(),
+                model = event.getPrimaryImageUrl(),
                 contentDescription = event.title,
                 contentScale = ContentScale.Crop,
+                alignment = Alignment.Center,
                 modifier = Modifier
                     .width(120.dp)
-                    .height(140.dp)
+                    .fillMaxHeight()
                     .clip(RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
             )
             

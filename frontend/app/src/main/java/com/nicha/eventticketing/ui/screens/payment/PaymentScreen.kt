@@ -49,7 +49,7 @@ import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import com.nicha.eventticketing.domain.model.EventType
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
-import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
+import com.nicha.eventticketing.util.ImageUtils.getPrimaryImageUrl
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketPurchaseItemDto
 
 
@@ -278,7 +278,7 @@ fun PaymentScreen(
                         ) {
                             // Event image
                             AsyncImage(
-                                model = event.getFullFeaturedImageUrl(),
+                                model = event.getPrimaryImageUrl(),
                                 contentDescription = event.title,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier

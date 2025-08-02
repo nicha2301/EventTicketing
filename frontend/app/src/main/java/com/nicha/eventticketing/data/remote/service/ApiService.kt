@@ -18,6 +18,7 @@ import com.nicha.eventticketing.data.remote.dto.notification.NotificationDto
 import com.nicha.eventticketing.data.remote.dto.notification.NotificationPreferencesDto
 import com.nicha.eventticketing.data.remote.dto.notification.DeviceTokenDto
 import com.nicha.eventticketing.data.remote.dto.notification.DeviceTokenRequestDto
+import com.nicha.eventticketing.data.remote.dto.request.CloudinaryImageRequest
 import com.nicha.eventticketing.data.remote.dto.analytics.AttendeeAnalyticsResponseDto
 import com.nicha.eventticketing.data.remote.dto.analytics.EventPerformanceResponseDto
 import com.nicha.eventticketing.data.remote.dto.analytics.PaymentMethodsResponseDto
@@ -154,6 +155,12 @@ interface ApiService {
         @Path("id") eventId: String,
         @Part image: MultipartBody.Part,
         @Query("isPrimary") isPrimary: Boolean = false
+    ): Response<ApiResponse<EventImageDto>>
+    
+    @POST("api/events/{id}/images/cloudinary")
+    suspend fun saveCloudinaryImage(
+        @Path("id") eventId: String,
+        @Body cloudinaryInfo: CloudinaryImageRequest
     ): Response<ApiResponse<EventImageDto>>
     
     @PUT("api/events/{eventId}/images/{imageId}/primary")

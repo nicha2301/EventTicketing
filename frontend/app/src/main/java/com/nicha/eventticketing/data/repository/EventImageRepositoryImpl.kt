@@ -8,6 +8,7 @@ import com.nicha.eventticketing.util.NetworkUtil
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import okhttp3.MultipartBody
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -166,6 +167,44 @@ class EventImageRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             Timber.e(e, "Lỗi khi lấy hình ảnh nổi bật của sự kiện: $eventId")
+            emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
+        }
+    }
+    
+    /**
+     * Lưu thông tin hình ảnh Cloudinary vào database
+     */
+    fun saveCloudinaryImage(
+        eventId: String,
+        cloudinaryUrl: String,
+        publicId: String,
+        width: Int,
+        height: Int,
+        isPrimary: Boolean
+    ): Flow<Resource<EventImageDto>> = flow {
+        emit(Resource.Loading())
+        try {
+            val cloudinaryRequest = com.nicha.eventticketing.data.remote.dto.request.CloudinaryImageRequest(
+                publicId = publicId,
+                secureUrl = cloudinaryUrl,
+                width = width,
+                height = height,
+                isPrimary = isPrimary
+            )
+            
+            val response = apiService.saveCloudinaryImage(eventId, cloudinaryRequest)
+            if (response.isSuccessful && response.body()?.success == true) {
+                val savedImage = response.body()?.data
+                if (savedImage != null) {
+                    emit(Resource.Success(savedImage))
+                } else {
+                    emit(Resource.Error("Không thể lưu thông tin Cloudinary"))
+                }
+            } else {
+                emit(Resource.Error(response.body()?.message ?: "Lưu thông tin Cloudinary thất bại"))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Lỗi khi lưu thông tin Cloudinary cho sự kiện: $eventId")
             emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
         }
     }

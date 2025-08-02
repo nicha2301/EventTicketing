@@ -51,7 +51,7 @@ import com.nicha.eventticketing.util.FormatUtils
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.graphicsLayer
-import com.nicha.eventticketing.util.ImageUtils.getFullFeaturedImageUrl
+import com.nicha.eventticketing.util.ImageUtils.getPrimaryImageUrl
 import com.nicha.eventticketing.ui.components.NotificationIconWithBadge
 import com.nicha.eventticketing.viewmodel.NotificationViewModel
 import com.nicha.eventticketing.util.NetworkStatusObserver
@@ -757,7 +757,7 @@ fun EventListItem(
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(event.getFullFeaturedImageUrl())
+                        .data(event.getPrimaryImageUrl())
                         .crossfade(true)
                         .build(),
                     contentDescription = event.title,

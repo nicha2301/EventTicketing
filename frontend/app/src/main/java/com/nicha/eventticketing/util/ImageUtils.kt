@@ -38,6 +38,24 @@ object ImageUtils {
     fun EventDto.getFullImageUrls(): List<String> {
         return getFullImageUrls(this.imageUrls)
     }
+    
+    fun EventDto.getPrimaryImageUrl(): String? {
+        return when {
+            this.imageUrls.isNotEmpty() -> this.imageUrls.first()
+            this.featuredImageUrl != null -> getFullImageUrl(this.featuredImageUrl)
+            else -> null
+        }
+    }
+    
+    fun EventDto.getAllImageUrls(): List<String> {
+        return when {
+            this.imageUrls.isNotEmpty() -> this.imageUrls
+            this.featuredImageUrl != null -> {
+                getFullImageUrl(this.featuredImageUrl)?.let { listOf(it) } ?: emptyList()
+            }
+            else -> emptyList()
+        }
+    }
 
     fun EventImageDto.getFullUrl(): String? {
         return getFullImageUrl(this.url)

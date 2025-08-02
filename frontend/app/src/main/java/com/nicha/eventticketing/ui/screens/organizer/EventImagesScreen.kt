@@ -29,10 +29,11 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.nicha.eventticketing.data.remote.dto.event.EventImageDto
 import com.nicha.eventticketing.domain.model.ResourceState
-import com.nicha.eventticketing.ui.components.ImageUploader
+import com.nicha.eventticketing.ui.components.CloudinaryImageUploader
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.util.ImagePickerUtil
 import com.nicha.eventticketing.util.ImageUtils.getFullUrl
+import com.nicha.eventticketing.util.CloudinaryResult
 import com.nicha.eventticketing.viewmodel.EventImageViewModel
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
@@ -87,7 +88,6 @@ fun EventImagesScreen(
     LaunchedEffect(selectedImageUri) {
         selectedImageUri?.let { uri ->
             ImagePickerUtil.uriToFile(context, uri)?.let { file ->
-                // Tự động đặt ảnh đầu tiên làm ảnh chính
                 val isPrimary = eventImagesState !is ResourceState.Success || 
                                 (eventImagesState as? ResourceState.Success<List<EventImageDto>>)?.data?.isEmpty() == true
                 
@@ -125,100 +125,132 @@ fun EventImagesScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp)
-        ) {
-            when (eventImagesState) {
-                is ResourceState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+        when (eventImagesState) {
+            is ResourceState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            is ResourceState.Error -> {
+                val errorMessage = (eventImagesState as ResourceState.Error).message
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    NeumorphicCard(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .width(300.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Error,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = errorMessage,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = { viewModel.getEventImages(eventId) },
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Thử lại")
+                            }
+                        }
                     }
                 }
-                is ResourceState.Error -> {
-                    val errorMessage = (eventImagesState as ResourceState.Error).message
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            }
+            is ResourceState.Success -> {
+                val images = (eventImagesState as ResourceState.Success<List<EventImageDto>>).data
+                
+                if (images.isEmpty()) {
+                    // Căn giữa hoàn hảo trong toàn bộ màn hình
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) {
                         NeumorphicCard(
                             modifier = Modifier
-                                .padding(16.dp)
                                 .width(300.dp)
+                                .wrapContentHeight()
                         ) {
                             Column(
-                                modifier = Modifier.padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                modifier = Modifier.padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Error,
+                                    imageVector = Icons.Default.ImageNotSupported,
                                     contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.error
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(80.dp)
                                 )
-                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                Spacer(modifier = Modifier.height(24.dp))
+                                
                                 Text(
-                                    text = errorMessage,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.error
+                                    text = "Chưa có hình ảnh nào",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Medium
                                 )
-                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Text(
+                                    text = "Hãy thêm ảnh đầu tiên cho sự kiện của bạn",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                
+                                Spacer(modifier = Modifier.height(24.dp))
+                                
                                 Button(
-                                    onClick = { viewModel.getEventImages(eventId) },
-                                    shape = RoundedCornerShape(12.dp)
+                                    onClick = { showAddImageDialog = true },
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("Thử lại")
+                                    Icon(
+                                        imageVector = Icons.Default.AddPhotoAlternate,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = "Thêm hình ảnh",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
                                 }
                             }
                         }
                     }
-                }
-                is ResourceState.Success -> {
-                    val images = (eventImagesState as ResourceState.Success<List<EventImageDto>>).data
-                    
-                    if (images.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            NeumorphicCard(
-                                modifier = Modifier
-                                    .padding(16.dp)
-                                    .width(300.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ImageNotSupported,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(64.dp)
-                                    )
-                                    
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    
-                                    Text(
-                                        text = "Chưa có hình ảnh nào",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    
-                                    Button(
-                                        onClick = { showAddImageDialog = true },
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.AddPhotoAlternate,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Thêm hình ảnh")
-                                    }
-                                }
-                            }
-                        }
-                    } else {
+                } else {
+                    // Box cho trường hợp có ảnh - giữ lại padding cho grid
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(horizontal = 16.dp)
+                    ) {
                         Column(modifier = Modifier.fillMaxSize()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             
@@ -248,56 +280,109 @@ fun EventImagesScreen(
                                 }
                             }
                         }
-                    }
-                }
-                else -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "Không có dữ liệu",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                        
+                        // Upload progress overlay cũng cần được đặt đúng vị trí
+                        if (uploadImageState is ResourceState.Loading && uploadProgress > 0f) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.7f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                NeumorphicCard(
+                                    modifier = Modifier
+                                        .padding(16.dp)
+                                        .width(300.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(24.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = "Đang tải lên hình ảnh...",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        
+                                        Spacer(modifier = Modifier.height(24.dp))
+                                        
+                                        LinearProgressIndicator(
+                                            progress = { uploadProgress },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                        
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        
+                                        Text(
+                                            text = "${(uploadProgress * 100).toInt()}%",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
-            
-            // Upload progress overlay
-            if (uploadImageState is ResourceState.Loading && uploadProgress > 0f) {
+            else -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.7f)),
+                        .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    NeumorphicCard(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .width(300.dp)
+                    Text(
+                        text = "Không có dữ liệu",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+        }
+        
+        // Các overlay khác được đặt ngoài để che toàn bộ màn hình
+        if (uploadImageState is ResourceState.Loading && uploadProgress > 0f && 
+            (eventImagesState as? ResourceState.Success<List<EventImageDto>>)?.data?.isNotEmpty() == false) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                NeumorphicCard(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .width(300.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
-                            modifier = Modifier.padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "Đang tải lên hình ảnh...",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            
-                            Spacer(modifier = Modifier.height(24.dp))
-                            
-                            LinearProgressIndicator(
-                                progress = { uploadProgress },
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.primary,
-                                trackColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-                            
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            Text(
-                                text = "${(uploadProgress * 100).toInt()}%",
-                                style = MaterialTheme.typography.bodyLarge,
+                        Text(
+                            text = "Đang tải lên hình ảnh...",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        
+                        LinearProgressIndicator(
+                            progress = { uploadProgress },
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            text = "${(uploadProgress * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -337,7 +422,7 @@ fun EventImagesScreen(
                 )
             }
             
-            // Add image dialog
+            // Add image dialog with Cloudinary
             if (showAddImageDialog) {
                 AlertDialog(
                     onDismissRequest = { showAddImageDialog = false },
@@ -349,34 +434,59 @@ fun EventImagesScreen(
                         ) 
                     },
                     text = { 
-                        ImageUploader(
-                            imageUri = null,
-                            onImageSelected = { uri ->
-                                selectedImageUri = uri
-                                showAddImageDialog = false
-                            },
-                            onImageRemoved = {},
-                            label = "Chọn hình ảnh",
-                            placeholder = "Nhấn để chọn hoặc chụp ảnh",
-                            aspectRatio = 16f / 9f
-                        )
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Text(
+                                text = "Chọn ảnh để tải lên Cloudinary (tự động tối ưu hóa)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            
+                            CloudinaryImageUploader(
+                                onImageUploaded = { cloudinaryResult ->
+                                    // Determine if this should be primary image
+                                    val isPrimary = eventImagesState !is ResourceState.Success || 
+                                                    (eventImagesState as? ResourceState.Success<List<EventImageDto>>)?.data?.isEmpty() == true
+                                    
+                                    // After Cloudinary upload, call backend to save image info
+                                    viewModel.saveCloudinaryImageToDatabase(
+                                        eventId = eventId,
+                                        cloudinaryUrl = cloudinaryResult.secureUrl,
+                                        publicId = cloudinaryResult.publicId,
+                                        width = cloudinaryResult.width,
+                                        height = cloudinaryResult.height,
+                                        isPrimary = isPrimary
+                                    )
+                                    
+                                    showAddImageDialog = false
+                                },
+                                onImageRemoved = {
+                                    // Handle image removal if needed
+                                },
+                                onError = { error ->
+                                    // Handle upload error
+                                    // You might want to show a snackbar or error message
+                                }
+                            )
+                        }
                     },
                     confirmButton = {},
                     dismissButton = {
                         TextButton(onClick = { showAddImageDialog = false }) {
-                            Text("Hủy")
+                            Text("Đóng")
                         }
                     }
                 )
             }
             
-            // Image viewer dialog
-            selectedViewImage?.let { image ->
-                ImageViewerDialog(
-                    image = image,
-                    onDismiss = { selectedViewImage = null }
-                )
-            }
+        // Image viewer dialog
+        selectedViewImage?.let { image ->
+            ImageViewerDialog(
+                image = image,
+                onDismiss = { selectedViewImage = null }
+            )
         }
     }
 }
@@ -428,7 +538,7 @@ fun ImageViewerDialog(
                 if (image.isPrimary) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = 20.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Star,
@@ -447,28 +557,9 @@ fun ImageViewerDialog(
                 }
                 
                 Text(
-                    text = "Kích thước: ${image.width} x ${image.height}",
+                    text = "Kích thước: ${image.width ?: "N/A"} x ${image.height ?: "N/A"}",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium
-                )
-            }
-            
-            // Close button
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .size(48.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                        shape = RoundedCornerShape(24.dp)
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Đóng",
-                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
