@@ -181,6 +181,12 @@ data class EventImage(
 
     @Column(name = "is_primary", nullable = false)
     var isPrimary: Boolean = false,
+    
+    @Column(name = "width")
+    var width: Int? = null,
+    
+    @Column(name = "height")
+    var height: Int? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)

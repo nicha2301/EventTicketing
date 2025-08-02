@@ -409,7 +409,64 @@ class EventServiceImpl(
             url = finalUrl,
             eventId = id,
             isPrimary = savedImage.isPrimary,
-            createdAt = savedImage.createdAt
+            createdAt = savedImage.createdAt,
+            width = savedImage.width,
+            height = savedImage.height
+        )
+    }
+
+    @Transactional
+    @CacheEvict(value = ["eventDetails"], key = "#id")
+    override fun saveCloudinaryImage(
+        id: UUID, 
+        publicId: String, 
+        secureUrl: String, 
+        width: Int, 
+        height: Int, 
+        isPrimary: Boolean
+    ): ImageDto {
+        val event = findEventAndCheckPermission(id, null)
+        
+        val baseUrl = secureUrl.substringBeforeLast("/") + "/"
+        val fileName = secureUrl.substringAfterLast("/")
+        val thumbnailUrl = "${baseUrl}c_thumb,w_300,h_300/${fileName}"
+        val mediumUrl = "${baseUrl}c_scale,w_800/${fileName}"
+        
+        val eventImage = EventImage(
+            event = event,
+            url = secureUrl,
+            cloudinaryPublicId = publicId,
+            cloudinaryUrl = secureUrl,
+            thumbnailUrl = thumbnailUrl,
+            mediumUrl = mediumUrl,
+            storageProvider = StorageProvider.CLOUDINARY,
+            isPrimary = isPrimary,
+            width = width,
+            height = height
+        )
+        
+        if (isPrimary) {
+            event.images.forEach { it.isPrimary = false }
+        }
+        
+        event.addImage(eventImage)
+        
+        val savedEvent = eventRepository.save(event)
+        
+        val savedImage = savedEvent.images.find { 
+            it.cloudinaryPublicId == publicId
+        } ?: throw RuntimeException("Không thể lưu thông tin ảnh Cloudinary")
+        
+        val finalUrl = cloudinaryStorageService.getImageUrl(savedImage)
+        
+        return ImageDto(
+            id = savedImage.id,
+            url = finalUrl,
+            eventId = id,
+            isPrimary = savedImage.isPrimary,
+            createdAt = savedImage.createdAt,
+            width = savedImage.width,
+            height = savedImage.height
         )
     }
 
@@ -418,15 +475,12 @@ class EventServiceImpl(
     override fun deleteEventImage(id: UUID, imageId: UUID): Boolean {
         val event = findEventAndCheckPermission(id, null)
         
-        // Find image to delete
         val imageToDelete = event.images.find { it.id == imageId }
             ?: throw ResourceNotFoundException("Không tìm thấy ảnh với ID $imageId cho sự kiện $id")
         
-        // Delete file from Cloudinary storage
         val deleteSuccess = cloudinaryStorageService.deleteImage(imageToDelete)
         
         if (deleteSuccess) {
-            // Remove image from event's image list
             event.images.removeIf { it.id == imageId }
             
             eventRepository.save(event)
@@ -504,8 +558,6 @@ class EventServiceImpl(
     }
     
     private fun hasTicketsSold(event: Event): Boolean {
-        // Kiểm tra xem sự kiện đã có vé nào được bán chưa
-        // Giả sử có một repository method để kiểm tra
         return false // Placeholder
     }
     

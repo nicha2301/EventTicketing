@@ -72,6 +72,18 @@ interface EventService {
     fun uploadEventImage(id: UUID, image: MultipartFile, isPrimary: Boolean): ImageDto
 
     /**
+     * Lưu thông tin ảnh Cloudinary vào database
+     */
+    fun saveCloudinaryImage(
+        id: UUID, 
+        publicId: String, 
+        secureUrl: String, 
+        width: Int, 
+        height: Int, 
+        isPrimary: Boolean
+    ): ImageDto
+
+    /**
      * Xóa hình ảnh sự kiện
      */
     fun deleteEventImage(id: UUID, imageId: UUID): Boolean

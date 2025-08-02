@@ -163,6 +163,8 @@ data class ImageDto(
     val url: String,
     val eventId: UUID? = null,
     val isPrimary: Boolean = false,
+    val width: Int? = null,
+    val height: Int? = null,
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     val createdAt: LocalDateTime? = null

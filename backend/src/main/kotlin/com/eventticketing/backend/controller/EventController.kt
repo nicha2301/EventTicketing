@@ -187,6 +187,29 @@ class EventController(
         )
     }
 
+    @PostMapping("/{id}/images/cloudinary")
+    @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
+    fun saveCloudinaryImage(
+        @PathVariable id: UUID,
+        @RequestBody cloudinaryInfo: CloudinaryImageRequest
+    ): ResponseEntity<ApiResponse<ImageDto>> {
+        val savedImage = eventService.saveCloudinaryImage(
+            id, 
+            cloudinaryInfo.publicId,
+            cloudinaryInfo.secureUrl,
+            cloudinaryInfo.width,
+            cloudinaryInfo.height,
+            cloudinaryInfo.isPrimary
+        )
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            ApiResponse.success(
+                "Đã lưu thông tin ảnh Cloudinary thành công",
+                savedImage
+            )
+        )
+    }
+
     @DeleteMapping("/{id}/images/{imageId}")
     @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
     fun deleteEventImage(
