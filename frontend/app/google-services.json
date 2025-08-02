@@ -1,48 +1,57 @@
 {
-    "project_info": {
-      "project_number": "164894130694",
-      "project_id": "eventticket-cba48",
-      "storage_bucket": "eventticket-cba48.firebasestorage.app"
-    },
-    "client": [
-      {
-        "client_info": {
-          "mobilesdk_app_id": "1:164894130694:android:37a05fddb187f1fbadb987",
-          "android_client_info": {
-            "package_name": "com.eventticketing.backend"
-          }
-        },
-        "oauth_client": [],
-        "api_key": [
-          {
-            "current_key": "AIzaSyBo8C4HrsL2b_YNznlW1YrOE1eAO2Ikcw0"
-          }
-        ],
-        "services": {
-          "appinvite_service": {
-            "other_platform_oauth_client": []
-          }
+  "project_info": {
+    "project_number": "164894130694",
+    "project_id": "eventticket-cba48",
+    "storage_bucket": "eventticket-cba48.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:164894130694:android:37a05fddb187f1fbadb987",
+        "android_client_info": {
+          "package_name": "com.eventticketing.backend"
         }
       },
-      {
-        "client_info": {
-          "mobilesdk_app_id": "1:164894130694:android:3b0128d42edca12aadb987",
-          "android_client_info": {
-            "package_name": "com.nicha.eventticketing"
-          }
-        },
-        "oauth_client": [],
-        "api_key": [
-          {
-            "current_key": "AIzaSyBo8C4HrsL2b_YNznlW1YrOE1eAO2Ikcw0"
-          }
-        ],
-        "services": {
-          "appinvite_service": {
-            "other_platform_oauth_client": []
-          }
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBo8C4HrsL2b_YNznlW1YrOE1eAO2Ikcw0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
         }
       }
-    ],
-    "configuration_version": "1"
-  }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:164894130694:android:3b0128d42edca12aadb987",
+        "android_client_info": {
+          "package_name": "com.nicha.eventticketing"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nicha.eventticketing",
+            "certificate_hash": ""
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBo8C4HrsL2b_YNznlW1YrOE1eAO2Ikcw0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

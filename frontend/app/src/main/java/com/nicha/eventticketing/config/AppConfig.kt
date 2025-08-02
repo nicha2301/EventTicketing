@@ -130,15 +130,44 @@ object AppConfig {
     
     // Permission configuration
     object Permission {
-        // Permission constants
         const val CAMERA_PERMISSION = Manifest.permission.CAMERA
         const val STORAGE_READ_PERMISSION = Manifest.permission.READ_EXTERNAL_STORAGE
         const val MEDIA_IMAGES_PERMISSION = Manifest.permission.READ_MEDIA_IMAGES
         const val NOTIFICATION_PERMISSION = Manifest.permission.POST_NOTIFICATIONS
         
-        // Permission request codes
         const val REQUEST_CAMERA_PERMISSION = 100
         const val REQUEST_STORAGE_PERMISSION = 101
         const val REQUEST_NOTIFICATION_PERMISSION = 102
+    }
+    
+    // Cloudinary Configuration
+    object CloudinaryConfig {
+        const val CLOUD_NAME = ""
+        const val API_KEY = ""
+        const val API_SECRET = ""
+        const val UPLOAD_PRESET = "event_ticketing_preset"
+        const val FOLDER_PREFIX = "event-ticketing-app"
+        
+        const val THUMBNAIL_TRANSFORM = "w_300,h_300,c_thumb,g_face,q_auto,f_auto"
+        const val MEDIUM_TRANSFORM = "w_800,h_600,c_fill,q_auto,f_auto"
+        const val LARGE_TRANSFORM = "w_1920,h_1080,c_limit,q_auto,f_auto"
+        const val OPTIMIZED_TRANSFORM = "q_auto,f_auto"
+        
+        fun generateImageUrl(publicId: String, transformation: String = OPTIMIZED_TRANSFORM): String {
+            return "https://res.cloudinary.com/$CLOUD_NAME/image/upload/$transformation/$publicId"
+        }
+        
+        fun generateThumbnailUrl(publicId: String): String {
+            return generateImageUrl(publicId, THUMBNAIL_TRANSFORM)
+        }
+        
+        fun generateMediumUrl(publicId: String): String {
+            return generateImageUrl(publicId, MEDIUM_TRANSFORM)
+        }
+        
+        fun generateResponsiveUrl(publicId: String, width: Int, height: Int): String {
+            val responsiveTransform = "w_$width,h_$height,c_fill,q_auto,f_auto"
+            return generateImageUrl(publicId, responsiveTransform)
+        }
     }
 }

@@ -7,11 +7,11 @@ spring:
     password: 123
     driver-class-name: org.postgresql.Driver
     hikari:
-      connection-timeout: 20000 # 20 seconds
+      connection-timeout: 20000
       minimum-idle: 5
       maximum-pool-size: 20
-      idle-timeout: 300000 # 5 minutes
-      max-lifetime: 1200000 # 20 minutes
+      idle-timeout: 300000
+      max-lifetime: 1200000
       auto-commit: true
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -55,18 +55,6 @@ spring:
       pool:
         size: 5
       thread-name-prefix: event-ticketing-scheduler-
-  cache:
-    type: none # Đổi từ redis sang none
-#    redis:
-#      time-to-live: 3600000 # 1 hour in milliseconds
-#      cache-null-values: false
-#  data:
-#    redis:
-#      host: localhost
-#      port: 6379
-#      password: # Để trống nếu không có mật khẩu
-#      timeout: 2000 # ms
-#      database: 0 # Sử dụng database số 0
   main:
     allow-bean-definition-overriding: true
 
@@ -90,16 +78,22 @@ server:
 app:
   jwt:
     secret: 5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437
-    expiration: 86400 # 24 hours in seconds
-    refresh-expiration: 604800 # 7 days in seconds
+    expiration: 86400
+    refresh-expiration: 604800
   url: http://localhost:8080
   upload:
     dir: ${user.home}/event-ticketing/uploads
     url-prefix: /uploads/
+  cloudinary:
+    cloud-name: 
+    api-key: 
+    api-secret: 
+    secure: true
+    folder-prefix: event-ticketing-dev
   cors:
     allowed-origins: http://localhost:3000, https://eventticketing.com
   notification:
-    retention-days: 90 # Số ngày giữ thông báo trước khi xóa
+    retention-days: 90
     email:
       enabled: true
       from-email: noreply@eventticketing.com
