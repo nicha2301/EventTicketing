@@ -41,7 +41,6 @@ yCharts = "2.1.0"
 composeMaterialDialogsDatetime = "0.9.0"
 kotlinxDatetime = "0.4.1"
 openCsv = "5.7.1"
-cloudinary = "2.8.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -150,10 +149,6 @@ kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime",
 
 # Export functionality
 opencsv = { group = "com.opencsv", name = "opencsv", version.ref = "openCsv" }
-
-# Cloudinary for cloud image storage
-cloudinary-android = { group = "com.cloudinary", name = "cloudinary-android", version.ref = "cloudinary" }
-cloudinary-android-preprocess = { group = "com.cloudinary", name = "cloudinary-android-preprocess", version.ref = "cloudinary" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

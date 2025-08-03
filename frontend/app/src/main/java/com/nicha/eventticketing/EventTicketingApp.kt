@@ -6,7 +6,6 @@ import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 import com.nicha.eventticketing.config.AppConfig
-import com.nicha.eventticketing.util.CloudinaryService
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -45,9 +44,6 @@ class EventTicketingApp : Application() {
         // Khởi tạo Firebase
         initializeFirebase()
         
-        // Khởi tạo Cloudinary
-        initializeCloudinary()
-        
         // Bắt các exception không bị xử lý
         setupUncaughtExceptionHandler()
     }
@@ -80,18 +76,6 @@ class EventTicketingApp : Application() {
                 }
         } catch (e: Exception) {
             Timber.e(e, "Lỗi khi khởi tạo Firebase")
-        }
-    }
-    
-    /**
-     * Khởi tạo Cloudinary Service
-     */
-    private fun initializeCloudinary() {
-        try {
-            CloudinaryService.getInstance().initialize(this)
-            Timber.d("Cloudinary đã được khởi tạo thành công")
-        } catch (e: Exception) {
-            Timber.e(e, "Lỗi khi khởi tạo Cloudinary")
         }
     }
     

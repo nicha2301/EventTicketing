@@ -29,11 +29,11 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.nicha.eventticketing.data.remote.dto.event.EventImageDto
 import com.nicha.eventticketing.domain.model.ResourceState
-import com.nicha.eventticketing.ui.components.CloudinaryImageUploader
+import com.nicha.eventticketing.ui.components.AdvancedImageUploader
+import com.nicha.eventticketing.ui.components.UploadState
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.util.ImagePickerUtil
 import com.nicha.eventticketing.util.ImageUtils.getFullUrl
-import com.nicha.eventticketing.util.CloudinaryResult
 import com.nicha.eventticketing.viewmodel.EventImageViewModel
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
@@ -56,13 +56,14 @@ fun EventImagesScreen(
     val eventImagesState by viewModel.eventImagesState.collectAsState()
     val uploadImageState by viewModel.uploadImageState.collectAsState()
     val deleteImageState by viewModel.deleteImageState.collectAsState()
-    val uploadProgress by viewModel.uploadProgress.collectAsState()
+    val uploadState by viewModel.uploadState.collectAsState()
     
     val context = LocalContext.current
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf<EventImageDto?>(null) }
     var showAddImageDialog by remember { mutableStateOf(false) }
     var selectedViewImage by remember { mutableStateOf<EventImageDto?>(null) }
+    var selectedImageFile by remember { mutableStateOf<File?>(null) }
     
     // Fetch images when the screen is first displayed
     LaunchedEffect(Unit) {
@@ -71,29 +72,15 @@ fun EventImagesScreen(
     
     // Handle state changes
     LaunchedEffect(uploadImageState) {
-        if (uploadImageState is ResourceState.Success) {
+        if (uploadImageState is ResourceState.Success<*>) {
             viewModel.resetUploadImageState()
             viewModel.getEventImages(eventId)
         }
     }
     
     LaunchedEffect(deleteImageState) {
-        if (deleteImageState is ResourceState.Success) {
+        if (deleteImageState is ResourceState.Success<*>) {
             viewModel.resetDeleteImageState()
-            viewModel.getEventImages(eventId)
-        }
-    }
-    
-    // Handle selected image URI for upload
-    LaunchedEffect(selectedImageUri) {
-        selectedImageUri?.let { uri ->
-            ImagePickerUtil.uriToFile(context, uri)?.let { file ->
-                val isPrimary = eventImagesState !is ResourceState.Success || 
-                                (eventImagesState as? ResourceState.Success<List<EventImageDto>>)?.data?.isEmpty() == true
-                
-                viewModel.uploadEventImage(eventId, file, isPrimary)
-                selectedImageUri = null
-            }
         }
     }
     
@@ -176,11 +163,10 @@ fun EventImagesScreen(
                     }
                 }
             }
-            is ResourceState.Success -> {
+            is ResourceState.Success<*> -> {
                 val images = (eventImagesState as ResourceState.Success<List<EventImageDto>>).data
                 
                 if (images.isEmpty()) {
-                    // Căn giữa hoàn hảo trong toàn bộ màn hình
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -244,7 +230,6 @@ fun EventImagesScreen(
                         }
                     }
                 } else {
-                    // Box cho trường hợp có ảnh - giữ lại padding cho grid
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -281,8 +266,7 @@ fun EventImagesScreen(
                             }
                         }
                         
-                        // Upload progress overlay cũng cần được đặt đúng vị trí
-                        if (uploadImageState is ResourceState.Loading && uploadProgress > 0f) {
+                        if (uploadImageState is ResourceState.Loading && uploadState.progress > 0f) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -308,7 +292,7 @@ fun EventImagesScreen(
                                         Spacer(modifier = Modifier.height(24.dp))
                                         
                                         LinearProgressIndicator(
-                                            progress = { uploadProgress },
+                                            progress = { uploadState.progress },
                                             modifier = Modifier.fillMaxWidth(),
                                             color = MaterialTheme.colorScheme.primary,
                                             trackColor = MaterialTheme.colorScheme.surfaceVariant
@@ -317,7 +301,7 @@ fun EventImagesScreen(
                                         Spacer(modifier = Modifier.height(16.dp))
                                         
                                         Text(
-                                            text = "${(uploadProgress * 100).toInt()}%",
+                                            text = "${(uploadState.progress * 100).toInt()}%",
                                             style = MaterialTheme.typography.bodyLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
@@ -344,8 +328,7 @@ fun EventImagesScreen(
             }
         }
         
-        // Các overlay khác được đặt ngoài để che toàn bộ màn hình
-        if (uploadImageState is ResourceState.Loading && uploadProgress > 0f && 
+        if (uploadImageState is ResourceState.Loading && uploadState.progress > 0f && 
             (eventImagesState as? ResourceState.Success<List<EventImageDto>>)?.data?.isNotEmpty() == false) {
             Box(
                 modifier = Modifier
@@ -372,7 +355,7 @@ fun EventImagesScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                         
                         LinearProgressIndicator(
-                            progress = { uploadProgress },
+                            progress = { uploadState.progress },
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.primary,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant
@@ -381,7 +364,7 @@ fun EventImagesScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         
                         Text(
-                            text = "${(uploadProgress * 100).toInt()}%",
+                            text = "${(uploadState.progress * 100).toInt()}%",
                             style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -391,7 +374,6 @@ fun EventImagesScreen(
                 }
             }
             
-            // Delete confirmation dialog
             showDeleteConfirmDialog?.let { imageToDelete ->
                 AlertDialog(
                     onDismissRequest = { showDeleteConfirmDialog = null },
@@ -422,10 +404,12 @@ fun EventImagesScreen(
                 )
             }
             
-            // Add image dialog with Cloudinary
             if (showAddImageDialog) {
                 AlertDialog(
-                    onDismissRequest = { showAddImageDialog = false },
+                    onDismissRequest = { 
+                        showAddImageDialog = false
+                        viewModel.resetUploadState()
+                    },
                     title = { 
                         Text(
                             text = "Thêm hình ảnh sự kiện",
@@ -434,54 +418,49 @@ fun EventImagesScreen(
                         ) 
                     },
                     text = { 
-                        Column(
+                        AdvancedImageUploader(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Text(
-                                text = "Chọn ảnh để tải lên Cloudinary (tự động tối ưu hóa)",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            
-                            CloudinaryImageUploader(
-                                onImageUploaded = { cloudinaryResult ->
-                                    // Determine if this should be primary image
-                                    val isPrimary = eventImagesState !is ResourceState.Success || 
-                                                    (eventImagesState as? ResourceState.Success<List<EventImageDto>>)?.data?.isEmpty() == true
-                                    
-                                    // After Cloudinary upload, call backend to save image info
-                                    viewModel.saveCloudinaryImageToDatabase(
-                                        eventId = eventId,
-                                        cloudinaryUrl = cloudinaryResult.secureUrl,
-                                        publicId = cloudinaryResult.publicId,
-                                        width = cloudinaryResult.width,
-                                        height = cloudinaryResult.height,
-                                        isPrimary = isPrimary
-                                    )
-                                    
+                            uploadState = uploadState,
+                            onImageSelected = { file, isPrimary ->
+                                selectedImageFile = file
+                                val shouldBePrimary = eventImagesState !is ResourceState.Success<*> || 
+                                                (eventImagesState as? ResourceState.Success<List<EventImageDto>>)?.data?.isEmpty() == true
+                                viewModel.uploadEventImage(eventId, file, shouldBePrimary)
+                            },
+                            onImageRemoved = {
+                                selectedImageFile = null
+                                viewModel.resetUploadState()
+                            },
+                            onError = { error ->
+                                // Handle error
+                            }
+                        )
+                    },
+                    confirmButton = {
+                        if (uploadState.isCompleted) {
+                            Button(
+                                onClick = { 
                                     showAddImageDialog = false
-                                },
-                                onImageRemoved = {
-                                    // Handle image removal if needed
-                                },
-                                onError = { error ->
-                                    // Handle upload error
-                                    // You might want to show a snackbar or error message
+                                    viewModel.resetUploadState()
                                 }
-                            )
+                            ) {
+                                Text("Hoàn tất")
+                            }
                         }
                     },
-                    confirmButton = {},
                     dismissButton = {
-                        TextButton(onClick = { showAddImageDialog = false }) {
-                            Text("Đóng")
+                        if (!uploadState.isUploading && !uploadState.isCompleted) {
+                            TextButton(onClick = { 
+                                showAddImageDialog = false
+                                viewModel.resetUploadState()
+                            }) {
+                                Text("Đóng")
+                            }
                         }
                     }
                 )
             }
             
-        // Image viewer dialog
         selectedViewImage?.let { image ->
             ImageViewerDialog(
                 image = image,

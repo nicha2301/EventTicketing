@@ -6,6 +6,7 @@ import com.nicha.eventticketing.data.remote.dto.event.EventImageDto
 import com.nicha.eventticketing.domain.model.Resource
 import com.nicha.eventticketing.domain.model.ResourceState
 import com.nicha.eventticketing.domain.repository.EventImageRepository
+import com.nicha.eventticketing.ui.components.UploadState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,27 +23,31 @@ import javax.inject.Inject
 class EventImageViewModel @Inject constructor(
     private val eventImageRepository: EventImageRepository
 ) : ViewModel() {
-    
-    // State cho danh sách hình ảnh sự kiện
+
+    // State cho danh sách hình ảnh
     private val _eventImagesState = MutableStateFlow<ResourceState<List<EventImageDto>>>(ResourceState.Initial)
     val eventImagesState: StateFlow<ResourceState<List<EventImageDto>>> = _eventImagesState.asStateFlow()
-    
-    // State cho việc tải lên hình ảnh
+
+    // State cho upload hình ảnh
     private val _uploadImageState = MutableStateFlow<ResourceState<EventImageDto>>(ResourceState.Initial)
     val uploadImageState: StateFlow<ResourceState<EventImageDto>> = _uploadImageState.asStateFlow()
-    
-    // State cho việc xóa hình ảnh
-    private val _deleteImageState = MutableStateFlow<ResourceState<Boolean>>(ResourceState.Initial)
-    val deleteImageState: StateFlow<ResourceState<Boolean>> = _deleteImageState.asStateFlow()
-    
-    // State cho việc đặt ảnh làm ảnh chính
+
+    // State cho xóa hình ảnh
+    private val _deleteImageState = MutableStateFlow<ResourceState<String>>(ResourceState.Initial)
+    val deleteImageState: StateFlow<ResourceState<String>> = _deleteImageState.asStateFlow()
+
+    // State cho set primary image
     private val _setPrimaryImageState = MutableStateFlow<ResourceState<EventImageDto>>(ResourceState.Initial)
     val setPrimaryImageState: StateFlow<ResourceState<EventImageDto>> = _setPrimaryImageState.asStateFlow()
-    
-    // State cho tỷ lệ tải lên
-    private val _uploadProgress = MutableStateFlow(0f)
-    val uploadProgress: StateFlow<Float> = _uploadProgress.asStateFlow()
-    
+
+    // State cho danh sách images (để update UI)
+    private val _images = MutableStateFlow<ResourceState<List<EventImageDto>>>(ResourceState.Initial)
+    val images: StateFlow<ResourceState<List<EventImageDto>>> = _images.asStateFlow()
+
+    // Upload state cho progress tracking và animations
+    private val _uploadState = MutableStateFlow(UploadState())
+    val uploadState: StateFlow<UploadState> = _uploadState.asStateFlow()
+
     /**
      * Lấy danh sách hình ảnh của sự kiện
      */
@@ -53,18 +58,12 @@ class EventImageViewModel @Inject constructor(
             eventImageRepository.getEventImages(eventId).collect { result ->
                 when (result) {
                     is Resource.Success -> {
-                        val images = result.data
-                        if (images != null) {
-                            _eventImagesState.value = ResourceState.Success(images)
-                            Timber.d("Lấy danh sách hình ảnh thành công: ${images.size} hình ảnh")
-                        } else {
-                            Timber.e("Không tìm thấy hình ảnh")
-                            _eventImagesState.value = ResourceState.Error("Không tìm thấy hình ảnh")
-                        }
+                        val data = result.data ?: emptyList()
+                        _eventImagesState.value = ResourceState.Success(data)
+                        _images.value = ResourceState.Success(data)
                     }
                     is Resource.Error -> {
-                        Timber.e("Lấy danh sách hình ảnh thất bại: ${result.message}")
-                        _eventImagesState.value = ResourceState.Error(result.message ?: "Không thể lấy danh sách hình ảnh")
+                        _eventImagesState.value = ResourceState.Error(result.message ?: "Lỗi khi tải danh sách hình ảnh")
                     }
                     is Resource.Loading -> {
                         _eventImagesState.value = ResourceState.Loading
@@ -73,168 +72,139 @@ class EventImageViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Tải lên hình ảnh cho sự kiện
      */
     fun uploadEventImage(eventId: String, imageFile: File, isPrimary: Boolean = false) {
         _uploadImageState.value = ResourceState.Loading
-        _uploadProgress.value = 0f
+        
+        _uploadState.value = UploadState(
+            isUploading = true,
+            progress = 0f,
+            fileName = imageFile.name
+        )
         
         viewModelScope.launch {
-            // Tạo multipart request
-            val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
-            val imagePart = MultipartBody.Part.createFormData("image", imageFile.name, requestFile)
-            
-            eventImageRepository.uploadEventImage(eventId, imagePart, isPrimary).collect { result ->
+            try {
+                for (i in 1..10) {
+                    kotlinx.coroutines.delay(100)
+                    val progress = i / 10f * 0.8f 
+                    _uploadState.value = UploadState(
+                        isUploading = true,
+                        progress = progress,
+                        fileName = imageFile.name
+                    )
+                }
+                
+                // Tạo multipart request
+                val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
+                val imagePart = MultipartBody.Part.createFormData("image", imageFile.name, requestFile)
+                
+                eventImageRepository.uploadEventImage(eventId, imagePart, isPrimary).collect { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            val uploadedImage = result.data
+                            if (uploadedImage != null) {
+                                _uploadImageState.value = ResourceState.Success(uploadedImage)
+                                
+                                _uploadState.value = UploadState(
+                                    isUploading = false,
+                                    progress = 1f,
+                                    isCompleted = true,
+                                    fileName = imageFile.name
+                                )
+                                
+                                kotlinx.coroutines.delay(2000)
+                                _uploadState.value = UploadState()
+                                
+                                val currentImages = _images.value
+                                if (currentImages is ResourceState.Success) {
+                                    val updatedImages = currentImages.data.toMutableList()
+                                    updatedImages.add(uploadedImage)
+                                    _images.value = ResourceState.Success(updatedImages)
+                                }
+                            } else {
+                                _uploadImageState.value = ResourceState.Error("Không thể tải lên hình ảnh")
+                                _uploadState.value = UploadState(error = "Không thể tải lên hình ảnh")
+                            }
+                        }
+                        is Resource.Error -> {
+                            _uploadImageState.value = ResourceState.Error(result.message ?: "Không thể tải lên hình ảnh")
+                            _uploadState.value = UploadState(error = result.message ?: "Không thể tải lên hình ảnh")
+                        }
+                        is Resource.Loading -> {
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _uploadImageState.value = ResourceState.Error("Lỗi khi tải lên: ${e.message}")
+                _uploadState.value = UploadState(error = "Lỗi khi tải lên: ${e.message}")
+            }
+        }
+    }
+
+    fun retryUpload(eventId: String, imageFile: File, isPrimary: Boolean = false) {
+        resetUploadState()
+        uploadEventImage(eventId, imageFile, isPrimary)
+    }
+
+    fun resetUploadState() {
+        _uploadState.value = UploadState()
+        _uploadImageState.value = ResourceState.Initial
+    }
+
+    fun deleteEventImage(eventId: String, imageId: String) {
+        _deleteImageState.value = ResourceState.Loading
+        
+        viewModelScope.launch {
+            eventImageRepository.deleteEventImage(imageId).collect { result ->
                 when (result) {
                     is Resource.Success -> {
-                        val uploadedImage = result.data
-                        if (uploadedImage != null) {
-                            _uploadImageState.value = ResourceState.Success(uploadedImage)
-                            _uploadProgress.value = 1f
-                            Timber.d("Tải lên hình ảnh thành công: ${uploadedImage.id}")
-                        } else {
-                            Timber.e("Không thể tải lên hình ảnh")
-                            _uploadImageState.value = ResourceState.Error("Không thể tải lên hình ảnh")
+                        _deleteImageState.value = ResourceState.Success("Đã xóa hình ảnh thành công")
+                        
+                        // Update images list
+                        val currentImages = _images.value
+                        if (currentImages is ResourceState.Success) {
+                            val updatedImages = currentImages.data.filter { it.id != imageId }
+                            _images.value = ResourceState.Success(updatedImages)
                         }
                     }
                     is Resource.Error -> {
-                        Timber.e("Tải lên hình ảnh thất bại: ${result.message}")
-                        _uploadImageState.value = ResourceState.Error(result.message ?: "Không thể tải lên hình ảnh")
+                        _deleteImageState.value = ResourceState.Error(result.message ?: "Không thể xóa hình ảnh")
                     }
                     is Resource.Loading -> {
-                        _uploadImageState.value = ResourceState.Loading
+                        _deleteImageState.value = ResourceState.Loading
                     }
                 }
             }
         }
     }
 
-    fun saveCloudinaryImageToDatabase(
-        eventId: String, 
-        cloudinaryUrl: String, 
-        publicId: String, 
-        width: Int, 
-        height: Int, 
-        isPrimary: Boolean = false
-    ) {
-        _uploadImageState.value = ResourceState.Loading
-        _uploadProgress.value = 0.8f 
-        
-        viewModelScope.launch {
-            try {
-                (eventImageRepository as? com.nicha.eventticketing.data.repository.EventImageRepositoryImpl)
-                    ?.saveCloudinaryImage(eventId, cloudinaryUrl, publicId, width, height, isPrimary)
-                    ?.collect { result ->
-                        when (result) {
-                            is Resource.Success -> {
-                                val savedImage = result.data
-                                if (savedImage != null) {
-                                    _uploadImageState.value = ResourceState.Success(savedImage)
-                                    _uploadProgress.value = 1f
-                                    Timber.d("Lưu thông tin Cloudinary thành công: ${savedImage.id}")
-                                } else {
-                                    Timber.e("Không thể lưu thông tin Cloudinary")
-                                    _uploadImageState.value = ResourceState.Error("Không thể lưu thông tin Cloudinary")
-                                }
-                            }
-                            is Resource.Error -> {
-                                Timber.e("Lưu thông tin Cloudinary thất bại: ${result.message}")
-                                _uploadImageState.value = ResourceState.Error(result.message ?: "Không thể lưu thông tin Cloudinary")
-                            }
-                            is Resource.Loading -> {
-                                _uploadImageState.value = ResourceState.Loading
-                            }
-                        }
-                    }
-            } catch (e: Exception) {
-                Timber.e(e, "Lỗi khi lưu thông tin Cloudinary")
-                _uploadImageState.value = ResourceState.Error("Lỗi khi xử lý thông tin Cloudinary: ${e.message}")
-            }
-        }
-    }
-    
-    /**
-     * Xóa hình ảnh sự kiện
-     */
-    fun deleteEventImage(eventId: String, imageId: String) {
-        _deleteImageState.value = ResourceState.Loading
-        
-        viewModelScope.launch {
-            // Sử dụng hàm phụ trợ từ EventImageRepositoryImpl vì interface chỉ nhận imageId
-            (eventImageRepository as? com.nicha.eventticketing.data.repository.EventImageRepositoryImpl)
-                ?.deleteEventImageWithEventId(eventId, imageId)
-                ?.collect { result ->
-                    when (result) {
-                        is Resource.Success -> {
-                            val success = result.data
-                            if (success == true) {
-                                _deleteImageState.value = ResourceState.Success(true)
-                                Timber.d("Xóa hình ảnh thành công")
-                                
-                                // Cập nhật lại danh sách hình ảnh
-                                getEventImages(eventId)
-                            } else {
-                                Timber.e("Không thể xóa hình ảnh")
-                                _deleteImageState.value = ResourceState.Error("Không thể xóa hình ảnh")
-                            }
-                        }
-                        is Resource.Error -> {
-                            Timber.e("Xóa hình ảnh thất bại: ${result.message}")
-                            _deleteImageState.value = ResourceState.Error(result.message ?: "Không thể xóa hình ảnh")
-                        }
-                        is Resource.Loading -> {
-                            _deleteImageState.value = ResourceState.Loading
-                        }
-                    }
-                }
-        }
-    }
-    
     /**
      * Đặt hình ảnh làm ảnh chính
      */
-    fun setAsPrimaryImage(eventId: String, imageId: String) {
+    fun setImageAsPrimary(eventId: String, imageId: String) {
         _setPrimaryImageState.value = ResourceState.Loading
         
         viewModelScope.launch {
-            // Sử dụng hàm phụ trợ từ EventImageRepositoryImpl vì interface chỉ nhận imageId
-            (eventImageRepository as? com.nicha.eventticketing.data.repository.EventImageRepositoryImpl)
-                ?.setFeaturedImageWithEventId(eventId, imageId)
-                ?.collect { result ->
-                    when (result) {
-                        is Resource.Success -> {
-                            val updatedImage = result.data
-                            if (updatedImage != null) {
-                                _setPrimaryImageState.value = ResourceState.Success(updatedImage)
-                                Timber.d("Đặt hình ảnh làm ảnh chính thành công: ${updatedImage.id}")
-                                
-                                // Cập nhật lại danh sách hình ảnh
-                                getEventImages(eventId)
-                            } else {
-                                Timber.e("Không thể đặt hình ảnh làm ảnh chính")
-                                _setPrimaryImageState.value = ResourceState.Error("Không thể đặt hình ảnh làm ảnh chính")
-                            }
-                        }
-                        is Resource.Error -> {
-                            Timber.e("Đặt hình ảnh làm ảnh chính thất bại: ${result.message}")
-                            _setPrimaryImageState.value = ResourceState.Error(result.message ?: "Không thể đặt hình ảnh làm ảnh chính")
-                        }
-                        is Resource.Loading -> {
-                            _setPrimaryImageState.value = ResourceState.Loading
-                        }
+            val currentImages = _images.value
+            if (currentImages is ResourceState.Success) {
+                val updatedImages = currentImages.data.map { image ->
+                    if (image.id == imageId) {
+                        image.copy(isPrimary = true)
+                    } else {
+                        image.copy(isPrimary = false)
                     }
                 }
+                _images.value = ResourceState.Success(updatedImages)
+                _setPrimaryImageState.value = ResourceState.Success(updatedImages.find { it.id == imageId }!!)
+            } 
         }
     }
-    
-    /**
-     * Reset states
-     */
+
     fun resetUploadImageState() {
         _uploadImageState.value = ResourceState.Initial
-        _uploadProgress.value = 0f
     }
     
     fun resetDeleteImageState() {
@@ -244,4 +214,4 @@ class EventImageViewModel @Inject constructor(
     fun resetSetPrimaryImageState() {
         _setPrimaryImageState.value = ResourceState.Initial
     }
-} 
+}

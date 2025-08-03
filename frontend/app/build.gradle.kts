@@ -103,10 +103,6 @@ dependencies {
     // Coil for image loading
     implementation(libs.coil.compose)
     
-    // Cloudinary
-    implementation(libs.cloudinary.android)
-    implementation(libs.cloudinary.android.preprocess)
-    
     // Lottie for animations
     implementation(libs.lottie.compose)
     
