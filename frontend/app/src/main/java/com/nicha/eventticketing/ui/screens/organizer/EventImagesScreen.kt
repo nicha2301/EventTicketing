@@ -29,7 +29,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.nicha.eventticketing.data.remote.dto.event.EventImageDto
 import com.nicha.eventticketing.domain.model.ResourceState
-import com.nicha.eventticketing.ui.components.AdvancedImageUploader
+import com.nicha.eventticketing.ui.components.ImageUploader
 import com.nicha.eventticketing.ui.components.UploadState
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.util.ImagePickerUtil
@@ -418,7 +418,7 @@ fun EventImagesScreen(
                         ) 
                     },
                     text = { 
-                        AdvancedImageUploader(
+                        ImageUploader(
                             modifier = Modifier.fillMaxWidth(),
                             uploadState = uploadState,
                             onImageSelected = { file, isPrimary ->
