@@ -92,6 +92,95 @@ class EventServiceImpl(
     }
 
     @Transactional
+    override fun createEventWithImages(eventCreateDto: EventCreateWithImagesDto, organizerId: UUID): EventDto {
+        val organizer = userRepository.findById(organizerId)
+            .orElseThrow { ResourceNotFoundException("Không tìm thấy người tổ chức với ID $organizerId") }
+
+        if (!securityUtils.isCurrentUserOrAdmin(organizerId) && organizer.role != UserRole.ORGANIZER) {
+            throw UnauthorizedException("Bạn không có quyền tạo sự kiện")
+        }
+
+        val category = categoryRepository.findById(eventCreateDto.categoryId)
+            .orElseThrow { ResourceNotFoundException("Không tìm thấy danh mục với ID ${eventCreateDto.categoryId}") }
+
+        val location = locationRepository.findById(eventCreateDto.locationId)
+            .orElseThrow { ResourceNotFoundException("Không tìm thấy địa điểm với ID ${eventCreateDto.locationId}") }
+
+        if (eventCreateDto.startDate.isAfter(eventCreateDto.endDate)) {
+            throw BadRequestException("Thời gian bắt đầu phải trước thời gian kết thúc")
+        }
+
+        val event = Event(
+            title = eventCreateDto.title,
+            description = eventCreateDto.description,
+            shortDescription = eventCreateDto.shortDescription,
+            organizer = organizer,
+            category = category,
+            location = location,
+            address = eventCreateDto.address,
+            city = eventCreateDto.city,
+            latitude = eventCreateDto.latitude,
+            longitude = eventCreateDto.longitude,
+            maxAttendees = eventCreateDto.maxAttendees,
+            startDate = eventCreateDto.startDate,
+            endDate = eventCreateDto.endDate,
+            isPrivate = eventCreateDto.isPrivate,
+            isFree = eventCreateDto.isFree,
+            status = if (eventCreateDto.isDraft) EventStatus.DRAFT else EventStatus.PUBLISHED
+        )
+
+        val savedEvent = eventRepository.save(event)
+
+        eventCreateDto.images?.forEachIndexed { index, imageDto ->
+            val baseUrl = imageDto.secureUrl.substringBeforeLast("/") + "/"
+            val fileName = imageDto.secureUrl.substringAfterLast("/")
+            val thumbnailUrl = "${baseUrl}c_thumb,w_300,h_300/${fileName}"
+            val mediumUrl = "${baseUrl}c_scale,w_800/${fileName}"
+
+            val eventImage = EventImage(
+                event = savedEvent,
+                url = imageDto.secureUrl,
+                cloudinaryPublicId = imageDto.publicId,
+                cloudinaryUrl = imageDto.secureUrl,
+                thumbnailUrl = thumbnailUrl,
+                mediumUrl = mediumUrl,
+                storageProvider = StorageProvider.CLOUDINARY,
+                isPrimary = imageDto.isPrimary,
+                width = imageDto.width,
+                height = imageDto.height
+            )
+
+            savedEvent.addImage(eventImage)
+        }
+
+        val primaryImages = savedEvent.images.filter { it.isPrimary }
+        if (primaryImages.size > 1) {
+            primaryImages.drop(1).forEach { it.isPrimary = false }
+        }
+
+        val finalEvent = eventRepository.save(savedEvent)
+        
+        return mapToEventDto(finalEvent)
+    }
+
+    @Transactional
+    override fun createEventWithMultipartImages(
+        eventCreateDto: EventCreateDto,
+        images: List<MultipartFile>,
+        primaryImageIndex: Int?,
+        organizerId: UUID
+    ): EventDto {
+        val createdEvent = createEvent(eventCreateDto, organizerId)
+        
+        images.forEachIndexed { index, imageFile ->
+            val isPrimary = primaryImageIndex == index
+            uploadEventImage(createdEvent.id!!, imageFile, isPrimary)
+        }
+        
+        return getEventById(createdEvent.id!!)
+    }
+
+    @Transactional
     @Caching(evict = [
         CacheEvict(value = ["eventDetails"], key = "#id"),
         CacheEvict(value = ["events"], allEntries = true),

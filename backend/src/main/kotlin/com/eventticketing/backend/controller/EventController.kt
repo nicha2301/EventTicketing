@@ -1,6 +1,7 @@
 package com.eventticketing.backend.controller
 
 import com.eventticketing.backend.dto.*
+import com.eventticketing.backend.exception.BadRequestException
 import com.eventticketing.backend.service.EventService
 import com.eventticketing.backend.util.SecurityUtils
 import jakarta.validation.Valid
@@ -34,6 +35,68 @@ class EventController(
         return ResponseEntity.status(HttpStatus.CREATED).body(
             ApiResponse.success(
                 "Đã tạo sự kiện thành công",
+                createdEvent
+            )
+        )
+    }
+
+    @PostMapping("/with-images")
+    @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
+    fun createEventWithImages(@Valid @RequestBody eventCreateDto: EventCreateWithImagesDto): ResponseEntity<ApiResponse<EventDto>> {
+        val currentUser = securityUtils.getCurrentUser()
+        val createdEvent = eventService.createEventWithImages(eventCreateDto, currentUser?.id!!)
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            ApiResponse.success(
+                "Đã tạo sự kiện kèm ảnh thành công",
+                createdEvent
+            )
+        )
+    }
+
+    @PostMapping("/with-multipart-images", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
+    fun createEventWithMultipartImages(
+        @RequestParam("event") eventJson: String,
+        @RequestParam("images") images: List<MultipartFile>,
+        @RequestParam(value = "primaryImageIndex", required = false) primaryImageIndex: Int?
+    ): ResponseEntity<ApiResponse<EventDto>> {
+        val currentUser = securityUtils.getCurrentUser()
+        
+        val objectMapper = com.fasterxml.jackson.databind.ObjectMapper()
+        objectMapper.registerModule(com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+        objectMapper.setDateFormat(java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss"))
+        
+        val eventCreateDto = try {
+            objectMapper.readValue(eventJson, EventCreateDto::class.java)
+        } catch (e: Exception) {
+            throw BadRequestException("Invalid JSON format for event data: ${e.message}")
+        }
+        
+        if (images.isEmpty()) {
+            throw BadRequestException("Ít nhất một ảnh phải được upload")
+        }
+        
+        if (images.size > 10) {
+            throw BadRequestException("Tối đa 10 ảnh có thể được upload cho một sự kiện")
+        }
+        
+        primaryImageIndex?.let { index ->
+            if (index < 0 || index >= images.size) {
+                throw BadRequestException("Primary image index phải trong khoảng 0 đến ${images.size - 1}")
+            }
+        }
+        
+        val createdEvent = eventService.createEventWithMultipartImages(
+            eventCreateDto, 
+            images, 
+            primaryImageIndex,
+            currentUser?.id!!
+        )
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            ApiResponse.success(
+                "Đã tạo sự kiện với ${images.size} ảnh thành công",
                 createdEvent
             )
         )

@@ -14,6 +14,21 @@ interface EventService {
     fun createEvent(eventCreateDto: EventCreateDto, organizerId: UUID): EventDto
 
     /**
+     * Tạo sự kiện mới kèm theo ảnh
+     */
+    fun createEventWithImages(eventCreateDto: EventCreateWithImagesDto, organizerId: UUID): EventDto
+
+    /**
+     * Tạo sự kiện mới với multipart files
+     */
+    fun createEventWithMultipartImages(
+        eventCreateDto: EventCreateDto, 
+        images: List<MultipartFile>,
+        primaryImageIndex: Int?,
+        organizerId: UUID
+    ): EventDto
+
+    /**
      * Cập nhật thông tin sự kiện
      */
     fun updateEvent(id: UUID, eventUpdateDto: EventUpdateDto, organizerId: UUID): EventDto
