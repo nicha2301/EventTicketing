@@ -92,7 +92,27 @@ class EventServiceImpl(
     }
 
     @Transactional
-    override fun createEventWithImages(eventCreateDto: EventCreateWithImagesDto, organizerId: UUID): EventDto {
+    override fun createEventWithMultipartImages(
+        eventCreateDto: EventCreateDto,
+        images: List<MultipartFile>,
+        primaryImageIndex: Int?,
+        organizerId: UUID
+    ): EventDto {
+        // Validate img
+        if (images.isEmpty()) {
+            throw BadRequestException("Ít nhất một ảnh phải được upload")
+        }
+        if (images.size > 10) {
+            throw BadRequestException("Tối đa 10 ảnh có thể được upload")
+        }
+        
+        // Validate primary image index
+        primaryImageIndex?.let { index ->
+            if (index < 0 || index >= images.size) {
+                throw BadRequestException("Primary image index phải trong khoảng 0 đến ${images.size - 1}")
+            }
+        }
+        
         val organizer = userRepository.findById(organizerId)
             .orElseThrow { ResourceNotFoundException("Không tìm thấy người tổ chức với ID $organizerId") }
 
@@ -130,54 +150,49 @@ class EventServiceImpl(
         )
 
         val savedEvent = eventRepository.save(event)
-
-        eventCreateDto.images?.forEachIndexed { index, imageDto ->
-            val baseUrl = imageDto.secureUrl.substringBeforeLast("/") + "/"
-            val fileName = imageDto.secureUrl.substringAfterLast("/")
-            val thumbnailUrl = "${baseUrl}c_thumb,w_300,h_300/${fileName}"
-            val mediumUrl = "${baseUrl}c_scale,w_800/${fileName}"
-
-            val eventImage = EventImage(
-                event = savedEvent,
-                url = imageDto.secureUrl,
-                cloudinaryPublicId = imageDto.publicId,
-                cloudinaryUrl = imageDto.secureUrl,
-                thumbnailUrl = thumbnailUrl,
-                mediumUrl = mediumUrl,
-                storageProvider = StorageProvider.CLOUDINARY,
-                isPrimary = imageDto.isPrimary,
-                width = imageDto.width,
-                height = imageDto.height
-            )
-
-            savedEvent.addImage(eventImage)
-        }
-
-        val primaryImages = savedEvent.images.filter { it.isPrimary }
-        if (primaryImages.size > 1) {
-            primaryImages.drop(1).forEach { it.isPrimary = false }
-        }
-
-        val finalEvent = eventRepository.save(savedEvent)
         
-        return mapToEventDto(finalEvent)
-    }
-
-    @Transactional
-    override fun createEventWithMultipartImages(
-        eventCreateDto: EventCreateDto,
-        images: List<MultipartFile>,
-        primaryImageIndex: Int?,
-        organizerId: UUID
-    ): EventDto {
-        val createdEvent = createEvent(eventCreateDto, organizerId)
+        val uploadedImages = mutableListOf<EventImage>()
         
         images.forEachIndexed { index, imageFile ->
-            val isPrimary = primaryImageIndex == index
-            uploadEventImage(createdEvent.id!!, imageFile, isPrimary)
+            try {
+                val isPrimary = primaryImageIndex == index
+                val uploadResult = cloudinaryStorageService.uploadImage(imageFile, "events")
+                
+                if (!uploadResult.success) {
+                    throw RuntimeException("Không thể tải lên ảnh ${index + 1}: ${uploadResult.error}")
+                }
+                
+                val eventImage = EventImage(
+                    event = savedEvent,
+                    url = uploadResult.cloudinaryUrl,
+                    cloudinaryPublicId = uploadResult.cloudinaryPublicId,
+                    cloudinaryUrl = uploadResult.cloudinaryUrl,
+                    thumbnailUrl = uploadResult.thumbnailUrl,
+                    mediumUrl = uploadResult.mediumUrl,
+                    storageProvider = StorageProvider.CLOUDINARY,
+                    isPrimary = isPrimary
+                )
+                
+                uploadedImages.add(eventImage)
+                savedEvent.addImage(eventImage)
+                
+            } catch (e: Exception) {
+                uploadedImages.forEach { img ->
+                    img.cloudinaryPublicId?.let { cloudinaryStorageService.deleteImage(img) }
+                }
+                throw BadRequestException("Lỗi upload ảnh ${index + 1}: ${e.message}")
+            }
         }
         
-        return getEventById(createdEvent.id!!)
+        val primaryImages = savedEvent.images.filter { it.isPrimary }
+        if (primaryImages.isEmpty() && savedEvent.images.isNotEmpty()) {
+            savedEvent.images.first().isPrimary = true
+        } else if (primaryImages.size > 1) {
+            primaryImages.drop(1).forEach { it.isPrimary = false }
+        }
+        
+        val finalEvent = eventRepository.save(savedEvent)
+        return mapToEventDto(finalEvent)
     }
 
     @Transactional

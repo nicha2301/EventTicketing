@@ -4,6 +4,7 @@ import com.eventticketing.backend.dto.*
 import com.eventticketing.backend.exception.BadRequestException
 import com.eventticketing.backend.service.EventService
 import com.eventticketing.backend.util.SecurityUtils
+import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -23,7 +24,8 @@ import org.slf4j.LoggerFactory
 @RequestMapping("/api/events")
 class EventController(
     private val eventService: EventService,
-    private val securityUtils: SecurityUtils
+    private val securityUtils: SecurityUtils,
+    private val objectMapper: ObjectMapper
 ) {
 
     @PostMapping
@@ -40,32 +42,14 @@ class EventController(
         )
     }
 
-    @PostMapping("/with-images")
+    @PostMapping("/create-with-images", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
-    fun createEventWithImages(@Valid @RequestBody eventCreateDto: EventCreateWithImagesDto): ResponseEntity<ApiResponse<EventDto>> {
-        val currentUser = securityUtils.getCurrentUser()
-        val createdEvent = eventService.createEventWithImages(eventCreateDto, currentUser?.id!!)
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-            ApiResponse.success(
-                "Đã tạo sự kiện kèm ảnh thành công",
-                createdEvent
-            )
-        )
-    }
-
-    @PostMapping("/with-multipart-images", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-    @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
-    fun createEventWithMultipartImages(
+    fun createEventWithImages(
         @RequestParam("event") eventJson: String,
         @RequestParam("images") images: List<MultipartFile>,
         @RequestParam(value = "primaryImageIndex", required = false) primaryImageIndex: Int?
     ): ResponseEntity<ApiResponse<EventDto>> {
         val currentUser = securityUtils.getCurrentUser()
-        
-        val objectMapper = com.fasterxml.jackson.databind.ObjectMapper()
-        objectMapper.registerModule(com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
-        objectMapper.setDateFormat(java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss"))
         
         val eventCreateDto = try {
             objectMapper.readValue(eventJson, EventCreateDto::class.java)
