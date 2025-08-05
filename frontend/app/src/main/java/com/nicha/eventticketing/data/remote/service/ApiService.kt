@@ -44,16 +44,17 @@ import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypePageResponse
 import com.nicha.eventticketing.data.remote.dto.ticket.CheckInRequestDto
 import com.nicha.eventticketing.data.remote.dto.analytics.RatingStatisticsDto
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.PUT
 import retrofit2.http.DELETE
 import retrofit2.http.Path
 import retrofit2.http.Query
-import retrofit2.http.Multipart
-import retrofit2.http.Part
 
 /**
  * Interface cho các API endpoints
@@ -131,6 +132,13 @@ interface ApiService {
 
     @POST("api/events")
     suspend fun createEvent(@Body event: EventDto): Response<ApiResponse<EventDto>>
+    
+    @Multipart
+    @POST("api/events/create-with-images")
+    suspend fun createEventWithImages(
+        @Part("event") eventData: RequestBody,
+        @Part images: List<MultipartBody.Part>
+    ): Response<ApiResponse<EventDto>>
     
     @PUT("api/events/{id}")
     suspend fun updateEvent(@Path("id") eventId: String, @Body event: EventDto): Response<ApiResponse<EventDto>>

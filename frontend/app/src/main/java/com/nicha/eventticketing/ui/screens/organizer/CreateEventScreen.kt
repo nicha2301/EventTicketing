@@ -1,10 +1,14 @@
 package com.nicha.eventticketing.ui.screens.organizer
 
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,10 +36,10 @@ import com.nicha.eventticketing.ui.components.StyledTextField
 import com.nicha.eventticketing.ui.components.StyledDatePicker
 import com.nicha.eventticketing.ui.components.StyledTimePicker
 import com.nicha.eventticketing.ui.components.StyledDropdown
-import com.nicha.eventticketing.ui.components.ImageUploader
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.util.FormatUtils
 import com.nicha.eventticketing.viewmodel.CreateEventViewModel
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -68,8 +72,13 @@ fun CreateEventScreen(
     var isPrivate by remember { mutableStateOf(false) }
     var isDraft by remember { mutableStateOf(true) }
     var isFree by remember { mutableStateOf(false) }
-    var featuredImageUri by remember { mutableStateOf<Uri?>(null) }
-    var bannerImageUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedImageUris by remember { mutableStateOf(emptyList<Uri>()) }
+    
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        selectedImageUris = uris
+    }
     
     // Form validation errors
     var startDateError by remember { mutableStateOf<String?>(null) }
@@ -138,10 +147,10 @@ fun CreateEventScreen(
             val startDateTime = combineDateTime(startDate!!, startTime!!)
             val endDateTime = combineDateTime(endDate!!, endTime!!)
             
-            val startDateString = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(startDateTime)
-            val endDateString = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(endDateTime)
+            val startDateString = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(startDateTime)
+            val endDateString = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(endDateTime)
             
-            viewModel.createEvent(
+            viewModel.createEventWithImages(
                 title = title,
                 description = description,
                 shortDescription = shortDescription,
@@ -155,8 +164,7 @@ fun CreateEventScreen(
                 isPrivate = isPrivate,
                 isDraft = isDraft,
                 isFree = isFree,
-                featuredImageUri = featuredImageUri,
-                bannerImageUri = bannerImageUri
+                imageUris = selectedImageUris
             )
         }
     }
@@ -282,22 +290,93 @@ fun CreateEventScreen(
                         fontWeight = FontWeight.Bold
                     )
                     
-                    ImageUploader(
-                        imageUri = featuredImageUri,
-                        onImageSelected = { featuredImageUri = it },
-                        onImageRemoved = { featuredImageUri = null },
-                        label = "Ảnh đại diện",
-                        placeholder = "Nhấn để chọn ảnh đại diện cho sự kiện"
+                    Text(
+                        text = "Chọn nhiều hình ảnh cho sự kiện",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     
-                    ImageUploader(
-                        imageUri = bannerImageUri,
-                        onImageSelected = { bannerImageUri = it },
-                        onImageRemoved = { bannerImageUri = null },
-                        label = "Ảnh banner",
-                        placeholder = "Nhấn để chọn ảnh banner cho sự kiện",
-                        aspectRatio = 21f / 9f
-                    )
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .clickable { 
+                                imagePickerLauncher.launch("image/*")
+                            },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Thêm ảnh",
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Nhấn để chọn ảnh",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                    
+                    if (selectedImageUris.isNotEmpty()) {
+                        Text(
+                            text = "Đã chọn ${selectedImageUris.size} ảnh",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(selectedImageUris) { uri ->
+                                Box(
+                                    modifier = Modifier.size(80.dp)
+                                ) {
+                                    AsyncImage(
+                                        model = uri,
+                                        contentDescription = "Selected image",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(8.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    
+                                    IconButton(
+                                        onClick = {
+                                            selectedImageUris = selectedImageUris.filter { it != uri }
+                                        },
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .size(24.dp)
+                                            .background(
+                                                Color.Black.copy(alpha = 0.6f),
+                                                RoundedCornerShape(12.dp)
+                                            )
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Xóa ảnh",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
             

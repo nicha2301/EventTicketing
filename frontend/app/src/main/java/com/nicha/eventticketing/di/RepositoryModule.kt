@@ -1,5 +1,6 @@
 package com.nicha.eventticketing.di
 
+import android.content.Context
 import com.nicha.eventticketing.data.auth.GoogleAuthManager
 import com.nicha.eventticketing.data.preferences.PreferencesManager
 import com.nicha.eventticketing.data.remote.service.ApiService
@@ -35,6 +36,7 @@ import com.nicha.eventticketing.data.repository.LocationRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -57,9 +59,10 @@ object RepositoryModule {
     fun provideEventRepository(
         apiService: ApiService,
         eventMapper: EventMapper,
-        eventDao: EventDao
+        eventDao: EventDao,
+        @ApplicationContext context: Context
     ): EventRepository {
-        return EventRepositoryImpl(apiService, eventMapper, eventDao)
+        return EventRepositoryImpl(apiService, eventMapper, eventDao, context)
     }
     
     @Provides

@@ -96,6 +96,14 @@ interface EventRepository {
     fun createEvent(eventDto: EventDto): Flow<Resource<EventDto>>
     
     /**
+     * Tạo sự kiện mới kèm ảnh
+     * @param eventData Thông tin sự kiện cần tạo
+     * @param imageUris Danh sách URI của ảnh
+     * @return Flow<Resource<EventDto>> Flow chứa thông tin sự kiện đã tạo
+     */
+    fun createEventWithImages(eventData: com.nicha.eventticketing.data.remote.dto.event.CreateEventWithImagesRequest, imageUris: List<android.net.Uri>): Flow<Resource<EventDto>>
+    
+    /**
      * Cập nhật thông tin sự kiện
      * @param eventId ID của sự kiện
      * @param eventDto Thông tin sự kiện cần cập nhật

@@ -1,6 +1,10 @@
 package com.nicha.eventticketing.data.repository
 
+import android.content.Context
+import android.net.Uri
+import com.google.gson.Gson
 import com.nicha.eventticketing.data.local.dao.EventDao
+import com.nicha.eventticketing.data.remote.dto.event.CreateEventWithImagesRequest
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.data.remote.dto.event.PageDto
 import com.nicha.eventticketing.data.remote.dto.event.PageableDto
@@ -9,11 +13,16 @@ import com.nicha.eventticketing.data.remote.service.ApiService
 import com.nicha.eventticketing.domain.mapper.EventMapper
 import com.nicha.eventticketing.domain.model.Resource
 import com.nicha.eventticketing.domain.repository.EventRepository
+import com.nicha.eventticketing.util.ImagePickerUtil
 import com.nicha.eventticketing.util.NetworkUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 import timber.log.Timber
@@ -22,7 +31,8 @@ import timber.log.Timber
 class EventRepositoryImpl @Inject constructor(
     private val apiService: ApiService,
     private val eventMapper: EventMapper,
-    private val eventDao: EventDao
+    private val eventDao: EventDao,
+    private val context: Context
 ) : EventRepository {
 
     private var isOnline = true
@@ -401,6 +411,44 @@ class EventRepositoryImpl @Inject constructor(
         }
     }
     
+    override fun createEventWithImages(
+        eventData: CreateEventWithImagesRequest, 
+        imageUris: List<Uri>
+    ): Flow<Resource<EventDto>> = flow {
+        emit(Resource.Loading())
+        try {
+            val gson = Gson()
+            val eventJsonString = gson.toJson(eventData)
+            val eventRequestBody = eventJsonString.toRequestBody("application/json".toMediaTypeOrNull())
+            
+            val imageParts = mutableListOf<MultipartBody.Part>()
+            
+            imageUris.forEach { uri ->
+                ImagePickerUtil.uriToFile(context, uri)?.let { file ->
+                    val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                    val imagePart = MultipartBody.Part.createFormData("images", file.name, requestFile)
+                    imageParts.add(imagePart)
+                }
+            }
+            
+            val response = apiService.createEventWithImages(eventRequestBody, imageParts)
+            
+            if (response.isSuccessful && response.body()?.success == true) {
+                val createdEvent = response.body()?.data
+                if (createdEvent != null) {
+                    emit(Resource.Success(createdEvent))
+                } else {
+                    emit(Resource.Error("Không thể tạo sự kiện"))
+                }
+            } else {
+                emit(Resource.Error(response.body()?.message ?: "Tạo sự kiện thất bại"))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Lỗi khi tạo sự kiện với ảnh")
+            emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
+        }
+    }
+    
     override fun updateEvent(eventId: String, eventDto: EventDto): Flow<Resource<EventDto>> = flow {
         emit(Resource.Loading())
         try {
@@ -480,4 +528,4 @@ class EventRepositoryImpl @Inject constructor(
             emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
         }
     }
-} 
+}
