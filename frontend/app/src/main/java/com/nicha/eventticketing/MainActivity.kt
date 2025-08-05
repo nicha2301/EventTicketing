@@ -157,8 +157,8 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     
-                    // Khi trạng thái xác thực thay đổi, cập nhật điểm đến
                     LaunchedEffect(authState) {
+                        Timber.d("MainActivity: AuthState thay đổi: $authState")
                         when (authState) {
                             is AuthState.Authenticated -> {
                                 if (startDestination == null) {
@@ -176,14 +176,20 @@ class MainActivity : ComponentActivity() {
                             }
                             is AuthState.Unauthenticated -> {
                                 val isOnboardingCompleted = preferencesManager.isOnboardingCompletedSync()
-                                startDestination = if (isOnboardingCompleted) {
+                                val loginDestination = if (isOnboardingCompleted) {
                                     NavDestination.Login.route
                                 } else {
                                     NavDestination.Splash.route
                                 }
+                                
+                                if (startDestination != loginDestination && startDestination != null) {
+                                    navController.navigate(loginDestination) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
+                                startDestination = loginDestination
                             }
                             else -> {
-                                // Đang tải hoặc trạng thái khác, giữ nguyên điểm đến hiện tại
                             }
                         }
                     }

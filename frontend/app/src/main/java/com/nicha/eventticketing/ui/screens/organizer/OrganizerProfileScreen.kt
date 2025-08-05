@@ -30,6 +30,7 @@ import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicGradientButton
 import com.nicha.eventticketing.ui.theme.CardBackground
 import com.nicha.eventticketing.ui.theme.LocalNeumorphismStyle
+import com.nicha.eventticketing.viewmodel.AuthViewModel
 import com.nicha.eventticketing.viewmodel.ProfileState
 import com.nicha.eventticketing.viewmodel.ProfileViewModel
 
@@ -45,7 +46,8 @@ fun OrganizerProfileScreen(
     onAnalyticsClick: () -> Unit,
     onScanQRClick: () -> Unit,
     onLogoutClick: () -> Unit = {},
-    viewModel: ProfileViewModel = hiltViewModel()
+    viewModel: ProfileViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
     val profileState by viewModel.profileState.collectAsState()
@@ -79,7 +81,7 @@ fun OrganizerProfileScreen(
                 Button(
                     onClick = {
                         showLogoutDialog = false
-                        viewModel.logout()
+                        authViewModel.logout()
                         onLogoutClick()
                     }
                 ) {

@@ -53,7 +53,7 @@ fun NavGraph(
     navController: NavHostController,
     startDestination: String = NavDestination.Splash.route,
     roleBasedNavigation: RoleBasedNavigation,
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
 
@@ -86,6 +86,7 @@ fun NavGraph(
         // Login Screen
         composable(route = NavDestination.Login.route) {
             LoginScreen(
+                viewModel = authViewModel,
                 onLoginSuccess = {
                     currentUser?.let { user ->
                         val homeDestination = roleBasedNavigation.getHomeDestinationForUser(user)
@@ -93,6 +94,7 @@ fun NavGraph(
                             popUpTo(0) { inclusive = true }
                             launchSingleTop = true
                         }
+                    } ?: run {
                     }
                 },
                 onNavigateToRegister = {
@@ -241,12 +243,8 @@ fun NavGraph(
                     navController.navigate(NavDestination.Privacy.route)
                 },
                 onLogoutClick = {
-                    navController.navigate(NavDestination.Login.route) {
-                        popUpTo(NavDestination.Home.route) {
-                            inclusive = true
-                        }
-                    }
-                }
+                },
+                authViewModel = authViewModel
             )
         }
         
@@ -285,10 +283,8 @@ fun NavGraph(
                     navController.navigate(NavDestination.CheckIn.route)
                 },
                 onLogoutClick = {
-                    navController.navigate(NavDestination.Login.route) {
-                        popUpTo(NavDestination.EventDashboard.route) { inclusive = true }
-                    }
-                }
+                },
+                authViewModel = authViewModel
             )
         }
         

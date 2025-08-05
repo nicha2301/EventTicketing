@@ -43,6 +43,7 @@ import com.nicha.eventticketing.ui.theme.LocalNeumorphismStyle
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nicha.eventticketing.viewmodel.AuthViewModel
 import com.nicha.eventticketing.viewmodel.NotificationViewModel
 import com.nicha.eventticketing.viewmodel.ProfileState
 import com.nicha.eventticketing.viewmodel.ProfileViewModel
@@ -63,6 +64,7 @@ fun ProfileScreen(
     onPrivacyClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel,
     notificationViewModel: NotificationViewModel = hiltViewModel()
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
@@ -114,7 +116,7 @@ fun ProfileScreen(
                 Button(
                     onClick = {
                         showLogoutDialog = false
-                        viewModel.logout()
+                        authViewModel.logout()
                         onLogoutClick()
                     }
                 ) {
