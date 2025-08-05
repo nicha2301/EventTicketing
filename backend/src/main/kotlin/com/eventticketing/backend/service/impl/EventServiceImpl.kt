@@ -18,6 +18,7 @@ import org.springframework.cache.annotation.Caching
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.domain.Specification
+import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
@@ -425,7 +426,26 @@ class EventServiceImpl(
             throw BadRequestException("Không thể xóa sự kiện đã có vé được bán")
         }
         
+        val imagesToDelete = event.images.map { image ->
+            EventImage(
+                id = image.id,
+                cloudinaryPublicId = image.cloudinaryPublicId,
+                cloudinaryUrl = image.cloudinaryUrl,
+                thumbnailUrl = image.thumbnailUrl,
+                mediumUrl = image.mediumUrl,
+                storageProvider = image.storageProvider,
+                isPrimary = image.isPrimary,
+                width = image.width,
+                height = image.height,
+                url = image.url
+            )
+        }
+        
         eventRepository.delete(event)
+        
+        if (imagesToDelete.isNotEmpty()) {
+            deleteImagesAsync(imagesToDelete, id)
+        }
         
         return true
     }
@@ -647,7 +667,15 @@ class EventServiceImpl(
         return nearbyEvents.map { mapToEventDto(it) }
     }
 
-    // Helper methods
+    @Async("imageDeleteExecutor")
+    fun deleteImagesAsync(images: List<EventImage>, eventId: UUID?) {
+        images.parallelStream().forEach { image ->
+            try {
+                val deleteSuccess = cloudinaryStorageService.deleteImage(image)
+            } catch (e: Exception) {
+            }
+        }
+    }
     
     private fun findEventAndCheckPermission(id: UUID, organizerId: UUID?): Event {
         val event = eventRepository.findById(id)
