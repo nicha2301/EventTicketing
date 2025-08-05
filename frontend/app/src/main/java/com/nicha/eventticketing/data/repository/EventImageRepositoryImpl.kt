@@ -88,13 +88,24 @@ class EventImageRepositoryImpl @Inject constructor(
         }
     }
     
-    //Chưa triển khai
-    override fun deleteEventImage(imageId: String): Flow<Resource<Boolean>> = flow {
+    override fun deleteEventImage(eventId: String, imageId: String): Flow<Resource<Boolean>> = flow {
         emit(Resource.Loading())
         try {
-            emit(Resource.Error("Cần cung cấp cả eventId và imageId để xóa hình ảnh"))
+            val response = apiService.deleteEventImage(eventId, imageId)
+            
+            if (response.isSuccessful && response.body()?.success == true) {
+                val result = response.body()?.data
+                if (result == true) {
+                    Timber.d("Successfully deleted image: $imageId")
+                    emit(Resource.Success(true))
+                } else {
+                    emit(Resource.Error("Không thể xóa hình ảnh"))
+                }
+            } else {
+                val errorMessage = response.body()?.message ?: "Xóa hình ảnh thất bại"
+                emit(Resource.Error(errorMessage))
+            }
         } catch (e: Exception) {
-            Timber.e(e, "Lỗi khi xóa hình ảnh: $imageId")
             emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
         }
     }
@@ -119,18 +130,7 @@ class EventImageRepositoryImpl @Inject constructor(
         }
     }
     
-    //Chưa triển khai
-    override fun setFeaturedImage(imageId: String): Flow<Resource<EventImageDto>> = flow {
-        emit(Resource.Loading())
-        try {
-            emit(Resource.Error("Cần cung cấp cả eventId và imageId để đặt hình ảnh nổi bật"))
-        } catch (e: Exception) {
-            Timber.e(e, "Lỗi khi đặt hình ảnh nổi bật: $imageId")
-            emit(Resource.Error(e.message ?: "Đã xảy ra lỗi không xác định"))
-        }
-    }
-    
-    fun setFeaturedImageWithEventId(eventId: String, imageId: String): Flow<Resource<EventImageDto>> = flow {
+    override fun setFeaturedImage(eventId: String, imageId: String): Flow<Resource<EventImageDto>> = flow {
         emit(Resource.Loading())
         try {
             val response = apiService.setImageAsPrimary(eventId, imageId)

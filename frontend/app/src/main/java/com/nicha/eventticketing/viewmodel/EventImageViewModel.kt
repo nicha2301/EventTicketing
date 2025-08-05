@@ -118,12 +118,6 @@ class EventImageViewModel @Inject constructor(
                                 kotlinx.coroutines.delay(2000)
                                 _uploadState.value = UploadState()
                                 
-                                val currentImages = _images.value
-                                if (currentImages is ResourceState.Success) {
-                                    val updatedImages = currentImages.data.toMutableList()
-                                    updatedImages.add(uploadedImage)
-                                    _images.value = ResourceState.Success(updatedImages)
-                                }
                             } else {
                                 _uploadImageState.value = ResourceState.Error("Không thể tải lên hình ảnh")
                                 _uploadState.value = UploadState(error = "Không thể tải lên hình ảnh")
@@ -158,15 +152,15 @@ class EventImageViewModel @Inject constructor(
         _deleteImageState.value = ResourceState.Loading
         
         viewModelScope.launch {
-            eventImageRepository.deleteEventImage(imageId).collect { result ->
+            eventImageRepository.deleteEventImage(eventId, imageId).collect { result ->
                 when (result) {
                     is Resource.Success -> {
                         _deleteImageState.value = ResourceState.Success("Đã xóa hình ảnh thành công")
                         
-                        // Update images list
-                        val currentImages = _images.value
+                        val currentImages = _eventImagesState.value
                         if (currentImages is ResourceState.Success) {
                             val updatedImages = currentImages.data.filter { it.id != imageId }
+                            _eventImagesState.value = ResourceState.Success(updatedImages)
                             _images.value = ResourceState.Success(updatedImages)
                         }
                     }
@@ -188,7 +182,7 @@ class EventImageViewModel @Inject constructor(
         _setPrimaryImageState.value = ResourceState.Loading
         
         viewModelScope.launch {
-            val currentImages = _images.value
+            val currentImages = _eventImagesState.value
             if (currentImages is ResourceState.Success) {
                 val updatedImages = currentImages.data.map { image ->
                     if (image.id == imageId) {
@@ -197,6 +191,7 @@ class EventImageViewModel @Inject constructor(
                         image.copy(isPrimary = false)
                     }
                 }
+                _eventImagesState.value = ResourceState.Success(updatedImages)
                 _images.value = ResourceState.Success(updatedImages)
                 _setPrimaryImageState.value = ResourceState.Success(updatedImages.find { it.id == imageId }!!)
             } 

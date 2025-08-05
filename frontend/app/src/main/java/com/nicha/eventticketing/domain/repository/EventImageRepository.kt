@@ -42,17 +42,19 @@ interface EventImageRepository {
     
     /**
      * Xóa hình ảnh
+     * @param eventId ID của sự kiện
      * @param imageId ID của hình ảnh
      * @return Flow<Resource<Boolean>> Flow chứa kết quả xóa
      */
-    fun deleteEventImage(imageId: String): Flow<Resource<Boolean>>
+    fun deleteEventImage(eventId: String, imageId: String): Flow<Resource<Boolean>>
     
     /**
      * Đặt hình ảnh làm hình ảnh nổi bật
+     * @param eventId ID của sự kiện
      * @param imageId ID của hình ảnh
      * @return Flow<Resource<EventImageDto>> Flow chứa thông tin hình ảnh đã cập nhật
      */
-    fun setFeaturedImage(imageId: String): Flow<Resource<EventImageDto>>
+    fun setFeaturedImage(eventId: String, imageId: String): Flow<Resource<EventImageDto>>
     
     /**
      * Lấy hình ảnh nổi bật của sự kiện

@@ -473,6 +473,7 @@ class EventRepositoryImpl @Inject constructor(
         emit(Resource.Loading())
         try {
             val response = apiService.deleteEvent(eventId)
+            
             if (response.isSuccessful && response.body()?.success == true) {
                 val result = response.body()?.data
                 if (result != null) {
@@ -481,7 +482,8 @@ class EventRepositoryImpl @Inject constructor(
                     emit(Resource.Error("Không thể xóa sự kiện"))
                 }
             } else {
-                emit(Resource.Error(response.body()?.message ?: "Xóa sự kiện thất bại"))
+                val errorMessage = response.body()?.message ?: "Xóa sự kiện thất bại"
+                emit(Resource.Error(errorMessage))
             }
         } catch (e: Exception) {
             Timber.e(e, "Lỗi khi xóa sự kiện: $eventId")

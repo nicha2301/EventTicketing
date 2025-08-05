@@ -81,6 +81,7 @@ fun EventImagesScreen(
     LaunchedEffect(deleteImageState) {
         if (deleteImageState is ResourceState.Success<*>) {
             viewModel.resetDeleteImageState()
+            viewModel.getEventImages(eventId)
         }
     }
     
