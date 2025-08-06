@@ -759,6 +759,9 @@ fun NavGraph(
                     navController.navigate(NavDestination.OrganizerEventDetail.createRoute(updatedEventId)) {
                         popUpTo(NavDestination.EditEvent.route + "/{eventId}") { inclusive = true }
                     }
+                },
+                onManageImagesClick = { eventIdForImages ->
+                    navController.navigate(NavDestination.EventImages.createRoute(eventIdForImages))
                 }
             )
         }
