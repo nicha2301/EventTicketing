@@ -19,15 +19,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.nicha.eventticketing.domain.model.EventType
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.domain.model.ResourceState
+import com.nicha.eventticketing.ui.components.StyledTextField
+import com.nicha.eventticketing.ui.components.StyledDatePicker
+import com.nicha.eventticketing.ui.components.StyledTimePicker
+import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.viewmodel.OrganizerEventViewModel
+import com.nicha.eventticketing.util.ImageUtils.getAllImageUrls
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -67,6 +74,39 @@ fun EditEventScreen(
     var showTimePicker by remember { mutableStateOf(false) }
     var showCategoryDropdown by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var showSaveChangesDialog by remember { mutableStateOf(false) }
+    
+    // State to track original values for change detection
+    var originalTitle by remember { mutableStateOf("") }
+    var originalDescription by remember { mutableStateOf("") }
+    var originalShortDescription by remember { mutableStateOf("") }
+    var originalLocation by remember { mutableStateOf("") }
+    var originalAddress by remember { mutableStateOf("") }
+    var originalCity by remember { mutableStateOf("") }
+    var originalMaxAttendees by remember { mutableStateOf("") }
+    var originalIsPrivate by remember { mutableStateOf(false) }
+    var originalIsFree by remember { mutableStateOf(false) }
+    var originalStartDate by remember { mutableStateOf<Date?>(null) }
+    var originalStartTime by remember { mutableStateOf<Date?>(null) }
+    var originalEndDate by remember { mutableStateOf<Date?>(null) }
+    var originalEndTime by remember { mutableStateOf<Date?>(null) }
+    
+    // Function to check if form has changes
+    fun hasChanges(): Boolean {
+        return title != originalTitle ||
+                description != originalDescription ||
+                shortDescription != originalShortDescription ||
+                location != originalLocation ||
+                address != originalAddress ||
+                city != originalCity ||
+                maxAttendees != originalMaxAttendees ||
+                isPrivate != originalIsPrivate ||
+                isFree != originalIsFree ||
+                startDate != originalStartDate ||
+                startTime != originalStartTime ||
+                endDate != originalEndDate ||
+                endTime != originalEndTime
+    }
     
     // Date and time validation
     var startDateError by remember { mutableStateOf<String?>(null) }
@@ -163,20 +203,90 @@ fun EditEventScreen(
             isPrivate = event.isPrivate
             isFree = event.isFree
             
+            // Save original values for change detection
+            originalTitle = event.title
+            originalDescription = event.description ?: ""
+            originalShortDescription = event.shortDescription ?: ""
+            originalLocation = event.locationName ?: ""
+            originalAddress = event.address ?: ""
+            originalCity = event.city ?: ""
+            originalMaxAttendees = event.maxAttendees.toString()
+            originalIsPrivate = event.isPrivate
+            originalIsFree = event.isFree
+            
             try {
-                val startDateTime = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).parse(event.startDate)
-                startDate = startDateTime
-                startTime = startDateTime
+                val formats = listOf(
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()),
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.getDefault()),
+                    SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                )
+                
+                var startDateTime: Date? = null
+                run breaking@ {
+                    formats.forEach { format ->
+                        try {
+                            startDateTime = format.parse(event.startDate)
+                            startDateTime?.let {
+                                return@breaking
+                            }
+                        } catch (e: Exception) {
+                        }
+                    }
+                }
+                
+                if (startDateTime == null) {
+                    try {
+                        val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.getDefault())
+                        startDateTime = isoFormat.parse(event.startDate)
+                    } catch (e: Exception) {
+                    }
+                }
+                
+                startDateTime?.let {
+                    startDate = it
+                    startTime = it
+                    originalStartDate = it
+                    originalStartTime = it
+                }
             } catch (e: Exception) {
-                // Handle error
+                println("Error parsing start date: ${event.startDate}, error: ${e.message}")
             }
             
             try {
-                val endDateTime = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).parse(event.endDate)
-                endDate = endDateTime
-                endTime = endDateTime
+                val formats = listOf(
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()),
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.getDefault()),
+                    SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                )
+                
+                var endDateTime: Date? = null
+                run breaking@ {
+                    formats.forEach { format ->
+                        try {
+                            endDateTime = format.parse(event.endDate)
+                            endDateTime?.let {
+                                return@breaking
+                            }
+                        } catch (e: Exception) {
+                        }
+                    }
+                }
+                
+                if (endDateTime == null) {
+                    try {
+                        val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.getDefault())
+                        endDateTime = isoFormat.parse(event.endDate)
+                    } catch (e: Exception) {
+                    }
+                }
+                
+                endDateTime?.let {
+                    endDate = it
+                    endTime = it
+                    originalEndDate = it
+                    originalEndTime = it
+                }
             } catch (e: Exception) {
-                // Handle error
             }
             
             val categoryName = event.categoryName ?: ""
@@ -205,8 +315,33 @@ fun EditEventScreen(
             val startDateTime = combineDateTime(startDate!!, startTime!!)
             val endDateTime = combineDateTime(endDate!!, endTime!!)
             
-            val startDateString = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(startDateTime)
-            val endDateString = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(endDateTime)
+            val startDateString = try {
+                val format1 = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                format1.format(startDateTime)
+            } catch (e: Exception) {
+                try {
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                    "${dateFormat.format(startDateTime)} ${timeFormat.format(startDateTime)}"
+                } catch (e2: Exception) {
+                    val format3 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+                    format3.format(startDateTime)
+                }
+            }
+            
+            val endDateString = try {
+                val format1 = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                format1.format(endDateTime)
+            } catch (e: Exception) {
+                try {
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                    "${dateFormat.format(endDateTime)} ${timeFormat.format(endDateTime)}"
+                } catch (e2: Exception) {
+                    val format3 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+                    format3.format(endDateTime)
+                }
+            }
             
             val updatedEvent = EventDto(
                 id = eventId,
@@ -247,7 +382,14 @@ fun EditEventScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Chỉnh sửa sự kiện") },
+                title = { 
+                    Text(
+                        "Chỉnh sửa sự kiện",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -263,7 +405,10 @@ fun EditEventScreen(
                             contentDescription = "Quản lý hình ảnh"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         }
     ) { paddingValues ->
@@ -309,7 +454,7 @@ fun EditEventScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Card(
+                        NeumorphicCard(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -322,42 +467,36 @@ fun EditEventScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 
-                                OutlinedTextField(
+                                StyledTextField(
                                     value = title,
                                     onValueChange = { title = it },
-                                    label = { Text("Tên sự kiện") },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Event, contentDescription = null)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
+                                    label = "Tên sự kiện",
+                                    placeholder = "Nhập tên sự kiện",
+                                    leadingIcon = Icons.Default.Event,
                                     singleLine = true
                                 )
                                 
-                                OutlinedTextField(
+                                StyledTextField(
                                     value = shortDescription,
                                     onValueChange = { shortDescription = it },
-                                    label = { Text("Mô tả ngắn") },
-                                    leadingIcon = {
-                                        Icon(Icons.AutoMirrored.Filled.ShortText, contentDescription = null)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
+                                    label = "Mô tả ngắn",
+                                    placeholder = "Nhập mô tả ngắn",
+                                    leadingIcon = Icons.AutoMirrored.Filled.ShortText,
                                     maxLines = 2
                                 )
                                 
-                                OutlinedTextField(
+                                StyledTextField(
                                     value = description,
                                     onValueChange = { description = it },
-                                    label = { Text("Mô tả chi tiết") },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Description, contentDescription = null)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
+                                    label = "Mô tả chi tiết",
+                                    placeholder = "Nhập mô tả chi tiết",
+                                    leadingIcon = Icons.Default.Description,
                                     maxLines = 5
                                 )
                             }
                         }
                         
-                        Card(
+                        NeumorphicCard(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -374,38 +513,20 @@ fun EditEventScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    OutlinedTextField(
-                                        value = startDate?.let { dateFormatter.format(it) } ?: "",
-                                        onValueChange = { },
-                                        label = { Text("Ngày bắt đầu") },
-                                        leadingIcon = {
-                                            Icon(Icons.Default.CalendarToday, contentDescription = null)
-                                        },
+                                    StyledDatePicker(
+                                        label = "Ngày bắt đầu",
+                                        selectedDate = startDate,
+                                        onDateSelected = { startDate = it },
                                         modifier = Modifier.weight(1f),
-                                        readOnly = true,
                                         isError = startDateError != null,
-                                        supportingText = startDateError?.let { { Text(it) } },
-                                        trailingIcon = {
-                                            IconButton(onClick = { showDatePicker = true }) {
-                                                Icon(Icons.Default.Edit, contentDescription = null)
-                                            }
-                                        }
+                                        errorMessage = startDateError
                                     )
                                     
-                                    OutlinedTextField(
-                                        value = startTime?.let { timeFormatter.format(it) } ?: "",
-                                        onValueChange = { },
-                                        label = { Text("Giờ bắt đầu") },
-                                        leadingIcon = {
-                                            Icon(Icons.Default.AccessTime, contentDescription = null)
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        readOnly = true,
-                                        trailingIcon = {
-                                            IconButton(onClick = { showTimePicker = true }) {
-                                                Icon(Icons.Default.Edit, contentDescription = null)
-                                            }
-                                        }
+                                    StyledTimePicker(
+                                        label = "Giờ bắt đầu",
+                                        selectedTime = startTime,
+                                        onTimeSelected = { startTime = it },
+                                        modifier = Modifier.weight(1f)
                                     )
                                 }
                                 
@@ -413,44 +534,27 @@ fun EditEventScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    OutlinedTextField(
-                                        value = endDate?.let { dateFormatter.format(it) } ?: "",
-                                        onValueChange = { },
-                                        label = { Text("Ngày kết thúc") },
-                                        leadingIcon = {
-                                            Icon(Icons.Default.CalendarToday, contentDescription = null)
-                                        },
+                                    StyledDatePicker(
+                                        label = "Ngày kết thúc",
+                                        selectedDate = endDate,
+                                        onDateSelected = { endDate = it },
                                         modifier = Modifier.weight(1f),
-                                        readOnly = true,
                                         isError = endDateError != null,
-                                        supportingText = endDateError?.let { { Text(it) } },
-                                        trailingIcon = {
-                                            IconButton(onClick = { showDatePicker = true }) {
-                                                Icon(Icons.Default.Edit, contentDescription = null)
-                                            }
-                                        }
+                                        errorMessage = endDateError
                                     )
                                     
-                                    OutlinedTextField(
-                                        value = endTime?.let { timeFormatter.format(it) } ?: "",
-                                        onValueChange = { },
-                                        label = { Text("Giờ kết thúc") },
-                                        leadingIcon = {
-                                            Icon(Icons.Default.AccessTime, contentDescription = null)
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        readOnly = true,
-                                        trailingIcon = {
-                                            IconButton(onClick = { showTimePicker = true }) {
-                                                Icon(Icons.Default.Edit, contentDescription = null)
-                                            }
-                                        }
+                                    StyledTimePicker(
+                                        label = "Giờ kết thúc",
+                                        selectedTime = endTime,
+                                        onTimeSelected = { endTime = it },
+                                        modifier = Modifier.weight(1f)
                                     )
                                 }
                             }
                         }
                         
-                        Card(
+                        // Địa điểm
+                        NeumorphicCard(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -463,42 +567,37 @@ fun EditEventScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 
-                                OutlinedTextField(
+                                StyledTextField(
                                     value = location,
                                     onValueChange = { location = it },
-                                    label = { Text("Tên địa điểm") },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.LocationOn, contentDescription = null)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
+                                    label = "Tên địa điểm",
+                                    placeholder = "Nhập tên địa điểm",
+                                    leadingIcon = Icons.Default.LocationOn,
                                     singleLine = true
                                 )
                                 
-                                OutlinedTextField(
+                                StyledTextField(
                                     value = address,
                                     onValueChange = { address = it },
-                                    label = { Text("Địa chỉ chi tiết") },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Home, contentDescription = null)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
+                                    label = "Địa chỉ chi tiết",
+                                    placeholder = "Nhập địa chỉ chi tiết",
+                                    leadingIcon = Icons.Default.Home,
                                     singleLine = true
                                 )
                                 
-                                OutlinedTextField(
+                                StyledTextField(
                                     value = city,
                                     onValueChange = { city = it },
-                                    label = { Text("Thành phố") },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.LocationCity, contentDescription = null)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
+                                    label = "Thành phố",
+                                    placeholder = "Nhập thành phố",
+                                    leadingIcon = Icons.Default.LocationCity,
                                     singleLine = true
                                 )
                             }
                         }
                         
-                        Card(
+                        // Cấu hình bổ sung
+                        NeumorphicCard(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -511,62 +610,75 @@ fun EditEventScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 
-                                OutlinedTextField(
+                                StyledTextField(
                                     value = maxAttendees,
                                     onValueChange = { 
                                         if (it.isEmpty() || it.all { char -> char.isDigit() }) {
                                             maxAttendees = it
                                         }
                                     },
-                                    label = { Text("Số lượng người tham dự tối đa") },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.PeopleAlt, contentDescription = null)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                    label = "Số lượng người tham dự tối đa",
+                                    placeholder = "Nhập số lượng tối đa",
+                                    leadingIcon = Icons.Default.PeopleAlt,
+                                    singleLine = true
                                 )
                                 
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                    )
                                 ) {
-                                    Text(
-                                        text = "Sự kiện miễn phí",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    
-                                    Switch(
-                                        checked = isFree,
-                                        onCheckedChange = { isFree = it }
-                                    )
-                                }
-                                
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Sự kiện riêng tư",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    
-                                    Switch(
-                                        checked = isPrivate,
-                                        onCheckedChange = { isPrivate = it }
-                                    )
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.MoneyOff,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = "Sự kiện miễn phí",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Switch(
+                                                checked = isFree,
+                                                onCheckedChange = { isFree = it }
+                                            )
+                                        }
+                                        
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Lock,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = "Sự kiện riêng tư",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Switch(
+                                                checked = isPrivate,
+                                                onCheckedChange = { isPrivate = it }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                         
-                        // Event image
-                        Card(
+                        NeumorphicCard(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -579,68 +691,93 @@ fun EditEventScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 
-                                // Nút quản lý hình ảnh
+                                Text(
+                                    text = "Quản lý hình ảnh cho sự kiện của bạn",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                
                                 Button(
-                                    onClick = { onManageImagesClick(eventId) },
+                                    onClick = { 
+                                        if (hasChanges()) {
+                                            showSaveChangesDialog = true
+                                        } else {
+                                            onManageImagesClick(eventId)
+                                        }
+                                    },
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    ),
+                                    elevation = ButtonDefaults.buttonElevation(
+                                        defaultElevation = 2.dp,
+                                        pressedElevation = 8.dp
                                     )
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Image,
+                                        imageVector = Icons.Default.PhotoLibrary,
                                         contentDescription = null
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Quản lý hình ảnh sự kiện")
+                                    Text(
+                                        text = "Quản lý thư viện ảnh",
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
                                 }
                                 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                                .clickable { onManageImagesClick(eventId) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (imageUrl.isNotBlank()) {
-                                AsyncImage(
-                                    model = imageUrl,
-                                    contentDescription = "Event image",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                            
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.3f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                    )
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Image,
-                                        contentDescription = "Manage images",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                    
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    
-                                    Text(
-                                        text = "Nhấn để quản lý hình ảnh",
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        // Get image URL from current event
+                                        val imageUrls = remember(eventDetailState) {
+                                            if (eventDetailState is ResourceState.Success) {
+                                                val event = (eventDetailState as ResourceState.Success<EventDto>).data
+                                                event.getAllImageUrls()
+                                            } else {
+                                                emptyList()
+                                            }
+                                        }
+                                        
+                                        if (imageUrls.isNotEmpty()) {
+                                            AsyncImage(
+                                                model = ImageRequest.Builder(LocalContext.current)
+                                                    .data(imageUrls.first())
+                                                    .crossfade(true)
+                                                    .build(),
+                                                contentDescription = "Event banner",
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.AddPhotoAlternate,
+                                                    contentDescription = "Add image",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(48.dp)
+                                                )
+                                                Spacer(modifier = Modifier.height(12.dp))
+                                                Text(
+                                                    text = "Chưa có ảnh banner",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
-                            }
-                        }
                             }
                         }
                         
@@ -651,20 +788,34 @@ fun EditEventScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 16.dp),
-                            shape = RoundedCornerShape(12.dp)
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 4.dp,
+                                pressedElevation = 8.dp,
+                                disabledElevation = 0.dp
+                            ),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Save,
-                                contentDescription = null
-                            )
-                            
-                            Spacer(modifier = Modifier.width(8.dp))
-                            
-                            Text(
-                                text = "Cập nhật sự kiện",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Save,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Cập nhật sự kiện",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
                         }
                     }
                 }
@@ -708,6 +859,50 @@ fun EditEventScreen(
                     }
                 ) {
                     Text("OK")
+                }
+            }
+        )
+    }
+    
+    if (showSaveChangesDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showSaveChangesDialog = false
+            },
+            title = { 
+                Text(
+                    "Lưu thay đổi?",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                ) 
+            },
+            text = { 
+                Text(
+                    "Bạn có những thay đổi chưa được lưu. Bạn có muốn lưu trước khi chuyển sang quản lý hình ảnh?",
+                    style = MaterialTheme.typography.bodyMedium
+                ) 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSaveChangesDialog = false
+                        submitForm()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Lưu và tiếp tục")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = {
+                        showSaveChangesDialog = false
+                        onManageImagesClick(eventId)
+                    }
+                ) {
+                    Text("Bỏ qua thay đổi")
                 }
             }
         )
