@@ -26,3 +26,6 @@ val Info = Color(0xFF2196F3)
 val TextPrimary = Color(0xFFE0E0E0)
 val TextSecondary = Color(0xFFAAAAAA)
 val Divider = Color(0xFF2A2A2A)
+
+// Brand colors
+val BrandOrange = Color(0xFFEE794A)

@@ -75,7 +75,12 @@ fun NavGraph(
         // Onboarding Screen
         composable(route = NavDestination.Onboarding.route) {
             OnboardingScreen(
-                onFinishOnboarding = {
+                onGetStarted = {
+                    navController.navigate(NavDestination.Register.route) {
+                        popUpTo(NavDestination.Onboarding.route) { inclusive = true }
+                    }
+                },
+                onLogin = {
                     navController.navigate(NavDestination.Login.route) {
                         popUpTo(NavDestination.Onboarding.route) { inclusive = true }
                     }
