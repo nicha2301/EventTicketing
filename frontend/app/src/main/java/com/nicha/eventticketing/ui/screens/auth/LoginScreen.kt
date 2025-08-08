@@ -3,6 +3,9 @@ package com.nicha.eventticketing.ui.screens.auth
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,23 +16,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Email
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Visibility
-import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,7 +37,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -49,20 +46,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nicha.eventticketing.R
 import com.nicha.eventticketing.data.auth.GoogleAuthManager
 import com.nicha.eventticketing.data.auth.GoogleSignInResult
-import com.nicha.eventticketing.ui.components.AuthHeader
-import com.nicha.eventticketing.ui.components.CustomOutlinedTextField
+import com.nicha.eventticketing.ui.theme.BrandOrange
 import com.nicha.eventticketing.util.ValidationUtils
 import com.nicha.eventticketing.viewmodel.AuthState
 import com.nicha.eventticketing.viewmodel.AuthViewModel
@@ -80,14 +79,10 @@ fun LoginScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    var isNetworkErrorDialogVisible by remember { mutableStateOf(false) }
-    var networkErrorMessage by remember { mutableStateOf("") }
     
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
-    
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
     
@@ -106,196 +101,270 @@ fun LoginScreen(
                 )
             }
             is GoogleSignInResult.Error -> {
-                val errorMessage = signInResult.message
-                Toast.makeText(context, "Google Sign-In Error: $errorMessage", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Google Sign-In failed: ${signInResult.message}", Toast.LENGTH_SHORT).show()
             }
             is GoogleSignInResult.Cancelled -> {
-                Toast.makeText(context, "Google Sign-In cancelled.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Google Sign-In cancelled", Toast.LENGTH_SHORT).show()
             }
         }
     }
     
-    // Xử lý trạng thái xác thực
-    LaunchedEffect(authState, currentUser) {
-        when (authState) {
+    LaunchedEffect(authState) {
+        when (val state = authState) {
             is AuthState.Authenticated -> {
-                if (currentUser != null) {
-                    onLoginSuccess()
-                }
+                onLoginSuccess()
             }
             is AuthState.Error -> {
-                val errorMsg = (authState as AuthState.Error).message
-                if (errorMsg.contains("kết nối") || errorMsg.contains("máy chủ") || 
-                    errorMsg.contains("timeout") || errorMsg.contains("network")) {
-                    networkErrorMessage = errorMsg
-                    isNetworkErrorDialogVisible = true
-                } else {
-                    snackbarHostState.showSnackbar(errorMsg)
-                }
-                viewModel.resetError()
+                snackbarHostState.showSnackbar(state.message)
             }
             else -> {}
         }
     }
     
-    // Network Error Dialog
-    if (isNetworkErrorDialogVisible) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { isNetworkErrorDialogVisible = false },
-            title = { Text("Lỗi kết nối") },
-            text = { Text(networkErrorMessage) },
-            confirmButton = {
-                Button(
-                    onClick = { 
-                        isNetworkErrorDialogVisible = false
-                        viewModel.retryConnection()
-                    }
-                ) {
-                    Text("Thử lại")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { isNetworkErrorDialogVisible = false }
-                ) {
-                    Text("Đóng")
-                }
-            }
-        )
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            onLoginSuccess()
+        }
     }
     
-    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
-            snackbarHost = { 
-                SnackbarHost(hostState = snackbarHostState)
-            }
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .background(Color(0xFFFAFAFA))
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                IconButton(
+                    onClick = { },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .align(Alignment.TopStart)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color(0xFF1E1E1E),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(32.dp)
             ) {
-                // Header
-                AuthHeader(
-                    title = "Đăng nhập",
-                    subtitle = "Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục."
+                Column {
+                    Text(
+                        text = "Jump right back in!",
+                        fontSize = 40.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF19171C),
+                        letterSpacing = (-0.8).sp
+                    )
+                }
+                
+                Text(
+                    text = "Welcome back!",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8C8CA1)
                 )
                 
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                // Login form
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Email
-                    CustomOutlinedTextField(
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = "Email",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF8C8CA1)
+                    )
+                    
+                    androidx.compose.material3.TextField(
                         value = email,
                         onValueChange = { 
                             email = it
                             emailError = null
                         },
-                        label = "Email",
-                        placeholder = "Nhập email của bạn",
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Email,
-                                contentDescription = "Email",
-                                tint = MaterialTheme.colorScheme.primary
+                        placeholder = {
+                            Text(
+                                text = "sample@gmail.com",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color(0xFF19171C).copy(alpha = 0.4f)
                             )
+                        },
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color(0xFF19171C)
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                            unfocusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent
+                        ),
+                        trailingIcon = {
+                            if (email.isNotEmpty() && ValidationUtils.validateEmail(email) == null) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_check_green),
+                                    contentDescription = "Valid email",
+                                    tint = Color(0xFF25D36C),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Next
                         ),
-                        errorMessage = emailError,
-                        isError = emailError != null
+                        isError = emailError != null,
+                        singleLine = true
                     )
                     
-                    // Password
-                    CustomOutlinedTextField(
+                    if (emailError != null) {
+                        Text(
+                            text = emailError!!,
+                            color = Color(0xFFE74C3C),
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
+                }
+                
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = "Password",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF8C8CA1)
+                    )
+                    
+                    androidx.compose.material3.TextField(
                         value = password,
                         onValueChange = { 
-                            password = it 
+                            password = it
                             passwordError = null
                         },
-                        label = "Mật khẩu",
-                        placeholder = "Nhập mật khẩu của bạn",
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Lock,
-                                contentDescription = "Password",
-                                tint = MaterialTheme.colorScheme.primary
+                        placeholder = {
+                            Text(
+                                text = "Enter your password",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color(0xFF19171C).copy(alpha = 0.4f)
                             )
                         },
-                        trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(
-                                    imageVector = if (passwordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
-                                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color(0xFF19171C)
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                            unfocusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent
+                        ),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done
                         ),
-                        errorMessage = passwordError,
-                        isError = passwordError != null
+                        isError = passwordError != null,
+                        singleLine = true
                     )
                     
-                    // Remember me and Forgot password
-                    Box(
-                        modifier = Modifier.fillMaxWidth()
+                    if (passwordError != null) {
+                        Text(
+                            text = passwordError!!,
+                            color = Color(0xFFE74C3C),
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
+                }
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.Checkbox(
+                            checked = rememberMe,
+                            onCheckedChange = { rememberMe = it },
+                            colors = androidx.compose.material3.CheckboxDefaults.colors(
+                                checkedColor = BrandOrange,
+                                uncheckedColor = Color(0xFF8C8CA1)
+                            )
+                        )
+                        Text(
+                            text = "Remember me",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF8C8CA1)
+                        )
+                    }
+                    
+                    Text(
+                        text = "Forgot password?",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = BrandOrange,
+                        modifier = Modifier.clickable { onNavigateToForgotPassword() }
+                    )
+                }
+                
+                Column(verticalArrangement = Arrangement.spacedBy(28.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            googleSignInLauncher.launch(googleAuthManager.getSignInIntent())
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(74.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF120D26)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BrandOrange)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.align(Alignment.CenterStart)
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            Checkbox(
-                                checked = rememberMe,
-                                onCheckedChange = { rememberMe = it },
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = MaterialTheme.colorScheme.primary,
-                                    uncheckedColor = MaterialTheme.colorScheme.outline
-                                )
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_google_logo),
+                                contentDescription = "Google",
+                                modifier = Modifier.size(26.dp)
                             )
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Ghi nhớ đăng nhập",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        
-                        TextButton(
-                            onClick = onNavigateToForgotPassword,
-                            modifier = Modifier.align(Alignment.CenterEnd)
-                        ) {
-                            Text(
-                                text = "Quên mật khẩu?",
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium
+                                text = "Login with Google",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF120D26).copy(alpha = 0.6f)
                             )
                         }
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Login button
                 Button(
                     onClick = {
-                        // Kiểm tra email
                         emailError = ValidationUtils.validateEmail(email)
                         passwordError = ValidationUtils.validatePassword(password)
                         
@@ -305,144 +374,48 @@ fun LoginScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(28.dp),
+                        .height(74.dp)
+                        .shadow(
+                            elevation = 10.dp,
+                            shape = RoundedCornerShape(20.dp),
+                            spotColor = BrandOrange.copy(alpha = 0.2f)
+                        ),
+                    shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = 4.dp,
-                        pressedElevation = 8.dp
+                        containerColor = BrandOrange
                     ),
                     enabled = authState !is AuthState.Loading
                 ) {
                     if (authState is AuthState.Loading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.5.dp
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White
                         )
                     } else {
                         Text(
-                            text = "Đăng nhập",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                // Divider
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    HorizontalDivider(
-                        modifier = Modifier.weight(1f),
-                        thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-                    )
-                    
-                    Text(
-                        text = "hoặc",
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    
-                    HorizontalDivider(
-                        modifier = Modifier.weight(1f),
-                        thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                // Social login buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    SocialLoginButton(
-                        icon = Icons.Rounded.Email, 
-                        label = "Google",
-                        onClick = { 
-                            googleSignInLauncher.launch(googleAuthManager.getSignInIntent())
-                        },
-                        color = Color(0xFFDB4437)
-                    )
-                    
-                    SocialLoginButton(
-                        icon = Icons.Rounded.Email, 
-                        label = "Facebook",
-                        onClick = { /* Handle Facebook login */ },
-                        color = Color(0xFF3b5998)
-                    )
-                    
-                    SocialLoginButton(
-                        icon = Icons.Rounded.Email, 
-                        label = "Apple",
-                        onClick = { /* Handle Apple login */ },
-                        color = Color(0xFF000000)
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                // Register link
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Chưa có tài khoản? ",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    TextButton(onClick = onNavigateToRegister) {
-                        Text(
-                            text = "Đăng ký ngay",
-                            style = MaterialTheme.typography.bodyLarge,
+                            text = "LOG IN",
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = Color.White,
+                            letterSpacing = 0.72.sp
                         )
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Don't have an account? Sign Up",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8C8CA1),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToRegister() }
+                        .padding(vertical = 16.dp),
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
-        }
-    }
-}
-
-@Composable
-fun SocialLoginButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    color: Color
-) {
-    OutlinedButton(
-        onClick = onClick,
-        shape = CircleShape,
-        modifier = Modifier.size(54.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = color.copy(alpha = 0.1f),
-            contentColor = color
-        )
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = color
-        )
     }
 } 
