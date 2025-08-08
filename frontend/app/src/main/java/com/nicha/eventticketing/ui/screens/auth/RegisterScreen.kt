@@ -1,12 +1,11 @@
 package com.nicha.eventticketing.ui.screens.auth
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,48 +18,36 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.rounded.Email
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Phone
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Snackbar
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -68,20 +55,26 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.nicha.eventticketing.ui.components.inputs.CustomTextField
+import com.nicha.eventticketing.R
+import com.nicha.eventticketing.data.auth.GoogleAuthManager
+import com.nicha.eventticketing.data.auth.GoogleSignInResult
+import com.nicha.eventticketing.ui.theme.BrandOrange
 import com.nicha.eventticketing.util.ValidationUtils
 import com.nicha.eventticketing.viewmodel.AuthState
 import com.nicha.eventticketing.viewmodel.AuthViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import androidx.compose.animation.core.tween
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
     onNavigateToLogin: () -> Unit,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    googleAuthManager: GoogleAuthManager = com.nicha.eventticketing.data.auth.GoogleAuthManager(LocalContext.current)
 ) {
+    val authState by viewModel.authState.collectAsState()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
@@ -94,322 +87,484 @@ fun RegisterScreen(
     var phoneNumberError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
-    var termsError by remember { mutableStateOf<String?>(null) }
     
-    var showContent by remember { mutableStateOf(false) }
-    var showSuccessMessage by remember { mutableStateOf(false) }
-    var successMessage by remember { mutableStateOf("") }
-    
-    val authState by viewModel.authState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
-    val focusManager = LocalFocusManager.current
-    
-    // Animation effect
-    LaunchedEffect(Unit) {
-        delay(100)
-        showContent = true
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val signInResult = googleAuthManager.handleSignInResult(result)
+        when (signInResult) {
+            is GoogleSignInResult.Success -> {
+                val account = signInResult.account
+                viewModel.loginWithGoogle(
+                    idToken = account.idToken ?: "",
+                    email = account.email ?: "",
+                    name = account.displayName ?: "",
+                    profilePictureUrl = account.photoUrl?.toString()
+                )
+            }
+            is GoogleSignInResult.Error -> {
+                Toast.makeText(context, "Google Sign-In failed: ${signInResult.message}", Toast.LENGTH_SHORT).show()
+            }
+            is GoogleSignInResult.Cancelled -> {
+                Toast.makeText(context, "Google Sign-In cancelled", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
     
-    // Observe auth state
     LaunchedEffect(authState) {
-        when (authState) {
+        when (val state = authState) {
+            is AuthState.Authenticated -> {
+                onRegisterSuccess()
+            }
             is AuthState.RegistrationSuccess -> {
-                showSuccessMessage = true
-                successMessage = (authState as AuthState.RegistrationSuccess).message
-                delay(2000) // Hiển thị thông báo thành công trong 2 giây
                 onRegisterSuccess()
             }
             is AuthState.Error -> {
-                coroutineScope.launch {
-                    snackbarHostState.showSnackbar((authState as AuthState.Error).message)
-                    viewModel.resetError()
-                }
+                snackbarHostState.showSnackbar(state.message)
             }
             else -> {}
         }
     }
     
-    Box(
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
-    ) {
-        AnimatedVisibility(
-            visible = showContent,
-            enter = fadeIn() + slideInVertically(
-                initialOffsetY = { it / 2 },
-                animationSpec = tween(durationMillis = 300)
-            ),
-            exit = fadeOut()
+                .padding(paddingValues)
+                .background(Color(0xFFFAFAFA))
         ) {
+            // Top Navigation with Back Button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+            ) {
+                IconButton(
+                    onClick = { /* TODO: Navigate back */ },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .align(Alignment.TopStart)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color(0xFF1E1E1E),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            
+            // Main Content
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 24.dp)
                     .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
+                verticalArrangement = Arrangement.spacedBy(32.dp)
             ) {
-                Spacer(modifier = Modifier.height(40.dp))
-                
-                // Logo
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.secondary,
-                                    MaterialTheme.colorScheme.tertiary
-                                )
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
+                // Header Section
+                Column {
                     Text(
-                        text = "ET",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onSecondary,
-                        fontWeight = FontWeight.Bold
+                        text = "Sign up to Evento !",
+                        fontSize = 40.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF19171C),
+                        letterSpacing = (-0.8).sp
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Header
+                // Welcome Text
                 Text(
-                    text = "Tạo tài khoản",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    text = "We are glad to have you",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8C8CA1)
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
-                
+                // Registration Form Fields
+                Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    // Full Name Field
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    text = "Đăng ký để khám phá các sự kiện hấp dẫn",
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                // Success message
-                AnimatedVisibility(visible = showSuccessMessage) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                            text = "Full Name",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF8C8CA1)
                         )
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                        
+                        androidx.compose.material3.TextField(
+                            value = fullName,
+                            onValueChange = { 
+                                fullName = it
+                                fullNameError = null
+                            },
+                            placeholder = {
+                                Text(
+                                    text = "Enter your full name",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color(0xFF19171C).copy(alpha = 0.4f)
+                                )
+                            },
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color(0xFF19171C)
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                focusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                                unfocusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                imeAction = ImeAction.Next
+                            ),
+                            isError = fullNameError != null,
+                            singleLine = true
+                        )
+                        
+                        if (fullNameError != null) {
                             Text(
-                                text = "Đăng ký thành công!",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            Text(
-                                text = successMessage,
-                                style = MaterialTheme.typography.bodyMedium,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                text = fullNameError!!,
+                                color = Color(0xFFE74C3C),
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 16.dp)
                             )
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-                
-                // Registration form card
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // Full name field
-                        CustomTextField(
-                            value = fullName,
-                            onValueChange = { 
-                                fullName = it
-                                fullNameError = ValidationUtils.validateFullName(it)
-                            },
-                            label = "Họ và tên",
-                            placeholder = "Nhập họ và tên của bạn",
-                            error = fullNameError,
-                            keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Next,
-                            keyboardActions = KeyboardActions(
-                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                            ),
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Person,
-                                    contentDescription = "Person Icon",
-                                    tint = MaterialTheme.colorScheme.secondary
-                                )
-                            }
+                    // Email Field
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            text = "Email",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF8C8CA1)
                         )
                         
-                        // Email field
-                        CustomTextField(
+                        androidx.compose.material3.TextField(
                             value = email,
                             onValueChange = { 
                                 email = it
-                                emailError = ValidationUtils.validateEmail(it)
+                                emailError = null
                             },
-                            label = "Email",
-                            placeholder = "Nhập email của bạn",
-                            error = emailError,
-                            keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next,
-                            keyboardActions = KeyboardActions(
-                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                            ),
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Email,
-                                    contentDescription = "Email Icon",
-                                    tint = MaterialTheme.colorScheme.secondary
+                            placeholder = {
+                                Text(
+                                    text = "sample@gmail.com",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color(0xFF19171C).copy(alpha = 0.4f)
                                 )
-                            }
+                            },
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color(0xFF19171C)
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                focusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                                unfocusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent
+                            ),
+                            trailingIcon = {
+                                if (email.isNotEmpty() && ValidationUtils.validateEmail(email) == null) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_check_green),
+                                        contentDescription = "Valid email",
+                                        tint = Color(0xFF25D36C),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next
+                            ),
+                            isError = emailError != null,
+                            singleLine = true
                         )
                         
-                        // Phone number field
-                        CustomTextField(
+                        if (emailError != null) {
+                            Text(
+                                text = emailError!!,
+                                color = Color(0xFFE74C3C),
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+                    }
+                    
+                    // Phone Number Field
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            text = "Phone Number",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF8C8CA1)
+                        )
+                        
+                        androidx.compose.material3.TextField(
                             value = phoneNumber,
                             onValueChange = { 
                                 phoneNumber = it
-                                phoneNumberError = ValidationUtils.validatePhoneNumber(it)
+                                phoneNumberError = null
                             },
-                            label = "Số điện thoại",
-                            placeholder = "Nhập số điện thoại của bạn",
-                            error = phoneNumberError,
-                            keyboardType = KeyboardType.Phone,
-                            imeAction = ImeAction.Next,
-                            keyboardActions = KeyboardActions(
-                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                            ),
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Phone,
-                                    contentDescription = "Phone Icon",
-                                    tint = MaterialTheme.colorScheme.secondary
+                            placeholder = {
+                                Text(
+                                    text = "Enter your phone number",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color(0xFF19171C).copy(alpha = 0.4f)
                                 )
-                            }
+                            },
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color(0xFF19171C)
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                focusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                                unfocusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Phone,
+                                imeAction = ImeAction.Next
+                            ),
+                            isError = phoneNumberError != null,
+                            singleLine = true
                         )
                         
-                        // Password field
-                        CustomTextField(
+                        if (phoneNumberError != null) {
+                            Text(
+                                text = phoneNumberError!!,
+                                color = Color(0xFFE74C3C),
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+                    }
+                    
+                    // Password Field
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            text = "Password",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF8C8CA1)
+                        )
+                        
+                        androidx.compose.material3.TextField(
                             value = password,
                             onValueChange = { 
                                 password = it
-                                passwordError = ValidationUtils.validatePassword(it)
+                                passwordError = null
                                 if (confirmPassword.isNotEmpty()) {
                                     confirmPasswordError = ValidationUtils.validateConfirmPassword(confirmPassword, it)
                                 }
                             },
-                            label = "Mật khẩu",
-                            placeholder = "Nhập mật khẩu của bạn",
-                            error = passwordError,
-                            isPassword = true,
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Next,
-                            keyboardActions = KeyboardActions(
-                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                            ),
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Lock,
-                                    contentDescription = "Password Icon",
-                                    tint = MaterialTheme.colorScheme.secondary
+                            placeholder = {
+                                Text(
+                                    text = "Enter your password",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color(0xFF19171C).copy(alpha = 0.4f)
                                 )
-                            }
+                            },
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color(0xFF19171C)
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                focusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                                unfocusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Next
+                            ),
+                            isError = passwordError != null,
+                            singleLine = true
                         )
                         
-                        // Confirm password field
-                        CustomTextField(
+                        if (passwordError != null) {
+                            Text(
+                                text = passwordError!!,
+                                color = Color(0xFFE74C3C),
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+                    }
+                    
+                    // Confirm Password Field
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            text = "Confirm Password",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF8C8CA1)
+                        )
+                        
+                        androidx.compose.material3.TextField(
                             value = confirmPassword,
                             onValueChange = { 
                                 confirmPassword = it
                                 confirmPasswordError = ValidationUtils.validateConfirmPassword(it, password)
                             },
-                            label = "Xác nhận mật khẩu",
-                            placeholder = "Nhập lại mật khẩu của bạn",
-                            error = confirmPasswordError,
-                            isPassword = true,
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done,
-                            keyboardActions = KeyboardActions(
-                                onDone = { focusManager.clearFocus() }
-                            ),
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Lock,
-                                    contentDescription = "Confirm Password Icon",
-                                    tint = MaterialTheme.colorScheme.secondary
+                            placeholder = {
+                                Text(
+                                    text = "Confirm your password",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color(0xFF19171C).copy(alpha = 0.4f)
                                 )
-                            }
+                            },
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color(0xFF19171C)
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                focusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                                unfocusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            isError = confirmPasswordError != null,
+                            singleLine = true
                         )
                         
-                        // Terms and conditions
-                        Row(
-                            verticalAlignment = Alignment.Top,
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                        ) {
-                            Checkbox(
-                                checked = acceptTerms,
-                                onCheckedChange = { 
-                                    acceptTerms = it
-                                    termsError = if (it) null else "Bạn phải đồng ý với điều khoản sử dụng"
-                                },
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = MaterialTheme.colorScheme.secondary,
-                                    uncheckedColor = MaterialTheme.colorScheme.outline
-                                ),
-                                modifier = Modifier.padding(top = 2.dp)
+                        if (confirmPasswordError != null) {
+                            Text(
+                                text = confirmPasswordError!!,
+                                color = Color(0xFFE74C3C),
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 16.dp)
                             )
-                            
-                            Column {
-                                Text(
-                                    text = "Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                
-                                if (termsError != null) {
-                                    Text(
-                                        text = termsError!!,
-                                        color = MaterialTheme.colorScheme.error,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.padding(top = 4.dp)
-                                    )
-                                }
-                            }
                         }
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(24.dp))
+                // Terms and Conditions
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    androidx.compose.material3.Checkbox(
+                        checked = acceptTerms,
+                        onCheckedChange = { acceptTerms = it },
+                        colors = androidx.compose.material3.CheckboxDefaults.colors(
+                            checkedColor = BrandOrange,
+                            uncheckedColor = Color(0xFF8C8CA1)
+                        ),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Text(
+                        text = "By signing up, I confirm I accept the Terms of Use",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF19171C),
+                        letterSpacing = 0.42.sp
+                    )
+                }
                 
-                // Register button
+                // Social Sign Up Buttons
+                Column(verticalArrangement = Arrangement.spacedBy(28.dp)) {
+                    // Google Sign Up
+                    OutlinedButton(
+                        onClick = {
+                            googleSignInLauncher.launch(googleAuthManager.getSignInIntent())
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(74.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF120D26)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BrandOrange)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_google_logo),
+                                contentDescription = "Google",
+                                modifier = Modifier.size(26.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                text = "Sign up with Google",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF120D26).copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                    
+                    // Apple Sign Up
+                    OutlinedButton(
+                        onClick = { /* TODO: Implement Apple Sign-In */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(74.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF120D26)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BrandOrange)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_apple_logo),
+                                contentDescription = "Apple",
+                                modifier = Modifier.size(26.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Sign up with Apple ID",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF120D26).copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                }
+                
+                // Sign Up Button
                 Button(
                     onClick = {
                         fullNameError = ValidationUtils.validateFullName(fullName)
@@ -417,75 +572,59 @@ fun RegisterScreen(
                         phoneNumberError = ValidationUtils.validatePhoneNumber(phoneNumber)
                         passwordError = ValidationUtils.validatePassword(password)
                         confirmPasswordError = ValidationUtils.validateConfirmPassword(confirmPassword, password)
-                        termsError = if (acceptTerms) null else "Bạn phải đồng ý với điều khoản sử dụng"
                         
                         if (fullNameError == null && emailError == null && phoneNumberError == null && 
-                            passwordError == null && confirmPasswordError == null && termsError == null) {
+                            passwordError == null && confirmPasswordError == null && acceptTerms) {
                             viewModel.register(fullName, email, password, phoneNumber)
+                        } else if (!acceptTerms) {
+                            Toast.makeText(context, "Please accept the Terms of Use", Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(28.dp),
+                        .height(74.dp)
+                        .shadow(
+                            elevation = 10.dp,
+                            shape = RoundedCornerShape(20.dp),
+                            spotColor = BrandOrange.copy(alpha = 0.2f)
+                        ),
+                    shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = 4.dp,
-                        pressedElevation = 8.dp
+                        containerColor = BrandOrange
                     ),
                     enabled = authState !is AuthState.Loading
                 ) {
                     if (authState is AuthState.Loading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onSecondary,
-                            strokeWidth = 2.5.dp
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White
                         )
                     } else {
                         Text(
-                            text = "Đăng ký",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Login link
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Đã có tài khoản? ",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    TextButton(onClick = onNavigateToLogin) {
-                        Text(
-                            text = "Đăng nhập",
-                            style = MaterialTheme.typography.bodyLarge,
+                            text = "SIGN UP",
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.secondary
+                            color = Color.White,
+                            letterSpacing = 0.72.sp
                         )
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(40.dp))
+                // Login Link
+                    Text(
+                    text = "Got an account? Log in",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8C8CA1),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToLogin() }
+                        .padding(vertical = 16.dp),
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
-        
-        // Snackbar for errors
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
-        )
     }
 } 
