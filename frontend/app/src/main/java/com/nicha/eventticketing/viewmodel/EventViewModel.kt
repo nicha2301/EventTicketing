@@ -31,6 +31,10 @@ class EventViewModel @Inject constructor(
     private val _upcomingEventsState = MutableStateFlow<ResourceState<List<EventDto>>>(ResourceState.Initial)
     val upcomingEventsState: StateFlow<ResourceState<List<EventDto>>> = _upcomingEventsState.asStateFlow()
     
+    // State cho danh sách tất cả sự kiện
+    private val _allEventsState = MutableStateFlow<ResourceState<List<EventDto>>>(ResourceState.Initial)
+    val allEventsState: StateFlow<ResourceState<List<EventDto>>> = _allEventsState.asStateFlow()
+    
     // State cho chi tiết sự kiện
     private val _eventDetailState = MutableStateFlow<ResourceState<EventDto>>(ResourceState.Initial)
     val eventDetailState: StateFlow<ResourceState<EventDto>> = _eventDetailState.asStateFlow()
@@ -107,6 +111,35 @@ class EventViewModel @Inject constructor(
                     }
                     is Resource.Loading -> {
                         _upcomingEventsState.value = ResourceState.Loading
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Lấy toàn bộ sự kiện
+     */
+    fun getAllEvents(page: Int = 0, size: Int = 100) {
+        _allEventsState.value = ResourceState.Loading
+        
+        viewModelScope.launch {
+            eventRepository.getEvents(page, size).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        val pageDto = result.data
+                        val events = pageDto?.content
+                        if (events != null) {
+                            _allEventsState.value = ResourceState.Success(events)
+                        } else {
+                            _allEventsState.value = ResourceState.Error("Không tìm thấy sự kiện")
+                        }
+                    }
+                    is Resource.Error -> {
+                        _allEventsState.value = ResourceState.Error(result.message ?: "Không thể lấy danh sách sự kiện")
+                    }
+                    is Resource.Loading -> {
+                        _allEventsState.value = ResourceState.Loading
                     }
                 }
             }
@@ -252,6 +285,12 @@ class EventViewModel @Inject constructor(
     fun resetSearchEventsError() {
         if (_searchEventsState.value is ResourceState.Error) {
             _searchEventsState.value = ResourceState.Initial
+        }
+    }
+    
+    fun resetAllEventsError() {
+        if (_allEventsState.value is ResourceState.Error) {
+            _allEventsState.value = ResourceState.Initial
         }
     }
     
