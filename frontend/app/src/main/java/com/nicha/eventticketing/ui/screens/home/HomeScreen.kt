@@ -1,68 +1,86 @@
 package com.nicha.eventticketing.ui.screens.home
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.exponentialDecay
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.zIndex
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.nicha.eventticketing.R
-import com.nicha.eventticketing.data.remote.dto.category.CategoryDto
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.domain.model.ResourceState
-import com.nicha.eventticketing.ui.components.EventCard
-import com.nicha.eventticketing.ui.components.skeleton.CategoryItemSkeleton
-import com.nicha.eventticketing.ui.components.skeleton.EventCardSkeleton
-import com.nicha.eventticketing.ui.components.skeleton.EventListItemSkeleton
+import com.nicha.eventticketing.ui.theme.BrandOrange
+import com.nicha.eventticketing.util.FormatUtils
+import com.nicha.eventticketing.util.NetworkStatusObserver
+import com.nicha.eventticketing.viewmodel.AuthViewModel
 import com.nicha.eventticketing.viewmodel.CategoryViewModel
 import com.nicha.eventticketing.viewmodel.EventViewModel
-import kotlinx.coroutines.launch
-import com.nicha.eventticketing.util.FormatUtils
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.ui.graphics.graphicsLayer
-import com.nicha.eventticketing.util.ImageUtils.getPrimaryImageUrl
-import com.nicha.eventticketing.ui.components.NotificationIconWithBadge
 import com.nicha.eventticketing.viewmodel.NotificationViewModel
-import com.nicha.eventticketing.util.NetworkStatusObserver
-import com.nicha.eventticketing.ui.theme.BrandOrange
-import com.nicha.eventticketing.viewmodel.AuthViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,50 +89,22 @@ fun HomeScreen(
     onSearchClick: () -> Unit,
     onTicketsClick: () -> Unit,
     onProfileClick: () -> Unit,
-    onExploreClick: () -> Unit,
-    onNotificationsClick: () -> Unit,
-    onCategoryClick: (String) -> Unit = {},
+    onNotificationClick: () -> Unit = {},
     eventViewModel: EventViewModel = hiltViewModel(),
     categoryViewModel: CategoryViewModel = hiltViewModel(),
     notificationViewModel: NotificationViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
-    val scrollState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-    
-    // Collect states from ViewModels
     val featuredEventsState by eventViewModel.featuredEventsState.collectAsState()
     val upcomingEventsState by eventViewModel.upcomingEventsState.collectAsState()
-    val categoriesState by categoryViewModel.categoriesState.collectAsState()
-    val categoryEventsState by eventViewModel.categoryEventsState.collectAsState()
     val allEventsState by eventViewModel.allEventsState.collectAsState()
-    val selectedCategoryId by eventViewModel.selectedCategoryId.collectAsState()
-    val unreadCountState by notificationViewModel.unreadCountState.collectAsState()
-    
-    val isFeaturedLoading = featuredEventsState is ResourceState.Loading
-    val isUpcomingLoading = upcomingEventsState is ResourceState.Loading
-    val isCategoriesLoading = categoriesState is ResourceState.Loading
-    val isCategoryEventsLoading = categoryEventsState is ResourceState.Loading
-    
-    val featuredError = if (featuredEventsState is ResourceState.Error) 
-                          (featuredEventsState as ResourceState.Error).message else null
-    val upcomingError = if (upcomingEventsState is ResourceState.Error) 
-                          (upcomingEventsState as ResourceState.Error).message else null
-    val categoriesError = if (categoriesState is ResourceState.Error) 
-                          (categoriesState as ResourceState.Error).message else null
-    val categoryEventsError = if (categoryEventsState is ResourceState.Error) 
-                          (categoryEventsState as ResourceState.Error).message else null
-    
-    val unreadCount = if (unreadCountState is ResourceState.Success) {
-        (unreadCountState as ResourceState.Success).data.unreadCount
-    } else 0
     val currentUser by authViewModel.currentUser.collectAsState()
-    
+
     val context = LocalContext.current
     val isOnline by NetworkStatusObserver.observe(context).collectAsState(initial = true)
-    
+
     LaunchedEffect(isOnline) { eventViewModel.setNetworkStatus(isOnline) }
-    
+
     LaunchedEffect(isOnline) {
         eventViewModel.getFeaturedEvents()
         eventViewModel.getUpcomingEvents()
@@ -122,24 +112,16 @@ fun HomeScreen(
         categoryViewModel.getCategories()
         notificationViewModel.getUnreadNotificationCount()
     }
-    
-    val categories = when (categoriesState) {
-        is ResourceState.Success -> {
-            (categoriesState as ResourceState.Success<List<CategoryDto>>).data
-        }
-        else -> emptyList()
-    }
-    
+
     Scaffold(
         containerColor = Color(0xFFFAFAFA),
         topBar = {},
         bottomBar = {
             HomeBottomNavBar(
                 onHomeClick = {},
-                onSearchClick = onSearchClick,
+                onNotificationClick = onNotificationClick,
                 onTicketsClick = onTicketsClick,
                 onProfileClick = onProfileClick,
-                onNotificationsClick = onNotificationsClick
             )
         }
     ) { paddingValues ->
@@ -149,32 +131,32 @@ fun HomeScreen(
                 .padding(paddingValues),
             horizontalAlignment = Alignment.Start
         ) {
-            // Header: avatar + greeting (user name) + search icon
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
                     .height(96.dp)
                     .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     AvatarWithBadge(
                         imageUrl = currentUser?.profilePictureUrl,
                         onClick = onProfileClick
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                        text = "Hi, " + (currentUser?.fullName?.substringBefore(" ")?.takeIf { it.isNotBlank() } ?: "Bạn"),
+                    Text(
+                        text = "Hi, " + (currentUser?.fullName?.substringBefore(" ")
+                            ?.takeIf { it.isNotBlank() } ?: "Bạn"),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF1E1E1E)
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     IconButton(onClick = onSearchClick) {
-                    Icon(
+                        Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "Search",
                             tint = Color(0xFF1E1E1E)
@@ -186,54 +168,65 @@ fun HomeScreen(
                 allEventsState is ResourceState.Success -> {
                     (allEventsState as ResourceState.Success<List<EventDto>>).data.map { e ->
                         val price = FormatUtils.formatEventPrice(e.minTicketPrice, e.isFree)
+                        val img = e.imageUrls.firstOrNull()
                         EventUi(
                             id = e.id,
                             title = e.title,
                             location = e.locationName,
                             priceText = price,
-                            startDate = e.startDate
+                            startDate = e.startDate,
+                            imageUrl = img
                         )
                     }
                 }
+
                 featuredEventsState is ResourceState.Success -> {
                     (featuredEventsState as ResourceState.Success<List<EventDto>>).data.map { e ->
                         val price = FormatUtils.formatEventPrice(e.minTicketPrice, e.isFree)
+                        val img = e.featuredImageUrl?.takeIf { it.isNotBlank() }
+                            ?: e.imageUrls.firstOrNull()
                         EventUi(
                             id = e.id,
                             title = e.title,
                             location = e.locationName,
                             priceText = price,
-                            startDate = e.startDate
+                            startDate = e.startDate,
+                            imageUrl = img
                         )
                     }
                 }
+
                 upcomingEventsState is ResourceState.Success -> {
                     (upcomingEventsState as ResourceState.Success<List<EventDto>>).data.map { e ->
                         val price = FormatUtils.formatEventPrice(e.minTicketPrice, e.isFree)
+                        val img = e.featuredImageUrl?.takeIf { it.isNotBlank() }
+                            ?: e.imageUrls.firstOrNull()
                         EventUi(
                             id = e.id,
                             title = e.title,
                             location = e.locationName,
                             priceText = price,
-                            startDate = e.startDate
+                            startDate = e.startDate,
+                            imageUrl = img
                         )
                     }
                 }
+
                 else -> emptyList()
             }
             val cardData = apiEvents
-                        
-                        Box(
-                        modifier = Modifier
-                            .fillMaxWidth() 
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .offset(y = (-8).dp)
             ) {
                 CardStack(
                     events = cardData,
                     onEventClick = onEventClick,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .height(620.dp)
                 )
             }
@@ -246,7 +239,7 @@ fun HomeScreen(
                 color = Color.Black.copy(alpha = 0.2f),
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
-                        
+
             Spacer(modifier = Modifier.height(120.dp))
         }
     }
@@ -257,7 +250,8 @@ private data class EventUi(
     val title: String,
     val location: String,
     val priceText: String,
-    val startDate: String
+    val startDate: String,
+    val imageUrl: String?
 )
 
 @Composable
@@ -266,7 +260,6 @@ private fun CardStack(
     onEventClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     maxShown: Int = 3,
-    swipeThreshold: Float = 120f 
 ) {
     var topIndex by remember { mutableStateOf(0) }
     val total = events.size
@@ -296,8 +289,12 @@ private fun CardStack(
                 else -> 26.dp
             }
 
-            val initialAngle = when (i) { 1 -> -6f; 2 -> 6f; else -> 0f }
-            val initialTranslateX = when (i) { 1 -> (-20).dp; 2 -> 20.dp; else -> 0.dp }
+            val initialAngle = when (i) {
+                1 -> -6f; 2 -> 6f; else -> 0f
+            }
+            val initialTranslateX = when (i) {
+                1 -> (-20).dp; 2 -> 20.dp; else -> 0.dp
+            }
             val progressFactor = if (i == 1) (1 - dragProgress) else 1f
             val baseRotation = initialAngle * progressFactor
             val baseTranslateX = density.run { initialTranslateX.toPx() * progressFactor }
@@ -342,10 +339,13 @@ private fun SwipeableCard(
     val screenHeight = configuration.screenHeightDp * LocalDensity.current.density
     val thresholdPx = minOf(screenWidth, screenHeight) * 0.45f
     var isDragging by remember { mutableStateOf(false) }
-    val elevation by animateDpAsState(targetValue = if (isDragging && isTop) 24.dp else 8.dp, label = "card-elev")
-                        
+    val elevation by animateDpAsState(
+        targetValue = if (isDragging && isTop) 8.dp else 4.dp,
+        label = "card-elev"
+    )
+
     Box(
-            modifier = Modifier
+        modifier = Modifier
             .fillMaxSize(0.95f)
             .zIndex(if (isTop) 3f else if (scale > 0.95f) 2f else 1f)
             .graphicsLayer {
@@ -386,10 +386,16 @@ private fun SwipeableCard(
                                 }
                             } else {
                                 scope.launch {
-                                    animX.animateTo(0f, animationSpec = spring(stiffness = Spring.StiffnessMedium))
+                                    animX.animateTo(
+                                        0f,
+                                        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                                    )
                                 }
                                 scope.launch {
-                                    animY.animateTo(0f, animationSpec = spring(stiffness = Spring.StiffnessMedium))
+                                    animY.animateTo(
+                                        0f,
+                                        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                                    )
                                 }
                                 onDragProgress(0f)
                             }
@@ -397,7 +403,10 @@ private fun SwipeableCard(
                     )
                 } else Modifier
             )
-            .clickable(enabled = isTop && !isDragging, indication = null, interactionSource = remember { MutableInteractionSource() }) {
+            .clickable(
+                enabled = isTop && !isDragging,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }) {
                 onCardClick(event.id)
             }
     ) {
@@ -406,6 +415,7 @@ private fun SwipeableCard(
             location = event.location,
             priceText = event.priceText,
             startDate = event.startDate,
+            imageUrl = event.imageUrl,
             elevation = elevation
         )
     }
@@ -414,41 +424,130 @@ private fun SwipeableCard(
 @Composable
 private fun HomeBottomNavBar(
     onHomeClick: () -> Unit,
-    onSearchClick: () -> Unit,
+    onNotificationClick: () -> Unit,
     onTicketsClick: () -> Unit,
     onProfileClick: () -> Unit,
-    onNotificationsClick: () -> Unit
 ) {
-    Surface(shadowElevation = 6.dp) {
-        Column {
-            HorizontalDivider(color = Color(0xFFDADADA), thickness = 1.dp)
-            NavigationBar(containerColor = Color.White) {
-                NavigationBarItem(
-                    selected = true,
-                    onClick = onHomeClick,
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home") }
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth(),
+        color = Color(0xFFFFFFFF),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E5E5))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Home (Active)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.home),
+                    contentDescription = "Home",
+                    tint = Color(0xFF171924),
+                    modifier = Modifier.size(24.dp)
                 )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onSearchClick,
-                    icon = { Icon(Icons.Default.DynamicFeed, contentDescription = "Feed") },
-                    label = { Text("Feed") }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Home",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF171924)
                 )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onTicketsClick,
-                    icon = { Icon(Icons.Default.ConfirmationNumber, contentDescription = "Tickets") },
-                    label = { Text("Ticket") }
+            }
+
+            // Notification
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(bounded = true, radius = 28.dp)
+                    ) { onNotificationClick() }
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.bell),
+                    contentDescription = "Notification",
+                    tint = Color(0xFFA9A9A9),
+                    modifier = Modifier.size(24.dp)
                 )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onProfileClick,
-                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                    label = { Text("Profile") }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Notification",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color(0xFFA9A9A9)
+                )
+            }
+
+            // Ticket
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(bounded = true, radius = 28.dp)
+                    ) { onTicketsClick() }
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ticket),
+                    contentDescription = "Ticket",
+                    tint = Color(0xFFA9A9A9),
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Ticket",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color(0xFFA9A9A9)
+                )
+            }
+
+            // Profile
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(bounded = true, radius = 28.dp)
+                    ) { onProfileClick() }
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.user),
+                    contentDescription = "Profile",
+                    tint = Color(0xFFA9A9A9),
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Profile",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color(0xFFA9A9A9)
                 )
             }
         }
+        Spacer(
+            modifier = Modifier.height(
+                with(LocalDensity.current) {
+                    WindowInsets.navigationBars.getBottom(this).toDp() + 70.dp
+                }
+            )
+        )
     }
 }
 
@@ -459,9 +558,9 @@ private fun AvatarWithBadge(
 ) {
     Box(
         modifier = Modifier
-        .size(48.dp)
-        .clip(CircleShape)
-        .clickable(onClick = onClick)
+            .size(48.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
     ) {
         if (!imageUrl.isNullOrBlank()) {
             AsyncImage(
@@ -513,11 +612,17 @@ private fun DateBadge(startDate: String) {
         ) {
             val (monthText, dayText) = remember(startDate) {
                 try {
-                    val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+                    val inputFormat = java.text.SimpleDateFormat(
+                        "yyyy-MM-dd HH:mm:ss",
+                        java.util.Locale.getDefault()
+                    )
                     val date = inputFormat.parse(startDate)
                     if (date != null) {
-                        val month = java.text.SimpleDateFormat("MMM", java.util.Locale.ENGLISH).format(date).uppercase(java.util.Locale.ENGLISH)
-                        val day = java.text.SimpleDateFormat("dd", java.util.Locale.getDefault()).format(date)
+                        val month =
+                            java.text.SimpleDateFormat("MMM", java.util.Locale.ENGLISH).format(date)
+                                .uppercase(java.util.Locale.ENGLISH)
+                        val day = java.text.SimpleDateFormat("dd", java.util.Locale.getDefault())
+                            .format(date)
                         month to day
                     } else {
                         "" to ""
@@ -526,8 +631,17 @@ private fun DateBadge(startDate: String) {
                     "" to ""
                 }
             }
-            Text(text = monthText, style = MaterialTheme.typography.labelSmall, color = Color(0xFF9DA3AF))
-            Text(text = dayText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF111827))
+            Text(
+                text = monthText,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF9DA3AF)
+            )
+            Text(
+                text = dayText,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF111827)
+            )
         }
     }
 }
@@ -538,450 +652,125 @@ private fun HeroEventCard(
     location: String,
     priceText: String,
     startDate: String,
-    elevation: Dp = 6.dp
+    imageUrl: String?,
+    elevation: Dp = 4.dp
 ) {
     Box(modifier = Modifier.padding(horizontal = 8.dp)) {
+        // Hiệu ứng thẻ chồng thẻ: 2 lớp mờ phía sau (tăng shadow bottom và góc)
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxSize()
                 .clip(RoundedCornerShape(24.dp))
-                .background(Color(0x1A000000))
-                .offset(y = 18.dp)
+                .background(Color(0x20000000))
+                .offset(y = 20.dp)
         )
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxSize(0.95f)
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color(0x14000000))
-                .offset(y = 9.dp)
+                .background(Color(0x15000000))
+                .offset(y = 10.dp)
         )
 
         Card(
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        modifier = Modifier
-            .fillMaxSize()
-        ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            val context = LocalContext.current
-            val imageResId = com.nicha.eventticketing.R.drawable.rectangle_4168
-            if (imageResId != 0) {
-                androidx.compose.foundation.Image(
-                    painter = painterResource(id = imageResId),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(Color(0xFF545454), Color(0xFFBDBDBD))
-                            )
-                        )
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                                    .fillMaxWidth()
-                                    .height(200.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colorStops = arrayOf(
-                                0.0f to Color.White.copy(alpha = 0.0f), 
-                                0.5f to Color.White.copy(alpha = 1.0f), 
-                                1.0f to Color.White.copy(alpha = 1.0f)  
-                            )
-                        )
-                    )
-            )
-
-            Box(modifier = Modifier.padding(16.dp)) { DateBadge(startDate) }
-                    
-                            Column(
-                    modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF111111)
-                )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(shape = RoundedCornerShape(12.dp), color = BrandOrange) {
-                        Text(
-                            text = priceText,
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF9DA3AF), modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = location, style = MaterialTheme.typography.bodySmall, color = Color(0xFF6B7280))
-                }
-            }
-            }
-        }
-    }
-}
-
-@Composable
-fun CategoryItem(
-    category: CategoryDto,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    fallbackIcon: ImageVector = Icons.Filled.Category
-) {
-    val context = LocalContext.current
-    val interactionSource = remember { MutableInteractionSource() }
-    
-    // Hiệu ứng scale khi được chọn
-    val scale = if (isSelected) 1.05f else 1f
-    
-    // Màu gradient cho nền khi được chọn
-    val backgroundBrush = if (isSelected) {
-        Brush.verticalGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.primary,
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-            )
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.surface,
-                MaterialTheme.colorScheme.surface
-            )
-        )
-    }
-    
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .width(80.dp)
-            .padding(vertical = 4.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-    ) {
-        Card(
-            modifier = Modifier
-                .size(64.dp)
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick
-                ),
-            shape = CircleShape,
+            shape = RoundedCornerShape(24.dp),
             elevation = CardDefaults.cardElevation(
-                defaultElevation = if (isSelected) 6.dp else 1.dp
+                defaultElevation = elevation,
+                pressedElevation = elevation,
+                focusedElevation = elevation,
+                hoveredElevation = elevation
             ),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isSelected) 
-                    MaterialTheme.colorScheme.primary 
-                else 
-                    MaterialTheme.colorScheme.surface
-            ),
-            border = BorderStroke(
-                width = if (isSelected) 0.dp else 0.5.dp,
-                color = if (isSelected) 
-                    MaterialTheme.colorScheme.primary 
-                else 
-                    MaterialTheme.colorScheme.outlineVariant
-            )
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(backgroundBrush),
-                contentAlignment = Alignment.Center
-            ) {
-                if (category.iconUrl != null) {
-                    // Sử dụng iconUrl từ API
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .padding(6.dp)
-                            .background(
-                                color = if (isSelected)
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                else
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(category.iconUrl)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = category.name,
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier
-                                .size(28.dp)
-                                .padding(4.dp),
-                            error = painterResource(id = R.drawable.ic_category_default)
-                        )
-                    }
-                } else {
-                    // Sử dụng biểu tượng fallback nếu không có iconUrl
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .padding(6.dp)
-                            .background(
-                                color = if (isSelected)
-                                    MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
-                                else
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = fallbackIcon,
-                            contentDescription = category.name,
-                            tint = if (isSelected) 
-                                MaterialTheme.colorScheme.onPrimary
-                            else 
-                                MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .size(24.dp)
-                        )
-                    }
-                }
-            }
-        }
-                
-        Spacer(modifier = Modifier.height(8.dp))
-                
-        Text(
-            text = category.name,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (isSelected) 
-                MaterialTheme.colorScheme.primary
-            else 
-                MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-        )
-    }
-} 
-
-@Composable
-fun EventListItem(
-    event: EventDto,
-    onClick: () -> Unit
-) {
-    val cardShape = RoundedCornerShape(16.dp)
-    val interactionSource = remember { MutableInteractionSource() }
-    
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 4.dp)
-            .clip(cardShape)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = cardShape,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(
-            width = 0.5.dp,
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
-    ) {
-        Row(
+            colors = CardDefaults.cardColors(containerColor = Color.White),
             modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min)
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
         ) {
-            // Event image with overlay gradient
-            Box(
-                modifier = Modifier
-                    .size(110.dp)
-                    .clip(RoundedCornerShape(12.dp))
-            ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(event.getPrimaryImageUrl())
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = event.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-                
-                // Gradient overlay
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (!imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(imageUrl)
+                            .crossfade(true)
+                            .build(),
+                        placeholder = painterResource(id = R.drawable.image_placeholder),
+                        error = painterResource(id = R.drawable.ic_broken_image),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // Fallback gradient khi không có ảnh
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(Color(0xFF545454), Color(0xFFBDBDBD))
+                                )
+                            )
+                    )
+                }
+
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
                         .background(
                             brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Black.copy(alpha = 0.1f),
-                                    Color.Black.copy(alpha = 0.3f)
-                                ),
-                                startY = 0f,
-                                endY = 300f
+                                colorStops = arrayOf(
+                                    0.0f to Color.White.copy(alpha = 0.0f),
+                                    0.5f to Color.White.copy(alpha = 1.0f),
+                                    1.0f to Color.White.copy(alpha = 1.0f)
+                                )
                             )
                         )
                 )
-                
-                // Status indicator
-                if (event.isFeatured || event.isFree) {
-                    Surface(
-                        shape = RoundedCornerShape(bottomEnd = 8.dp),
-                        color = when {
-                            event.isFeatured -> MaterialTheme.colorScheme.tertiary
-                            event.isFree -> MaterialTheme.colorScheme.secondary
-                            else -> MaterialTheme.colorScheme.primary
-                        },
-                        modifier = Modifier.align(Alignment.TopStart)
-                    ) {
-                        Text(
-                            text = when {
-                                event.isFeatured -> "Nổi bật"
-                                event.isFree -> "Miễn phí"
-                                else -> ""
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = when {
-                                event.isFeatured -> MaterialTheme.colorScheme.onTertiary
-                                event.isFree -> MaterialTheme.colorScheme.onSecondary
-                                else -> MaterialTheme.colorScheme.onPrimary
-                            },
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
-            
-            // Event details
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp)
-            ) {
-                // Title
-                Text(
-                    text = event.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Date and location
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 2.dp)
+
+                Box(modifier = Modifier.padding(16.dp)) { DateBadge(startDate) }
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .padding(16.dp)
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        modifier = Modifier.size(20.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarToday,
-                            contentDescription = "Date",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .padding(3.dp)
-                                .size(14.dp)
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.width(6.dp))
-                    
                     Text(
-                        text = FormatUtils.formatDate(event.startDate),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF111111)
                     )
-                }
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 2.dp)
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        modifier = Modifier.size(20.dp)
-                    ) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(shape = RoundedCornerShape(12.dp), color = BrandOrange) {
+                            Text(
+                                text = priceText,
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
-                            contentDescription = "Location",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .padding(3.dp)
-                                .size(14.dp)
+                            contentDescription = null,
+                            tint = Color(0xFF9DA3AF),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = location,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF6B7280)
                         )
                     }
-                    
-                    Spacer(modifier = Modifier.width(6.dp))
-                    
-                    Text(
-                        text = event.locationName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Price tag
-                val priceText = FormatUtils.formatEventPrice(event.minTicketPrice, event.isFree)
-                
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.align(Alignment.Start)
-                ) {
-                    Text(
-                        text = priceText,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
                 }
             }
         }
