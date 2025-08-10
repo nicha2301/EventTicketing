@@ -3,6 +3,7 @@ package com.nicha.eventticketing.ui.screens.auth
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -26,17 +26,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -46,18 +48,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.nicha.eventticketing.R
 import com.nicha.eventticketing.data.auth.GoogleAuthManager
 import com.nicha.eventticketing.data.auth.GoogleSignInResult
@@ -73,19 +74,21 @@ fun LoginScreen(
     onNavigateToForgotPassword: () -> Unit,
     onLoginSuccess: () -> Unit,
     viewModel: AuthViewModel,
-    googleAuthManager: GoogleAuthManager = com.nicha.eventticketing.data.auth.GoogleAuthManager(LocalContext.current)
+    googleAuthManager: GoogleAuthManager = GoogleAuthManager(
+        LocalContext.current
+    )
 ) {
     val authState by viewModel.authState.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(false) }
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
-    
+
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -100,33 +103,41 @@ fun LoginScreen(
                     profilePictureUrl = account.photoUrl?.toString()
                 )
             }
+
             is GoogleSignInResult.Error -> {
-                Toast.makeText(context, "Google Sign-In failed: ${signInResult.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    "Google Sign-In failed: ${signInResult.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
+
             is GoogleSignInResult.Cancelled -> {
                 Toast.makeText(context, "Google Sign-In cancelled", Toast.LENGTH_SHORT).show()
             }
         }
     }
-    
+
     LaunchedEffect(authState) {
         when (val state = authState) {
             is AuthState.Authenticated -> {
                 onLoginSuccess()
             }
+
             is AuthState.Error -> {
                 snackbarHostState.showSnackbar(state.message)
             }
+
             else -> {}
         }
     }
-    
+
     LaunchedEffect(currentUser) {
         if (currentUser != null) {
             onLoginSuccess()
         }
     }
-    
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
@@ -154,7 +165,7 @@ fun LoginScreen(
                     )
                 }
             }
-            
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -171,14 +182,14 @@ fun LoginScreen(
                         letterSpacing = (-0.8).sp
                     )
                 }
-                
+
                 Text(
                     text = "Welcome back!",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFF8C8CA1)
                 )
-                
+
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
                         text = "Email",
@@ -186,10 +197,10 @@ fun LoginScreen(
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF8C8CA1)
                     )
-                    
+
                     androidx.compose.material3.TextField(
                         value = email,
-                        onValueChange = { 
+                        onValueChange = {
                             email = it
                             emailError = null
                         },
@@ -201,13 +212,13 @@ fun LoginScreen(
                                 color = Color(0xFF19171C).copy(alpha = 0.4f)
                             )
                         },
-                        textStyle = androidx.compose.ui.text.TextStyle(
+                        textStyle = TextStyle(
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal,
                             color = Color(0xFF19171C)
                         ),
                         modifier = Modifier.fillMaxWidth(),
-                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                        colors = TextFieldDefaults.colors(
                             focusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
                             unfocusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
                             focusedContainerColor = Color.Transparent,
@@ -231,7 +242,7 @@ fun LoginScreen(
                         isError = emailError != null,
                         singleLine = true
                     )
-                    
+
                     if (emailError != null) {
                         Text(
                             text = emailError!!,
@@ -241,7 +252,7 @@ fun LoginScreen(
                         )
                     }
                 }
-                
+
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
                         text = "Password",
@@ -249,10 +260,10 @@ fun LoginScreen(
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF8C8CA1)
                     )
-                    
-                    androidx.compose.material3.TextField(
+
+                    TextField(
                         value = password,
-                        onValueChange = { 
+                        onValueChange = {
                             password = it
                             passwordError = null
                         },
@@ -264,13 +275,13 @@ fun LoginScreen(
                                 color = Color(0xFF19171C).copy(alpha = 0.4f)
                             )
                         },
-                        textStyle = androidx.compose.ui.text.TextStyle(
+                        textStyle = TextStyle(
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal,
                             color = Color(0xFF19171C)
                         ),
                         modifier = Modifier.fillMaxWidth(),
-                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                        colors = TextFieldDefaults.colors(
                             focusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
                             unfocusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
                             focusedContainerColor = Color.Transparent,
@@ -284,7 +295,7 @@ fun LoginScreen(
                         isError = passwordError != null,
                         singleLine = true
                     )
-                    
+
                     if (passwordError != null) {
                         Text(
                             text = passwordError!!,
@@ -294,7 +305,7 @@ fun LoginScreen(
                         )
                     }
                 }
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -303,10 +314,10 @@ fun LoginScreen(
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        androidx.compose.material3.Checkbox(
+                        Checkbox(
                             checked = rememberMe,
                             onCheckedChange = { rememberMe = it },
-                            colors = androidx.compose.material3.CheckboxDefaults.colors(
+                            colors = CheckboxDefaults.colors(
                                 checkedColor = BrandOrange,
                                 uncheckedColor = Color(0xFF8C8CA1)
                             )
@@ -318,7 +329,7 @@ fun LoginScreen(
                             color = Color(0xFF8C8CA1)
                         )
                     }
-                    
+
                     Text(
                         text = "Forgot password?",
                         fontSize = 14.sp,
@@ -327,7 +338,7 @@ fun LoginScreen(
                         modifier = Modifier.clickable { onNavigateToForgotPassword() }
                     )
                 }
-                
+
                 Column(verticalArrangement = Arrangement.spacedBy(28.dp)) {
                     OutlinedButton(
                         onClick = {
@@ -341,7 +352,7 @@ fun LoginScreen(
                             containerColor = Color.White,
                             contentColor = Color(0xFF120D26)
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BrandOrange)
+                        border = BorderStroke(1.dp, BrandOrange)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -362,12 +373,12 @@ fun LoginScreen(
                         }
                     }
                 }
-                
+
                 Button(
                     onClick = {
                         emailError = ValidationUtils.validateEmail(email)
                         passwordError = ValidationUtils.validatePassword(password)
-                        
+
                         if (emailError == null && passwordError == null) {
                             viewModel.login(email, password)
                         }
@@ -401,7 +412,7 @@ fun LoginScreen(
                         )
                     }
                 }
-                
+
                 Text(
                     text = "Don't have an account? Sign Up",
                     fontSize = 16.sp,
@@ -413,7 +424,7 @@ fun LoginScreen(
                         .padding(vertical = 16.dp),
                     textAlign = TextAlign.Center
                 )
-                
+
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }

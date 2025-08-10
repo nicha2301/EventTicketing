@@ -24,7 +24,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -63,22 +62,24 @@ fun ForgotPasswordScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var emailError by remember { mutableStateOf<String?>(null) }
-    
+
     val authState by viewModel.authState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     LaunchedEffect(authState) {
         when (val state = authState) {
             is AuthState.ForgotPasswordSuccess -> {
                 onResetLinkSent()
             }
+
             is AuthState.Error -> {
                 snackbarHostState.showSnackbar(state.message)
             }
+
             else -> {}
         }
     }
-    
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
@@ -91,7 +92,6 @@ fun ForgotPasswordScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
                 IconButton(
                     onClick = onNavigateBack,
@@ -107,7 +107,7 @@ fun ForgotPasswordScreen(
                     )
                 }
             }
-            
+
             // Main Content
             Column(
                 modifier = Modifier
@@ -126,7 +126,7 @@ fun ForgotPasswordScreen(
                         letterSpacing = (-0.8).sp
                     )
                 }
-                
+
                 // Description Text
                 Text(
                     text = "Don't worry! It happens. Please enter the email address associated with your account.",
@@ -135,7 +135,7 @@ fun ForgotPasswordScreen(
                     color = Color(0xFF8C8CA1),
                     lineHeight = 26.sp
                 )
-                
+
                 // Email Field
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
@@ -144,10 +144,10 @@ fun ForgotPasswordScreen(
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF8C8CA1)
                     )
-                    
+
                     androidx.compose.material3.TextField(
                         value = email,
-                        onValueChange = { 
+                        onValueChange = {
                             email = it
                             emailError = null
                         },
@@ -189,7 +189,7 @@ fun ForgotPasswordScreen(
                         isError = emailError != null,
                         singleLine = true
                     )
-                    
+
                     if (emailError != null) {
                         Text(
                             text = emailError!!,
@@ -199,7 +199,7 @@ fun ForgotPasswordScreen(
                         )
                     }
                 }
-                
+
                 // Success Message
                 if (authState is AuthState.ForgotPasswordSuccess) {
                     Box(
@@ -229,23 +229,23 @@ fun ForgotPasswordScreen(
                                     color = Color(0xFF19171C)
                                 )
                             }
-                            
+
                             Text(
                                 text = "We've sent a password reset link to your email address. Please check your inbox and follow the instructions to reset your password.",
                                 fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF8C8CA1),
-                                    lineHeight = 20.sp
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF8C8CA1),
+                                lineHeight = 20.sp
                             )
                         }
                     }
                 }
-                
+
                 // Submit Button
                 Button(
                     onClick = {
                         emailError = ValidationUtils.validateEmail(email)
-                        
+
                         if (emailError == null) {
                             viewModel.forgotPassword(email)
                         }
@@ -279,20 +279,6 @@ fun ForgotPasswordScreen(
                         )
                     }
                 }
-                
-                // Back to Login Link
-                Text(
-                    text = "Back to Login",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF8C8CA1),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    textAlign = TextAlign.Center
-                )
-                
-                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }

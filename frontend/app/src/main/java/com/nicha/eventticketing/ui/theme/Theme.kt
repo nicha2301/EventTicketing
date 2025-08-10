@@ -93,8 +93,8 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun EventTicketingTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = false,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -117,10 +117,10 @@ fun EventTicketingTheme(
     
     // Set system bars color
     val systemUiController = rememberSystemUiController()
-    DisposableEffect(systemUiController, darkTheme) {
+    DisposableEffect(systemUiController) {
         systemUiController.setSystemBarsColor(
             color = colorScheme.background,
-            darkIcons = !darkTheme
+            darkIcons = true
         )
         onDispose {}
     }

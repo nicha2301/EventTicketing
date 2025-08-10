@@ -3,6 +3,7 @@ package com.nicha.eventticketing.ui.screens.auth
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,16 +26,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,6 +52,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -68,26 +73,29 @@ import com.nicha.eventticketing.viewmodel.AuthViewModel
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onNavigateBack: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel(),
-    googleAuthManager: GoogleAuthManager = com.nicha.eventticketing.data.auth.GoogleAuthManager(LocalContext.current)
+    googleAuthManager: GoogleAuthManager = GoogleAuthManager(
+        LocalContext.current
+    )
 ) {
     val authState by viewModel.authState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var acceptTerms by remember { mutableStateOf(false) }
-    
+
     var fullNameError by remember { mutableStateOf<String?>(null) }
     var emailError by remember { mutableStateOf<String?>(null) }
     var phoneNumberError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
-    
+
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -102,36 +110,45 @@ fun RegisterScreen(
                     profilePictureUrl = account.photoUrl?.toString()
                 )
             }
+
             is GoogleSignInResult.Error -> {
-                Toast.makeText(context, "Google Sign-In failed: ${signInResult.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    "Google Sign-In failed: ${signInResult.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
+
             is GoogleSignInResult.Cancelled -> {
                 Toast.makeText(context, "Google Sign-In cancelled", Toast.LENGTH_SHORT).show()
             }
         }
     }
-    
+
     LaunchedEffect(authState) {
         when (val state = authState) {
             is AuthState.Authenticated -> {
                 onRegisterSuccess()
             }
+
             is AuthState.RegistrationSuccess -> {
                 onRegisterSuccess()
             }
+
             is AuthState.Error -> {
                 snackbarHostState.showSnackbar(state.message)
             }
+
             else -> {}
         }
     }
-    
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
-        modifier = Modifier
-            .fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
                 .padding(paddingValues)
                 .background(Color(0xFFFAFAFA))
         ) {
@@ -139,10 +156,9 @@ fun RegisterScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
                 IconButton(
-                    onClick = { /* TODO: Navigate back */ },
+                    onClick = onNavigateBack,
                     modifier = Modifier
                         .size(48.dp)
                         .align(Alignment.TopStart)
@@ -155,7 +171,7 @@ fun RegisterScreen(
                     )
                 }
             }
-            
+
             // Main Content
             Column(
                 modifier = Modifier
@@ -174,7 +190,7 @@ fun RegisterScreen(
                         letterSpacing = (-0.8).sp
                     )
                 }
-                
+
                 // Welcome Text
                 Text(
                     text = "We are glad to have you",
@@ -182,21 +198,21 @@ fun RegisterScreen(
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFF8C8CA1)
                 )
-                
+
                 // Registration Form Fields
                 Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
                     // Full Name Field
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(
+                        Text(
                             text = "Full Name",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
                             color = Color(0xFF8C8CA1)
                         )
-                        
+
                         androidx.compose.material3.TextField(
                             value = fullName,
-                            onValueChange = { 
+                            onValueChange = {
                                 fullName = it
                                 fullNameError = null
                             },
@@ -228,7 +244,7 @@ fun RegisterScreen(
                             isError = fullNameError != null,
                             singleLine = true
                         )
-                        
+
                         if (fullNameError != null) {
                             Text(
                                 text = fullNameError!!,
@@ -238,7 +254,7 @@ fun RegisterScreen(
                             )
                         }
                     }
-                    
+
                     // Email Field
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(
@@ -247,10 +263,10 @@ fun RegisterScreen(
                             fontWeight = FontWeight.Medium,
                             color = Color(0xFF8C8CA1)
                         )
-                        
+
                         androidx.compose.material3.TextField(
                             value = email,
-                            onValueChange = { 
+                            onValueChange = {
                                 email = it
                                 emailError = null
                             },
@@ -286,13 +302,13 @@ fun RegisterScreen(
                                 }
                             },
                             keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email,
+                                keyboardType = KeyboardType.Email,
                                 imeAction = ImeAction.Next
                             ),
                             isError = emailError != null,
                             singleLine = true
                         )
-                        
+
                         if (emailError != null) {
                             Text(
                                 text = emailError!!,
@@ -302,7 +318,7 @@ fun RegisterScreen(
                             )
                         }
                     }
-                    
+
                     // Phone Number Field
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(
@@ -311,10 +327,10 @@ fun RegisterScreen(
                             fontWeight = FontWeight.Medium,
                             color = Color(0xFF8C8CA1)
                         )
-                        
-                        androidx.compose.material3.TextField(
+
+                        TextField(
                             value = phoneNumber,
-                            onValueChange = { 
+                            onValueChange = {
                                 phoneNumber = it
                                 phoneNumberError = null
                             },
@@ -326,13 +342,13 @@ fun RegisterScreen(
                                     color = Color(0xFF19171C).copy(alpha = 0.4f)
                                 )
                             },
-                            textStyle = androidx.compose.ui.text.TextStyle(
+                            textStyle = TextStyle(
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Normal,
                                 color = Color(0xFF19171C)
                             ),
                             modifier = Modifier.fillMaxWidth(),
-                            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            colors = TextFieldDefaults.colors(
                                 focusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
                                 unfocusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
                                 focusedContainerColor = Color.Transparent,
@@ -340,13 +356,13 @@ fun RegisterScreen(
                                 disabledContainerColor = Color.Transparent
                             ),
                             keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Phone,
+                                keyboardType = KeyboardType.Phone,
                                 imeAction = ImeAction.Next
                             ),
                             isError = phoneNumberError != null,
                             singleLine = true
                         )
-                        
+
                         if (phoneNumberError != null) {
                             Text(
                                 text = phoneNumberError!!,
@@ -356,7 +372,7 @@ fun RegisterScreen(
                             )
                         }
                     }
-                    
+
                     // Password Field
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(
@@ -365,14 +381,15 @@ fun RegisterScreen(
                             fontWeight = FontWeight.Medium,
                             color = Color(0xFF8C8CA1)
                         )
-                        
-                        androidx.compose.material3.TextField(
+
+                        TextField(
                             value = password,
-                            onValueChange = { 
+                            onValueChange = {
                                 password = it
                                 passwordError = null
                                 if (confirmPassword.isNotEmpty()) {
-                                    confirmPasswordError = ValidationUtils.validateConfirmPassword(confirmPassword, it)
+                                    confirmPasswordError =
+                                        ValidationUtils.validateConfirmPassword(confirmPassword, it)
                                 }
                             },
                             placeholder = {
@@ -383,13 +400,13 @@ fun RegisterScreen(
                                     color = Color(0xFF19171C).copy(alpha = 0.4f)
                                 )
                             },
-                            textStyle = androidx.compose.ui.text.TextStyle(
+                            textStyle = TextStyle(
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Normal,
                                 color = Color(0xFF19171C)
                             ),
                             modifier = Modifier.fillMaxWidth(),
-                            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            colors = TextFieldDefaults.colors(
                                 focusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
                                 unfocusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
                                 focusedContainerColor = Color.Transparent,
@@ -397,13 +414,13 @@ fun RegisterScreen(
                                 disabledContainerColor = Color.Transparent
                             ),
                             keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
+                                keyboardType = KeyboardType.Password,
                                 imeAction = ImeAction.Next
                             ),
                             isError = passwordError != null,
                             singleLine = true
                         )
-                        
+
                         if (passwordError != null) {
                             Text(
                                 text = passwordError!!,
@@ -413,7 +430,7 @@ fun RegisterScreen(
                             )
                         }
                     }
-                    
+
                     // Confirm Password Field
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(
@@ -422,12 +439,13 @@ fun RegisterScreen(
                             fontWeight = FontWeight.Medium,
                             color = Color(0xFF8C8CA1)
                         )
-                        
-                        androidx.compose.material3.TextField(
+
+                        TextField(
                             value = confirmPassword,
-                            onValueChange = { 
+                            onValueChange = {
                                 confirmPassword = it
-                                confirmPasswordError = ValidationUtils.validateConfirmPassword(it, password)
+                                confirmPasswordError =
+                                    ValidationUtils.validateConfirmPassword(it, password)
                             },
                             placeholder = {
                                 Text(
@@ -437,13 +455,13 @@ fun RegisterScreen(
                                     color = Color(0xFF19171C).copy(alpha = 0.4f)
                                 )
                             },
-                            textStyle = androidx.compose.ui.text.TextStyle(
+                            textStyle = TextStyle(
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Normal,
                                 color = Color(0xFF19171C)
                             ),
                             modifier = Modifier.fillMaxWidth(),
-                            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            colors = TextFieldDefaults.colors(
                                 focusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
                                 unfocusedIndicatorColor = Color(0xFFCECEE0).copy(alpha = 0.5f),
                                 focusedContainerColor = Color.Transparent,
@@ -451,13 +469,13 @@ fun RegisterScreen(
                                 disabledContainerColor = Color.Transparent
                             ),
                             keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
+                                keyboardType = KeyboardType.Password,
                                 imeAction = ImeAction.Done
                             ),
                             isError = confirmPasswordError != null,
                             singleLine = true
                         )
-                        
+
                         if (confirmPasswordError != null) {
                             Text(
                                 text = confirmPasswordError!!,
@@ -468,24 +486,24 @@ fun RegisterScreen(
                         }
                     }
                 }
-                
+
                 // Terms and Conditions
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    androidx.compose.material3.Checkbox(
+                    Checkbox(
                         checked = acceptTerms,
                         onCheckedChange = { acceptTerms = it },
-                        colors = androidx.compose.material3.CheckboxDefaults.colors(
+                        colors = CheckboxDefaults.colors(
                             checkedColor = BrandOrange,
                             uncheckedColor = Color(0xFF8C8CA1)
                         ),
                         modifier = Modifier.size(24.dp)
                     )
-                    
+
                     Spacer(modifier = Modifier.width(8.dp))
-                    
+
                     Text(
                         text = "By signing up, I confirm I accept the Terms of Use",
                         fontSize = 14.sp,
@@ -494,7 +512,7 @@ fun RegisterScreen(
                         letterSpacing = 0.42.sp
                     )
                 }
-                
+
                 // Social Sign Up Buttons
                 Column(verticalArrangement = Arrangement.spacedBy(28.dp)) {
                     // Google Sign Up
@@ -510,7 +528,7 @@ fun RegisterScreen(
                             containerColor = Color.White,
                             contentColor = Color(0xFF120D26)
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BrandOrange)
+                        border = BorderStroke(1.dp, BrandOrange)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -522,7 +540,7 @@ fun RegisterScreen(
                                 modifier = Modifier.size(26.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
-                                Text(
+                            Text(
                                 text = "Sign up with Google",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
@@ -530,40 +548,8 @@ fun RegisterScreen(
                             )
                         }
                     }
-                    
-                    // Apple Sign Up
-                    OutlinedButton(
-                        onClick = { /* TODO: Implement Apple Sign-In */ },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(74.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.White,
-                            contentColor = Color(0xFF120D26)
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BrandOrange)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_apple_logo),
-                                contentDescription = "Apple",
-                                modifier = Modifier.size(26.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Sign up with Apple ID",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF120D26).copy(alpha = 0.6f)
-                            )
-                        }
-                    }
                 }
-                
+
                 // Sign Up Button
                 Button(
                     onClick = {
@@ -571,13 +557,19 @@ fun RegisterScreen(
                         emailError = ValidationUtils.validateEmail(email)
                         phoneNumberError = ValidationUtils.validatePhoneNumber(phoneNumber)
                         passwordError = ValidationUtils.validatePassword(password)
-                        confirmPasswordError = ValidationUtils.validateConfirmPassword(confirmPassword, password)
-                        
-                        if (fullNameError == null && emailError == null && phoneNumberError == null && 
-                            passwordError == null && confirmPasswordError == null && acceptTerms) {
+                        confirmPasswordError =
+                            ValidationUtils.validateConfirmPassword(confirmPassword, password)
+
+                        if (fullNameError == null && emailError == null && phoneNumberError == null &&
+                            passwordError == null && confirmPasswordError == null && acceptTerms
+                        ) {
                             viewModel.register(fullName, email, password, phoneNumber)
                         } else if (!acceptTerms) {
-                            Toast.makeText(context, "Please accept the Terms of Use", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Please accept the Terms of Use",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     },
                     modifier = Modifier
@@ -609,9 +601,9 @@ fun RegisterScreen(
                         )
                     }
                 }
-                
+
                 // Login Link
-                    Text(
+                Text(
                     text = "Got an account? Log in",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
@@ -622,7 +614,7 @@ fun RegisterScreen(
                         .padding(vertical = 16.dp),
                     textAlign = TextAlign.Center
                 )
-                
+
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
