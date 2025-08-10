@@ -9,10 +9,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.nicha.eventticketing" />
+                  <option name="mobileSdkAppId" value="1:164894130694:android:3b0128d42edca12aadb987" />
+                  <option name="projectId" value="eventticket-cba48" />
+                  <option name="projectNumber" value="164894130694" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

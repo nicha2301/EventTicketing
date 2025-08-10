@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -47,6 +48,11 @@ import com.nicha.eventticketing.ui.screens.organizer.CreateEventScreen
 import com.nicha.eventticketing.ui.screens.organizer.OrganizerProfileScreen
 import com.nicha.eventticketing.ui.screens.notification.NotificationsScreen
 import com.nicha.eventticketing.ui.screens.organizer.TicketTypeListScreen
+import com.nicha.eventticketing.ui.screens.settings.PrivacyScreen
+import com.nicha.eventticketing.ui.screens.settings.SecurityScreen
+import com.nicha.eventticketing.util.NetworkStatusObserver
+import com.nicha.eventticketing.viewmodel.EventViewModel
+import com.nicha.eventticketing.viewmodel.TicketViewModel
 
 @Composable
 fun NavGraph(
@@ -123,7 +129,10 @@ fun NavGraph(
                     navController.navigate(NavDestination.Login.route) {
                         popUpTo(NavDestination.Register.route) { inclusive = true }
                     }
-                }
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
             )
         }
         
@@ -134,7 +143,6 @@ fun NavGraph(
                     navController.popBackStack()
                 },
                 onResetLinkSent = {
-                    // Không chuyển màn hình ngay, chỉ hiển thị thông báo thành công
                 }
             )
         }
@@ -177,10 +185,7 @@ fun NavGraph(
                 onProfileClick = {
                     navController.navigate(NavDestination.Profile.route)
                 },
-                onExploreClick = {
-                    // Implement explore navigation if needed
-                },
-                onNotificationsClick = {
+                onNotificationClick = {
                     navController.navigate(NavDestination.Notifications.route)
                 }
             )
@@ -196,9 +201,14 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val eventViewModel = hiltViewModel<EventViewModel>()
+            val ticketViewModel = hiltViewModel<TicketViewModel>()
+            val context = LocalContext.current
+            val isOnline by NetworkStatusObserver.observe(context).collectAsState(initial = true)
+            
             EventDetailScreen(
                 eventId = eventId,
-                onBackClick = {
+                onNavigateBack = {
                     navController.popBackStack()
                 },
                 onBuyTicketsClick = { eventId, ticketTypeId, existingTicketId ->
@@ -208,9 +218,9 @@ fun NavGraph(
                         navController.navigate(NavDestination.Payment.createRoute(eventId, ticketTypeId, 1))
                     }
                 },
-                onViewTicketClick = { ticketId ->
-                    navController.navigate(NavDestination.TicketDetail.createRoute(ticketId))
-                }
+                eventViewModel = eventViewModel,
+                ticketViewModel = ticketViewModel,
+                isOnline = isOnline
             )
         }
         
@@ -318,7 +328,7 @@ fun NavGraph(
         
         // Security Screen
         composable(route = "security") {
-            com.nicha.eventticketing.ui.screens.settings.SecurityScreen(
+            SecurityScreen(
                 onBackClick = {
                     navController.popBackStack()
                 }
@@ -327,7 +337,7 @@ fun NavGraph(
         
         // Privacy Screen
         composable(route = "privacy") {
-            com.nicha.eventticketing.ui.screens.settings.PrivacyScreen(
+            PrivacyScreen(
                 onBackClick = {
                     navController.popBackStack()
                 }
