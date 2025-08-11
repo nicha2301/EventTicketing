@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import com.nicha.eventticketing.ui.components.app.AppButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -156,29 +157,38 @@ fun TicketWalletScreen(
                 containerColor = MaterialTheme.colorScheme.background,
                 contentColor = MaterialTheme.colorScheme.onBackground,
                 edgePadding = 16.dp,
-                divider = {}
+                divider = {},
+                indicator = {}
             ) {
                 tabs.forEachIndexed { index, tab ->
-                    Tab(
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index },
-                        text = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = tab.icon,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(tab.title)
-                            }
-                        },
-                        selectedContentColor = MaterialTheme.colorScheme.primary,
-                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    val selected = selectedTabIndex == index
+                    val interactionSource = remember { MutableInteractionSource() }
+                    Surface(
+                        color = if (selected) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.16f) else Color.Transparent,
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier
+                                .clickable(
+                                    interactionSource = interactionSource,
+                                    indication = null
+                                ) { selectedTabIndex = index }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                tab.title,
+                                color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
             
@@ -189,7 +199,7 @@ fun TicketWalletScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 is ResourceState.Success -> {
@@ -205,7 +215,7 @@ fun TicketWalletScreen(
                                 Icon(
                                     imageVector = tabs[selectedTabIndex].icon,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                     modifier = Modifier.size(64.dp)
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -266,7 +276,7 @@ fun TicketWalletScreen(
                                 color = MaterialTheme.colorScheme.error
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Button(
+                            AppButton(
                                 onClick = {
                                     coroutineScope.launch {
                                         viewModel.resetTicketsError()
@@ -391,13 +401,13 @@ fun TicketItem(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
                             modifier = Modifier.size(20.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CalendarToday,
                                 contentDescription = "Date",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .padding(3.dp)
                                     .size(14.dp)
@@ -420,13 +430,13 @@ fun TicketItem(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
                             modifier = Modifier.size(20.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.LocationOn,
                                 contentDescription = "Location",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .padding(3.dp)
                                     .size(14.dp)
@@ -457,12 +467,12 @@ fun TicketItem(
                             text = ticket.ticketTypeName,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         
                         // Status chip
                         val statusColor = when (ticket.status) {
-                            "PAID", "RESERVED" -> MaterialTheme.colorScheme.primary
+                            "PAID", "RESERVED" -> MaterialTheme.colorScheme.onSurface
                             "CHECKED_IN" -> Color(0xFF4CAF50)  // Green
                             "EXPIRED" -> Color(0xFFFF9800)     // Orange
                             "CANCELLED" -> MaterialTheme.colorScheme.error
@@ -497,7 +507,7 @@ fun TicketItem(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.06f), shape = RoundedCornerShape(12.dp))
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -505,13 +515,13 @@ fun TicketItem(
                 Text(
                     text = "Mã vé: ${ticket.ticketNumber}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 
                 Icon(
                     imageVector = Icons.Filled.QrCode,
                     contentDescription = "QR Code",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }

@@ -160,7 +160,7 @@ fun <T> StyledDropdown(
                                         text = itemToString(item),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = if (isSelected)
-                                            MaterialTheme.colorScheme.primary
+                                            MaterialTheme.colorScheme.onSurface
                                         else
                                             MaterialTheme.colorScheme.onSurface
                                     )
@@ -170,7 +170,7 @@ fun <T> StyledDropdown(
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }
@@ -185,7 +185,12 @@ fun <T> StyledDropdown(
                             .padding(horizontal = 24.dp, vertical = 16.dp),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        TextButton(onClick = { showDropdown = false }) {
+                        TextButton(
+                            onClick = { showDropdown = false },
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
                             Text("Hủy")
                         }
                     }

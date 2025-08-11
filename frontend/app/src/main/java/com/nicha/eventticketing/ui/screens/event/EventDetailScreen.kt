@@ -19,35 +19,25 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,8 +47,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -74,6 +62,8 @@ import coil.request.ImageRequest
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketTypeDto
 import com.nicha.eventticketing.domain.model.ResourceState
+import com.nicha.eventticketing.ui.components.app.AppButton
+import com.nicha.eventticketing.ui.components.app.AppTextButton
 import com.nicha.eventticketing.util.FormatUtils
 import com.nicha.eventticketing.util.ImageUtils.getAllImageUrls
 import com.nicha.eventticketing.viewmodel.EventViewModel
@@ -137,7 +127,7 @@ fun EventDetailScreen(
                         color = MaterialTheme.colorScheme.error
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(
+                    AppButton(
                         onClick = {
                             eventViewModel.resetEventDetailError()
                             eventViewModel.getEventById(eventId)
@@ -364,7 +354,7 @@ fun EventDetailScreen(
                             )
 
                             if (!isDescriptionExpanded.value && event.description.length > 200) {
-                                TextButton(
+                                AppTextButton(
                                     onClick = { isDescriptionExpanded.value = true }
                                 ) {
                                     Text("Read more")
@@ -430,7 +420,7 @@ fun EventDetailScreen(
                         }
 
                         // Buy Ticket button
-                        Button(
+                        AppButton(
                             onClick = {
                                 if (event.ticketTypes?.isNotEmpty() == true) {
                                     showTicketTypeSheet.value = true
@@ -439,10 +429,7 @@ fun EventDetailScreen(
                             enabled = event.ticketTypes?.isNotEmpty() == true && isOnline,
                             modifier = Modifier
                                 .weight(1f)
-                                .height(74.dp),
-                            shape = RoundedCornerShape(20.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEE794A)),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                                .height(74.dp)
                         ) {
                             Text(
                                 text = "Buy Ticket",
@@ -596,7 +583,7 @@ fun TicketTypeSelectionSheet(
                                     },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = if (availableQuantity > 0)
-                                        MaterialTheme.colorScheme.primary
+                                        MaterialTheme.colorScheme.onSurface
                                     else
                                         MaterialTheme.colorScheme.error
                                 )
@@ -605,7 +592,7 @@ fun TicketTypeSelectionSheet(
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                         contentDescription = "Select",
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }

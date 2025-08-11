@@ -2,6 +2,7 @@ package com.nicha.eventticketing.ui.components.analytics
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -52,7 +53,12 @@ fun AnalyticsFilter(
                 // Export button
                 OutlinedButton(
                     onClick = onExportClick,
-                    modifier = Modifier.height(36.dp)
+                    modifier = Modifier.height(36.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                 ) {
                     Icon(
                         imageVector = Icons.Default.FileDownload,
@@ -92,7 +98,7 @@ fun AnalyticsFilter(
                     Icon(
                         imageVector = Icons.Default.DateRange,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -134,7 +140,7 @@ fun AnalyticsFilter(
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -170,7 +176,7 @@ fun AnalyticsFilter(
                             Icon(
                                 imageVector = Icons.Default.Event,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -221,7 +227,13 @@ fun AnalyticsFilter(
                                 onClick = {
                                     onPeriodChange(value)
                                     showPeriodSelector = false
-                                }
+                                },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = MaterialTheme.colorScheme.onSurface,
+                                    unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    disabledSelectedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    disabledUnselectedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(label)
@@ -260,7 +272,12 @@ fun AnalyticsFilter(
                                         selectedEvents - eventId
                                     }
                                     onEventsChange(newSelection)
-                                }
+                                },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = MaterialTheme.colorScheme.onSurface,
+                                    uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    checkmarkColor = MaterialTheme.colorScheme.surface
+                                )
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
@@ -319,13 +336,10 @@ fun QuickFilterChips(
     }
 }
 
-// Helper functions (temporary implementation)
 private fun getDateRange(days: Int): Pair<String, String> {
-    // TODO: Implement with proper date handling
     return "2025-07-01" to "2025-07-28"
 }
 
 private fun getCurrentYearRange(): Pair<String, String> {
-    // TODO: Implement with proper date handling
     return "2025-01-01" to "2025-12-31"
 }

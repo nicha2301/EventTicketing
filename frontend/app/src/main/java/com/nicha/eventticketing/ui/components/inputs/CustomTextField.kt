@@ -15,10 +15,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,8 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -63,26 +59,26 @@ fun CustomTextField(
     var passwordVisible by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
-    
+
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { 
+            label = {
                 Text(
-                    text = label, 
+                    text = label,
                     style = MaterialTheme.typography.bodyMedium
-                ) 
+                )
             },
-            placeholder = { 
+            placeholder = {
                 Text(
-                    text = placeholder, 
+                    text = placeholder,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
-                ) 
+                )
             },
             isError = error != null,
             keyboardOptions = KeyboardOptions(
@@ -101,7 +97,7 @@ fun CustomTextField(
                         Icon(
                             imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                            tint = if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = if (isFocused) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 } else if (error != null) {
@@ -118,37 +114,38 @@ fun CustomTextField(
             shape = RoundedCornerShape(16.dp),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f),
-                errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
-                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                disabledContainerColor = MaterialTheme.colorScheme.surface,
+                errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.08f),
+                focusedIndicatorColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 errorIndicatorColor = MaterialTheme.colorScheme.error,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                focusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 errorLabelColor = MaterialTheme.colorScheme.error,
-                focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                focusedLeadingIconColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 errorLeadingIconColor = MaterialTheme.colorScheme.error,
-                focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+                focusedTrailingIconColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 errorTrailingIconColor = MaterialTheme.colorScheme.error,
                 focusedTextColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                 errorTextColor = MaterialTheme.colorScheme.onSurface,
+                cursorColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
         )
-        
+
         // Error message với animation
         AnimatedVisibility(
             visible = error != null,
-            enter = expandVertically(animationSpec = tween(durationMillis = 200)) + 
+            enter = expandVertically(animationSpec = tween(durationMillis = 200)) +
                     fadeIn(animationSpec = tween(durationMillis = 200)),
-            exit = shrinkVertically(animationSpec = tween(durationMillis = 200)) + 
-                   fadeOut(animationSpec = tween(durationMillis = 200))
+            exit = shrinkVertically(animationSpec = tween(durationMillis = 200)) +
+                    fadeOut(animationSpec = tween(durationMillis = 200))
         ) {
             Text(
                 text = error ?: "",

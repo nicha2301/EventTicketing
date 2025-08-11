@@ -11,6 +11,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material3.*
+import com.nicha.eventticketing.ui.components.app.AppButton
+import com.nicha.eventticketing.ui.components.app.AppTextButton
+import com.nicha.eventticketing.ui.components.app.AppDestructiveButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -156,7 +159,7 @@ fun OrganizerEventDetailScreen(
                                 color = MaterialTheme.colorScheme.error
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { viewModel.getEventById(eventId) }) {
+                    AppButton(onClick = { viewModel.getEventById(eventId) }) {
                                 Text("Thử lại")
                             }
                         }
@@ -344,20 +347,17 @@ fun OrganizerEventDetailScreen(
                     title = { Text("Xác nhận xóa sự kiện") },
                     text = { Text("Bạn có chắc chắn muốn xóa sự kiện này không? Hành động này không thể hoàn tác.") },
                     confirmButton = {
-                        Button(
+                        AppDestructiveButton(
                             onClick = {
                                 viewModel.deleteEvent(eventId)
                                 showDeleteDialog = false
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            )
+                            }
                         ) {
                             Text("Xóa sự kiện")
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showDeleteDialog = false }) {
+                        AppTextButton(onClick = { showDeleteDialog = false }) {
                             Text("Hủy")
                         }
                     }
@@ -371,7 +371,7 @@ fun OrganizerEventDetailScreen(
                     title = { Text("Xác nhận công bố sự kiện") },
                     text = { Text("Khi công bố, sự kiện sẽ hiển thị với tất cả người dùng. Bạn có muốn tiếp tục?") },
                     confirmButton = {
-                        Button(
+                        AppButton(
                             onClick = {
                                 viewModel.publishEvent(eventId)
                                 showPublishDialog = false
@@ -381,7 +381,7 @@ fun OrganizerEventDetailScreen(
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showPublishDialog = false }) {
+                        AppTextButton(onClick = { showPublishDialog = false }) {
                             Text("Hủy")
                         }
                     }
@@ -398,7 +398,11 @@ fun OrganizerEventDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -428,23 +432,20 @@ fun OrganizerEventDetailScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End
                             ) {
-                                TextButton(onClick = { showCancelDialog = false }) {
+                                AppTextButton(onClick = { showCancelDialog = false }) {
                                     Text("Đóng")
                                 }
                                 
                                 Spacer(modifier = Modifier.width(8.dp))
                                 
-                                Button(
+                                AppDestructiveButton(
                                     onClick = {
                                         if (cancellationReason.isNotEmpty()) {
                                             viewModel.cancelEvent(eventId, cancellationReason)
                                             showCancelDialog = false
                                         }
                                     },
-                                    enabled = cancellationReason.isNotEmpty(),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.error
-                                    )
+                                    enabled = cancellationReason.isNotEmpty()
                                 ) {
                                     Text("Hủy sự kiện")
                                 }
@@ -485,7 +486,7 @@ fun ActionButton(
     ) {
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
             modifier = Modifier.size(48.dp)
         ) {
             Box(
@@ -495,7 +496,7 @@ fun ActionButton(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -523,7 +524,7 @@ fun DetailItem(
     ) {
         Surface(
             shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
             modifier = Modifier.size(36.dp)
         ) {
             Box(
@@ -533,7 +534,7 @@ fun DetailItem(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }

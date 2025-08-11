@@ -58,7 +58,7 @@ fun PrimaryButton(
         animationSpec = tween(durationMillis = 100)
     )
     val haptic = LocalHapticFeedback.current
-    
+
     val buttonColors = if (useGradient) {
         ButtonDefaults.buttonColors(
             containerColor = Color.Transparent,
@@ -68,13 +68,13 @@ fun PrimaryButton(
         )
     } else {
         ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
+            containerColor = MaterialTheme.colorScheme.onSurface,
             contentColor = MaterialTheme.colorScheme.onPrimary,
             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
             disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         )
     }
-    
+
     Button(
         onClick = {
             isPressed = true
@@ -113,7 +113,7 @@ fun PrimaryButton(
                         brush = Brush.horizontalGradient(
                             colors = if (enabled && !isLoading) {
                                 listOf(
-                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.onSurface,
                                     GradientEnd
                                 )
                             } else {

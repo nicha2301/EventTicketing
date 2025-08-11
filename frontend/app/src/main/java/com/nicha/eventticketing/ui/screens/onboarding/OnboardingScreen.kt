@@ -21,6 +21,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import com.nicha.eventticketing.ui.components.app.AppButton
+import com.nicha.eventticketing.ui.components.app.AppOutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -112,26 +114,22 @@ fun OnboardingScreen(
 
             // Buttons row
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
+                AppOutlinedButton(
                     onClick = {
                         scope.launch { viewModel.setOnboardingCompleted() }
                         onGetStarted()
                     },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandOrange)
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(text = "Get Started")
                 }
 
-                Button(
+                AppButton(
                     onClick = {
                         scope.launch { viewModel.setOnboardingCompleted() }
                         onLogin()
                     },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandOrange, contentColor = Color.White)
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(text = "Log in")
                 }

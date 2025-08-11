@@ -43,7 +43,7 @@ fun TicketSalesSummarySection(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onSurface
             )
             
             when (ticketSalesState) {
@@ -69,7 +69,7 @@ fun TicketSalesSummarySection(
                                 title = "Tổng vé bán",
                                 value = data.totalSold.toString(),
                                 icon = Icons.Filled.ConfirmationNumber,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                         item {
@@ -121,7 +121,7 @@ fun SalesByTypeChart(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onSurface
             )
             
             when (ticketSalesState) {

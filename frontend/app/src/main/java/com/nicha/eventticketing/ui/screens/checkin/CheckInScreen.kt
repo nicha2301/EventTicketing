@@ -1,16 +1,58 @@
 package com.nicha.eventticketing.ui.screens.checkin
 
-import androidx.compose.animation.*
+import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,8 +67,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.zxing.BarcodeFormat
@@ -36,17 +81,11 @@ import com.journeyapps.barcodescanner.BarcodeResult
 import com.journeyapps.barcodescanner.DecoratedBarcodeView
 import com.journeyapps.barcodescanner.DefaultDecoderFactory
 import com.nicha.eventticketing.data.remote.dto.ticket.TicketDto
+import com.nicha.eventticketing.ui.components.app.AppButton
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.util.FormatUtils
 import com.nicha.eventticketing.viewmodel.CheckInViewModel
 import com.nicha.eventticketing.viewmodel.ScanningState
-import kotlinx.coroutines.delay
-import android.content.Intent
-import android.content.pm.PackageManager
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
@@ -57,27 +96,27 @@ fun CheckInScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    
+
     // State for QR scanner
     var isScannerInitialized by remember { mutableStateOf(false) }
     var isScanning by remember { mutableStateOf(true) }
-    
+
     // Observe view model states
     val scanningState by viewModel.scanningState.collectAsState()
-    
+
     // Camera permission state
     val cameraPermissionState = rememberPermissionState(
         android.Manifest.permission.CAMERA
     )
-    
+
     // Check if camera is available
     val hasCameraHardware = remember {
         context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
     }
-    
+
     // Scanner view reference
     val scannerViewRef = remember { mutableStateOf<DecoratedBarcodeView?>(null) }
-    
+
     // Handle scanning result
     val barcodeCallback = remember {
         object : BarcodeCallback {
@@ -90,11 +129,11 @@ fun CheckInScreen(
                     }
                 }
             }
-            
+
             override fun possibleResultPoints(resultPoints: MutableList<ResultPoint>?) {}
         }
     }
-    
+
     // Initialize scanner when component is first displayed
     LaunchedEffect(Unit) {
         if (!isScannerInitialized) {
@@ -111,7 +150,7 @@ fun CheckInScreen(
             }
         }
     }
-    
+
     // Handle lifecycle events
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -121,23 +160,25 @@ fun CheckInScreen(
                     isScanning = true
                     Timber.d("Scanner resumed")
                 }
+
                 Lifecycle.Event.ON_PAUSE -> {
                     scannerViewRef.value?.pause()
                     Timber.d("Scanner paused")
                 }
+
                 else -> {}
             }
         }
-        
+
         lifecycleOwner.lifecycle.addObserver(observer)
-        
+
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             scannerViewRef.value?.pause()
             Timber.d("Scanner disposed")
         }
     }
-    
+
     // Reset scanning state when needed
     LaunchedEffect(scanningState) {
         when (scanningState) {
@@ -145,15 +186,17 @@ fun CheckInScreen(
                 scannerViewRef.value?.pause()
                 Timber.d("Scanner paused due to result")
             }
+
             is ScanningState.Ready -> {
                 scannerViewRef.value?.resume()
                 isScanning = true
                 Timber.d("Scanner resumed and ready")
             }
+
             else -> {}
         }
     }
-    
+
     Scaffold(
         topBar = {
             CheckInTopAppBar(onBackClick)
@@ -168,7 +211,10 @@ fun CheckInScreen(
         ) {
             when {
                 !hasCameraHardware -> NoHardwareErrorMessage()
-                !cameraPermissionState.status.isGranted -> CameraPermissionRequest(cameraPermissionState)
+                !cameraPermissionState.status.isGranted -> CameraPermissionRequest(
+                    cameraPermissionState
+                )
+
                 else -> QrScannerView(
                     isScanning = isScanning,
                     scanningState = scanningState,
@@ -178,7 +224,7 @@ fun CheckInScreen(
             }
         }
     }
-    
+
     // Show scan result dialog
     when (val state = scanningState) {
         is ScanningState.Success -> {
@@ -191,6 +237,7 @@ fun CheckInScreen(
                 }
             )
         }
+
         is ScanningState.Error -> {
             ModernCheckInResultDialog(
                 errorMessage = state.message,
@@ -202,6 +249,7 @@ fun CheckInScreen(
                 }
             )
         }
+
         else -> {}
     }
 }
@@ -240,10 +288,10 @@ private fun QrScannerView(
             barcodeCallback = barcodeCallback,
             scannerViewRef = scannerViewRef
         )
-        
+
         // Scanner Overlay
         ScannerOverlay(isScanning = isScanning)
-        
+
         // Instruction Text
         Box(
             modifier = Modifier
@@ -259,7 +307,7 @@ private fun QrScannerView(
                 textAlign = TextAlign.Center
             )
         }
-        
+
         // Processing Indicator
         if (scanningState is ScanningState.Processing) {
             Box(
@@ -267,7 +315,7 @@ private fun QrScannerView(
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     strokeWidth = 3.dp
                 )
             }
@@ -288,7 +336,7 @@ private fun QrCameraPreview(
                     val formats = listOf(BarcodeFormat.QR_CODE)
                     barcodeView.decoderFactory = DefaultDecoderFactory(formats)
                     this.setStatusText("")
-                    
+
                     val intent = Intent().apply {
                         putExtra("SCAN_FORMATS", "QR_CODE")
                         putExtra("SCAN_MODE", "QR_CODE_MODE")
@@ -296,16 +344,16 @@ private fun QrCameraPreview(
                         putExtra("SCAN_ORIENTATION_LOCKED", false)
                         putExtra("SCAN_BEEP_ENABLED", true)
                     }
-                    
+
                     this.initializeFromIntent(intent)
                     this.decodeContinuous(barcodeCallback)
-                    
+
                     barcodeView.cameraSettings.apply {
                         isContinuousFocusEnabled = true
                         isAutoFocusEnabled = true
                         isExposureEnabled = true
                     }
-                    
+
                     scannerViewRef.value = this
                     Timber.d("DecoratedBarcodeView created successfully")
                     this
@@ -347,7 +395,7 @@ private fun ScannerOverlay(isScanning: Boolean) {
                 .size(280.dp)
                 .border(
                     width = 2.dp,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     shape = RoundedCornerShape(8.dp)
                 )
         ) {
@@ -359,7 +407,7 @@ private fun ScannerOverlay(isScanning: Boolean) {
 @Composable
 private fun BoxScope.ScannerAnimationLine(isScanning: Boolean) {
     val scannerLinePosition = remember { Animatable(0f) }
-    
+
     LaunchedEffect(isScanning) {
         if (isScanning) {
             while (true) {
@@ -374,13 +422,13 @@ private fun BoxScope.ScannerAnimationLine(isScanning: Boolean) {
             }
         }
     }
-    
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(2.dp)
             .offset(y = (260 * scannerLinePosition.value).dp)
-            .background(MaterialTheme.colorScheme.primary)
+            .background(MaterialTheme.colorScheme.onSurface)
     )
 }
 
@@ -398,18 +446,18 @@ fun NoHardwareErrorMessage() {
             tint = Color.White,
             modifier = Modifier.size(64.dp)
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
             text = "Thiết bị của bạn không hỗ trợ camera",
             color = Color.White,
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         Text(
             text = "Bạn cần thiết bị có camera để sử dụng tính năng này",
             color = Color.White.copy(alpha = 0.7f),
@@ -421,7 +469,7 @@ fun NoHardwareErrorMessage() {
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun CameraPermissionRequest(cameraPermissionState: com.google.accompanist.permissions.PermissionState) {
+fun CameraPermissionRequest(cameraPermissionState: PermissionState) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -435,24 +483,20 @@ fun CameraPermissionRequest(cameraPermissionState: com.google.accompanist.permis
             tint = Color.White,
             modifier = Modifier.size(48.dp)
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
             text = "Cần quyền truy cập camera để quét mã QR",
             color = Color.White,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(
-            onClick = { cameraPermissionState.launchPermissionRequest() },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            ),
-            shape = RoundedCornerShape(12.dp)
+
+        AppButton(
+            onClick = { cameraPermissionState.launchPermissionRequest() }
         ) {
             Text("Cấp quyền camera")
         }
@@ -479,36 +523,32 @@ fun ModernCheckInResultDialog(
             ) {
                 // Status Icon
                 StatusIcon(success = success)
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Status Text
                 Text(
                     text = if (success) message else "Check-in thất bại",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (success) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    color = if (success) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error
                 )
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Content
                 if (success && ticket != null) {
                     SuccessContent(ticket = ticket)
                 } else {
                     ErrorContent(errorMessage = errorMessage)
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Continue Button
-                Button(
+                AppButton(
                     onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (success) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                    )
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = "Tiếp tục quét",
@@ -530,7 +570,7 @@ private fun StatusIcon(success: Boolean) {
             modifier = Modifier
                 .size(70.dp)
                 .background(
-                    if (success) MaterialTheme.colorScheme.primary 
+                    if (success) MaterialTheme.colorScheme.onSurface
                     else MaterialTheme.colorScheme.error,
                     CircleShape
                 ),
@@ -555,9 +595,9 @@ private fun SuccessContent(ticket: TicketDto) {
         Column {
             // Event Info Card
             EventInfoCard(ticket = ticket)
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Ticket Details Card
             TicketDetailsCard(ticket = ticket)
         }
@@ -585,22 +625,22 @@ private fun EventInfoCard(ticket: TicketDto) {
                     .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop
             )
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             Column {
                 Text(
                     text = ticket.eventTitle,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                
+
                 Text(
                     text = FormatUtils.formatDate(ticket.eventStartDate, "dd/MM/yyyy HH:mm"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 Text(
                     text = ticket.eventLocation,
                     style = MaterialTheme.typography.bodySmall,
@@ -633,16 +673,16 @@ private fun TicketDetailsCard(ticket: TicketDto) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
+
                     Text(
                         text = ticket.ticketTypeName,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
                 }
-                
+
                 Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
@@ -654,25 +694,30 @@ private fun TicketDetailsCard(ticket: TicketDto) {
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             // User Info
             InfoRow(
                 icon = Icons.Default.Person,
                 text = ticket.userName
             )
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             // Check-in Time
             InfoRow(
                 icon = Icons.Default.AccessTime,
-                text = "Check-in: ${FormatUtils.formatDate(ticket.checkedInAt, "HH:mm:ss dd/MM/yyyy")}"
+                text = "Check-in: ${
+                    FormatUtils.formatDate(
+                        ticket.checkedInAt,
+                        "HH:mm:ss dd/MM/yyyy"
+                    )
+                }"
             )
         }
     }
@@ -686,12 +731,12 @@ private fun InfoRow(icon: ImageVector, text: String) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(20.dp)
         )
-        
+
         Spacer(modifier = Modifier.width(8.dp))
-        
+
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,

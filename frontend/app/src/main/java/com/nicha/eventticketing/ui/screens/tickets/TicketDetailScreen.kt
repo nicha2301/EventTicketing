@@ -3,8 +3,8 @@ package com.nicha.eventticketing.ui.screens.tickets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -44,6 +44,9 @@ import java.util.Locale
 import java.util.Date
 import com.nicha.eventticketing.ui.components.QRCodeImage
 import androidx.compose.material3.ButtonDefaults
+import com.nicha.eventticketing.ui.components.app.AppButton
+import com.nicha.eventticketing.ui.components.app.AppDestructiveButton
+import com.nicha.eventticketing.ui.components.app.AppTextButton
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.nicha.eventticketing.util.ImageUtils
@@ -243,13 +246,13 @@ fun TicketDetailScreen(
                             ) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
                                     modifier = Modifier.size(36.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.CalendarToday,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier
                                             .padding(8.dp)
                                             .size(20.dp)
@@ -282,13 +285,13 @@ fun TicketDetailScreen(
                             ) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
                                     modifier = Modifier.size(36.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.LocationOn,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier
                                             .padding(8.dp)
                                             .size(20.dp)
@@ -385,7 +388,7 @@ fun TicketDetailScreen(
                                         text = FormatUtils.formatPrice(ticket.price),
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }
@@ -400,14 +403,11 @@ fun TicketDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         if (ticket.status == "RESERVED" || ticket.status == "PENDING" || ticket.status == "UNPAID") {
-                            Button(
+                            AppButton(
                                 onClick = {
                                     onNavigateToPayment(ticket.eventId, ticket.ticketTypeId, 1, ticket.id)
                                 },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
-                                )
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Payment,
@@ -426,14 +426,11 @@ fun TicketDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                         // Add to Calendar Button
-                        Button(
+                        AppButton(
                             onClick = {
                                 addToCalendar(context, ticket)
                             },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
+                            modifier = Modifier.weight(1f)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CalendarToday,
@@ -448,13 +445,9 @@ fun TicketDetailScreen(
                         
                         // Cancel Ticket Button (only show if ticket is active)
                         if (ticket.status == "RESERVED" || ticket.status == "PAID") {
-                            Button(
+                            AppDestructiveButton(
                                 onClick = { showCancelDialog = true },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                                )
+                                modifier = Modifier.weight(1f)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Cancel,
@@ -478,22 +471,22 @@ fun TicketDetailScreen(
                         title = { Text("Xác nhận hủy vé") },
                         text = { Text("Bạn có chắc chắn muốn hủy vé này không? Hành động này không thể hoàn tác.") },
                         confirmButton = {
-                            Button(
+                            AppDestructiveButton(
                                 onClick = {
                                     coroutineScope.launch {
                                         viewModel.cancelTicket(ticketId)
                                         showCancelDialog = false
                                     }
                                 },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error
-                                )
+                                
                             ) {
                                 Text("Hủy vé")
                             }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showCancelDialog = false }) {
+                            AppTextButton(
+                                onClick = { showCancelDialog = false }
+                            ) {
                                 Text("Đóng")
                             }
                         }
@@ -510,7 +503,7 @@ fun TicketDetailScreen(
                             Column(
                                 modifier = Modifier.padding(16.dp)
                             ) {
-                                Button(
+                                AppButton(
                                     onClick = {
                                         val shareText = "Tôi sẽ tham dự sự kiện ${ticket.eventTitle} vào ngày ${FormatUtils.formatDate(ticket.eventStartDate)}. Địa điểm: ${ticket.eventLocation}"
                                         val sendIntent = Intent().apply {
@@ -526,9 +519,9 @@ fun TicketDetailScreen(
                                     Text("Chia sẻ thông tin sự kiện")
                                 }
                                 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
                                 
-                                TextButton(
+                                AppTextButton(
                                     onClick = { showShareDialog = false },
                                     modifier = Modifier.align(Alignment.End)
                                 ) {
@@ -568,7 +561,7 @@ fun TicketDetailScreen(
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        Button(
+                        AppButton(
                             onClick = {
                                 coroutineScope.launch {
                                     viewModel.resetTicketDetailError()
@@ -599,32 +592,32 @@ fun TicketDetailScreen(
 fun TicketStatusBadge(status: String) {
     val statusInfo = when (status) {
         "PAID" -> StatusInfo(
-            backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-            textColor = MaterialTheme.colorScheme.primary,
+            backgroundColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f),
+            textColor = MaterialTheme.colorScheme.onSurface,
             icon = Icons.Default.CheckCircle,
             text = "Đã thanh toán"
         )
         "RESERVED" -> StatusInfo(
-            backgroundColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
-            textColor = MaterialTheme.colorScheme.secondary,
+            backgroundColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f),
+            textColor = MaterialTheme.colorScheme.onSurface,
             icon = Icons.Default.Pending,
             text = "Đã đặt chỗ"
         )
         "PENDING" -> StatusInfo(
-            backgroundColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
-            textColor = MaterialTheme.colorScheme.error,
+            backgroundColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f),
+            textColor = MaterialTheme.colorScheme.onSurface,
             icon = Icons.Default.Payment,
             text = "Chưa thanh toán"
         )
         "CHECKED_IN" -> StatusInfo(
-            backgroundColor = Color(0xFF4CAF50).copy(alpha = 0.1f),
-            textColor = Color(0xFF4CAF50),
+            backgroundColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f),
+            textColor = MaterialTheme.colorScheme.onSurface,
             icon = Icons.Default.Done,
             text = "Đã sử dụng"
         )
         "EXPIRED" -> StatusInfo(
-            backgroundColor = Color(0xFFFF9800).copy(alpha = 0.1f),
-            textColor = Color(0xFFFF9800),
+            backgroundColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f),
+            textColor = MaterialTheme.colorScheme.onSurface,
             icon = Icons.Default.Schedule,
             text = "Đã hết hạn"
         )

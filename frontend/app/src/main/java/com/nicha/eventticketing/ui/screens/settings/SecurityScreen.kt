@@ -2,11 +2,13 @@ package com.nicha.eventticketing.ui.screens.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import com.nicha.eventticketing.ui.components.app.AppTextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,7 +111,7 @@ fun SecurityScreen(
                             Icon(
                                 imageVector = Icons.Filled.Fingerprint,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
@@ -129,7 +131,13 @@ fun SecurityScreen(
                             }
                             Switch(
                                 checked = biometricEnabled,
-                                onCheckedChange = { biometricEnabled = it }
+                                onCheckedChange = { biometricEnabled = it },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MaterialTheme.colorScheme.onSurface,
+                                    checkedTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    uncheckedTrackColor = MaterialTheme.colorScheme.surface
+                                )
                             )
                         }
                     }
@@ -161,7 +169,7 @@ fun SecurityScreen(
                             Icon(
                                 imageVector = Icons.Filled.Timer,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
@@ -181,7 +189,13 @@ fun SecurityScreen(
                             }
                             Switch(
                                 checked = autoLockEnabled,
-                                onCheckedChange = { autoLockEnabled = it }
+                                onCheckedChange = { autoLockEnabled = it },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MaterialTheme.colorScheme.onSurface,
+                                    checkedTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    uncheckedTrackColor = MaterialTheme.colorScheme.surface
+                                )
                             )
                         }
                         
@@ -347,17 +361,21 @@ fun ChangePasswordDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            AppTextButton(
                 onClick = { onConfirm(oldPassword, newPassword, confirmPassword) }
             ) {
                 Text("Xác nhận")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AppTextButton(
+                onClick = onDismiss
+            ) {
                 Text("Hủy")
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(16.dp)
     )
 }
 
@@ -375,14 +393,20 @@ fun TwoFactorDialog(
             Text("Bạn có muốn bật xác thực 2 yếu tố để tăng cường bảo mật cho tài khoản?")
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            AppTextButton(
+                onClick = onConfirm
+            ) {
                 Text("Bật")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AppTextButton(
+                onClick = onDismiss
+            ) {
                 Text("Hủy")
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(16.dp)
     )
 } 

@@ -1,13 +1,45 @@
 package com.nicha.eventticketing.ui.screens.analytics
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,8 +51,15 @@ import com.nicha.eventticketing.data.remote.dto.analytics.DailyRevenueResponseDt
 import com.nicha.eventticketing.data.remote.dto.analytics.RatingStatisticsDto
 import com.nicha.eventticketing.data.remote.dto.analytics.TicketSalesResponseDto
 import com.nicha.eventticketing.domain.model.ResourceState
-import com.nicha.eventticketing.ui.components.analytics.*
-import com.nicha.eventticketing.ui.components.charts.*
+import com.nicha.eventticketing.ui.components.analytics.PercentageCard
+import com.nicha.eventticketing.ui.components.analytics.RevenueCard
+import com.nicha.eventticketing.ui.components.analytics.StatsCard
+import com.nicha.eventticketing.ui.components.analytics.SummaryCardSkeleton
+import com.nicha.eventticketing.ui.components.app.AppOutlinedButton
+import com.nicha.eventticketing.ui.components.charts.DoughnutChart
+import com.nicha.eventticketing.ui.components.charts.LineChart
+import com.nicha.eventticketing.ui.components.charts.RatingDistributionChart
+import com.nicha.eventticketing.ui.components.charts.defaultChartColors
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.viewmodel.AnalyticsDashboardViewModel
 import com.nicha.eventticketing.viewmodel.ExportState
@@ -39,14 +78,14 @@ fun AnalyticsDashboardScreen(
     val checkInStatsState by viewModel.checkInStatsState.collectAsState()
     val ratingStatsState by viewModel.ratingStatsState.collectAsState()
     val exportState by viewModel.exportState.collectAsState()
-    
+
     // Export dialog states
     var showExportDialog by remember { mutableStateOf(false) }
     var showExportSuccess by remember { mutableStateOf(false) }
     var showExportError by remember { mutableStateOf(false) }
     var exportedFile by remember { mutableStateOf<java.io.File?>(null) }
     var exportErrorMessage by remember { mutableStateOf("") }
-    
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Set event ID if provided
@@ -55,7 +94,7 @@ fun AnalyticsDashboardScreen(
             viewModel.updateSelectedEventForDetails(eventId)
         }
     }
-    
+
     // Handle export state changes
     LaunchedEffect(exportState) {
         when (val currentExportState = exportState) {
@@ -63,27 +102,29 @@ fun AnalyticsDashboardScreen(
                 showExportDialog = false
                 exportedFile = currentExportState.file
                 showExportSuccess = true
-                
+
                 snackbarHostState.showSnackbar(
                     message = "File đã được lưu: ${currentExportState.file.name}",
                     duration = SnackbarDuration.Long
                 )
-                
+
                 viewModel.clearExportState()
             }
+
             is ExportState.Error -> {
                 showExportDialog = false
                 exportErrorMessage = currentExportState.message
                 showExportError = true
-                
+
                 // Show error snackbar
                 snackbarHostState.showSnackbar(
                     message = "Lỗi export: ${currentExportState.message}",
                     duration = SnackbarDuration.Long
                 )
-                
+
                 viewModel.clearExportState()
             }
+
             else -> {}
         }
     }
@@ -101,13 +142,13 @@ fun AnalyticsDashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
                         "Bảng phân tích",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         )
-                    ) 
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
@@ -169,11 +210,12 @@ fun AnalyticsDashboardScreen(
             // Summary Cards with loading states
             when {
                 dailyRevenueState is ResourceState.Loading ||
-                ticketSalesState is ResourceState.Loading ||
-                checkInStatsState is ResourceState.Loading ||
-                ratingStatsState is ResourceState.Loading -> {
+                        ticketSalesState is ResourceState.Loading ||
+                        checkInStatsState is ResourceState.Loading ||
+                        ratingStatsState is ResourceState.Loading -> {
                     SummaryCardSkeleton()
                 }
+
                 else -> {
                     SummaryCardsSection(
                         dailyRevenueState = dailyRevenueState,
@@ -231,6 +273,7 @@ private fun SummaryCardsSection(
                         is ResourceState.Success -> {
                             formatCurrency(dailyRevenueState.data.totalRevenue)
                         }
+
                         is ResourceState.Loading -> "..."
                         else -> "0"
                     },
@@ -263,12 +306,14 @@ private fun SummaryCardsSection(
                             val rate = checkInStatsState.data.checkInRate
                             if (rate > 100) rate / 100.0 else rate
                         }
+
                         else -> 0.0
                     },
                     description = when (checkInStatsState) {
                         is ResourceState.Success -> {
                             "${checkInStatsState.data.checkedIn}/${checkInStatsState.data.totalTickets} vé"
                         }
+
                         else -> null
                     },
                     color = MaterialTheme.colorScheme.tertiary,
@@ -279,7 +324,11 @@ private fun SummaryCardsSection(
                 StatsCard(
                     title = "Đánh giá TB",
                     value = when (ratingStatsState) {
-                        is ResourceState.Success -> String.format("%.1f", ratingStatsState.data.averageRating)
+                        is ResourceState.Success -> String.format(
+                            "%.1f",
+                            ratingStatsState.data.averageRating
+                        )
+
                         is ResourceState.Loading -> "..."
                         else -> "0.0"
                     },
@@ -310,21 +359,25 @@ private fun ChartsSection(
             else -> emptyMap()
         }
     }
-    
+
     val ticketSalesData = remember(ticketSalesState) {
         when (ticketSalesState) {
             is ResourceState.Success -> ticketSalesState.data.ticketTypeData.mapValues { it.value.count }
             else -> emptyMap()
         }
     }
-    
+
     val (checkedIn, totalTickets) = remember(checkInStatsState) {
         when (checkInStatsState) {
-            is ResourceState.Success -> Pair(checkInStatsState.data.checkedIn, checkInStatsState.data.totalTickets)
+            is ResourceState.Success -> Pair(
+                checkInStatsState.data.checkedIn,
+                checkInStatsState.data.totalTickets
+            )
+
             else -> Pair(0, 0)
         }
     }
-    
+
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
@@ -432,14 +485,14 @@ private fun ChartsSection(
                 else -> emptyMap()
             }
         }
-        
+
         val averageRating = remember(ratingStatsState) {
             when (ratingStatsState) {
                 is ResourceState.Success -> ratingStatsState.data.averageRating
                 else -> 0.0
             }
         }
-        
+
         if (ratingData.isNotEmpty()) {
             RatingDistributionChart(
                 ratingCounts = ratingData,
@@ -476,7 +529,7 @@ private fun QuickActionsSection(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                OutlinedButton(
+                AppOutlinedButton(
                     onClick = { onNavigateToDetailed("revenue") },
                     modifier = Modifier.weight(1f)
                 ) {
@@ -491,7 +544,7 @@ private fun QuickActionsSection(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                OutlinedButton(
+                AppOutlinedButton(
                     onClick = { onNavigateToDetailed("ticket_sales") },
                     modifier = Modifier.weight(1f)
                 ) {
@@ -506,7 +559,7 @@ private fun QuickActionsSection(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                OutlinedButton(
+                AppOutlinedButton(
                     onClick = { onNavigateToDetailed("attendee") },
                     modifier = Modifier.weight(1f)
                 ) {
@@ -554,9 +607,9 @@ private fun ChartPlaceholder(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(32.dp),

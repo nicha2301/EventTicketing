@@ -21,7 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 
@@ -72,22 +72,26 @@ fun CustomOutlinedTextField(
             maxLines = maxLines,
             enabled = enabled,
             readOnly = readOnly,
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(0.dp),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                disabledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
+                errorContainerColor = Color.Transparent,
+                focusedIndicatorColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                errorIndicatorColor = MaterialTheme.colorScheme.error,
+                cursorColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
-        
+
         // Error message with animation
         AnimatedVisibility(
             visible = isError && errorMessage != null,
-            enter = fadeIn(animationSpec = tween(150)) + 
-                   expandVertically(animationSpec = tween(150)),
-            exit = fadeOut(animationSpec = tween(150)) + 
-                   shrinkVertically(animationSpec = tween(150))
+            enter = fadeIn(animationSpec = tween(150)) +
+                    expandVertically(animationSpec = tween(150)),
+            exit = fadeOut(animationSpec = tween(150)) +
+                    shrinkVertically(animationSpec = tween(150))
         ) {
             Text(
                 text = errorMessage ?: "",

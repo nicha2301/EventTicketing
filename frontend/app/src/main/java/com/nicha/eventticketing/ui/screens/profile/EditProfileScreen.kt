@@ -1,22 +1,49 @@
 package com.nicha.eventticketing.ui.screens.profile
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicOutlinedTextField
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.nicha.eventticketing.ui.components.app.AppButton
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
+import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicOutlinedTextField
 import com.nicha.eventticketing.viewmodel.ProfileState
 import com.nicha.eventticketing.viewmodel.ProfileViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,21 +56,21 @@ fun EditProfileScreen(
     // User data from ViewModel
     val profileState by viewModel.profileState.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
-    
+
     // Local state for form fields
     var fullName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
-    
+
     // Track if form has been modified
     var hasChanges by remember { mutableStateOf(false) }
-    
+
     // Validation states
     var fullNameError by remember { mutableStateOf<String?>(null) }
-    
+
     // Snackbar
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    
+
     // Initialize form fields with user data
     LaunchedEffect(userProfile) {
         userProfile?.let {
@@ -53,25 +80,25 @@ fun EditProfileScreen(
             hasChanges = false
         }
     }
-    
+
     // Handle profile state changes
     LaunchedEffect(profileState) {
         when (profileState) {
             is ProfileState.Success -> {
-                // Only navigate back if we've actually saved changes
-                // This prevents the immediate return when the screen loads
                 if (hasChanges) {
                     onSaveClick()
                 }
             }
+
             is ProfileState.Error -> {
                 snackbarHostState.showSnackbar((profileState as ProfileState.Error).message)
                 viewModel.resetError()
             }
+
             else -> {}
         }
     }
-    
+
     // Loading indicator
     if (profileState is ProfileState.Loading) {
         Box(
@@ -82,12 +109,12 @@ fun EditProfileScreen(
         }
         return
     }
-    
+
     // Function to save changes
     val saveChanges: () -> Unit = {
         // Validate input
         fullNameError = if (fullName.isBlank()) "Họ tên không được để trống" else null
-        
+
         // Submit if valid
         if (fullNameError == null) {
             viewModel.updateProfile(
@@ -100,17 +127,17 @@ fun EditProfileScreen(
             }
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
                         "Chỉnh sửa hồ sơ",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         )
-                    ) 
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
@@ -160,10 +187,10 @@ fun EditProfileScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Button(
+
+                    AppButton(
                         onClick = { /* Handle avatar change */ }
                     ) {
                         Icon(
@@ -176,7 +203,7 @@ fun EditProfileScreen(
                     }
                 }
             }
-            
+
             // Personal info section
             NeumorphicCard(
                 modifier = Modifier.fillMaxWidth()
@@ -191,14 +218,14 @@ fun EditProfileScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Full name
                     NeumorphicOutlinedTextField(
                         value = fullName,
-                        onValueChange = { 
-                            fullName = it 
+                        onValueChange = {
+                            fullName = it
                             fullNameError = null
                             hasChanges = true
                         },
@@ -208,9 +235,9 @@ fun EditProfileScreen(
                         isError = fullNameError != null,
                         errorMessage = fullNameError
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Email
                     NeumorphicOutlinedTextField(
                         value = userProfile?.email ?: "",
@@ -220,13 +247,13 @@ fun EditProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         readOnly = true
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Phone
                     NeumorphicOutlinedTextField(
                         value = phoneNumber,
-                        onValueChange = { 
+                        onValueChange = {
                             phoneNumber = it
                             hasChanges = true
                         },
@@ -236,11 +263,11 @@ fun EditProfileScreen(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Save button
-            Button(
+            AppButton(
                 onClick = saveChanges,
                 modifier = Modifier.fillMaxWidth()
             ) {

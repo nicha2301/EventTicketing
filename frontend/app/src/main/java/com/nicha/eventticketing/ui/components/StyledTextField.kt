@@ -65,19 +65,16 @@ fun StyledTextField(
                 .fillMaxWidth()
                 .clip(shape)
                 .background(
-                    color = if (isError) 
-                        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
-                    else if (isFocused) 
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
-                    else 
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    color = if (isError)
+                        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.06f)
+                    else
+                        Color.Transparent
                 )
                 .border(
                     width = 1.dp,
                     color = when {
                         isError -> MaterialTheme.colorScheme.error
-                        isFocused -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     },
                     shape = shape
                 ),
@@ -98,7 +95,7 @@ fun StyledTextField(
                         tint = if (isError) 
                             MaterialTheme.colorScheme.error
                         else if (isFocused) 
-                            MaterialTheme.colorScheme.primary
+                            MaterialTheme.colorScheme.onSurface
                         else 
                             MaterialTheme.colorScheme.onSurfaceVariant
                     ) 
@@ -124,21 +121,21 @@ fun StyledTextField(
                 unfocusedContainerColor = Color.Transparent,
                 disabledContainerColor = Color.Transparent,
                 errorContainerColor = Color.Transparent,
-                cursorColor = MaterialTheme.colorScheme.primary,
+                cursorColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 errorCursorColor = MaterialTheme.colorScheme.error,
                 focusedBorderColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent,
                 disabledBorderColor = Color.Transparent,
                 errorBorderColor = Color.Transparent,
-                focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                focusedLeadingIconColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 errorLeadingIconColor = MaterialTheme.colorScheme.error,
-                focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+                focusedTrailingIconColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 errorTrailingIconColor = MaterialTheme.colorScheme.error,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                focusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 errorLabelColor = MaterialTheme.colorScheme.error,

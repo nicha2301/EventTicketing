@@ -33,7 +33,7 @@ fun LottieLoader(
         ) {
             CircularProgressIndicator(
                 modifier = Modifier.size(80.dp),
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onSurface
             )
             
             message?.let {
@@ -67,7 +67,7 @@ fun LottieSuccess(
         ) {
             CircularProgressIndicator(
                 modifier = Modifier.size(80.dp),
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onSurface
             )
             
             message?.let {

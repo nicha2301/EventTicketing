@@ -29,7 +29,7 @@ fun NeumorphicButton(
     enabled: Boolean = true,
     text: String? = null,
     icon: ImageVector? = null,
-    backgroundColor: Color = MaterialTheme.colorScheme.primary,
+    backgroundColor: Color = MaterialTheme.colorScheme.onSurface,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
     shadowColor: Color = Color.Black.copy(alpha = 0.2f)
 ) {
@@ -79,8 +79,8 @@ fun NeumorphicFloatingActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector = Icons.Default.Add,
-    backgroundColor: Color = MaterialTheme.colorScheme.primary,
-    contentColor: Color = MaterialTheme.colorScheme.onPrimary
+    backgroundColor: Color = MaterialTheme.colorScheme.onSurface,
+    contentColor: Color = MaterialTheme.colorScheme.surface
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
     
@@ -171,7 +171,7 @@ fun NeumorphicGradientCard(
 fun NeumorphicTag(
     text: String,
     modifier: Modifier = Modifier,
-    backgroundColor: Color = MaterialTheme.colorScheme.primary,
+    backgroundColor: Color = MaterialTheme.colorScheme.onSurface,
     textColor: Color = MaterialTheme.colorScheme.onPrimary,
     textStyle: TextStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
     onClick: (() -> Unit)? = null

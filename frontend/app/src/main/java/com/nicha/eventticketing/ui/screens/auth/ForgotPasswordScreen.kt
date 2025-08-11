@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import com.nicha.eventticketing.ui.components.app.AppButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -242,7 +243,7 @@ fun ForgotPasswordScreen(
                 }
 
                 // Submit Button
-                Button(
+                AppButton(
                     onClick = {
                         emailError = ValidationUtils.validateEmail(email)
 
@@ -258,10 +259,6 @@ fun ForgotPasswordScreen(
                             shape = RoundedCornerShape(20.dp),
                             spotColor = BrandOrange.copy(alpha = 0.2f)
                         ),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = BrandOrange
-                    ),
                     enabled = authState !is AuthState.Loading
                 ) {
                     if (authState is AuthState.Loading) {

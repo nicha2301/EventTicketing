@@ -12,6 +12,10 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import com.nicha.eventticketing.ui.components.app.AppButton
+import com.nicha.eventticketing.ui.components.app.AppTextButton
+import com.nicha.eventticketing.ui.components.app.AppButton
+import com.nicha.eventticketing.ui.components.app.AppTextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,7 +89,13 @@ fun SearchScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showFilterDialog = true }) {
+                    IconButton(
+                        onClick = { showFilterDialog = true },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.FilterList,
                             contentDescription = "Bộ lọc"
@@ -148,7 +158,14 @@ fun SearchScreen(
                                 },
                                 label = {
                                     Text(category.name)
-                                }
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.06f),
+                                    labelColor = MaterialTheme.colorScheme.onSurface,
+                                    selectedContainerColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.16f),
+                                    selectedLabelColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                shape = RoundedCornerShape(20.dp)
                             )
                         }
                     }
@@ -187,7 +204,7 @@ fun SearchScreen(
                                 Icon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(64.dp)
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -232,7 +249,7 @@ fun SearchScreen(
                                 Icon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                     modifier = Modifier.size(80.dp)
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -339,7 +356,7 @@ fun SearchResultItem(
                         color = when {
                             event.isFeatured -> MaterialTheme.colorScheme.tertiary
                             event.isFree -> MaterialTheme.colorScheme.secondary
-                            else -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurface
                         },
                         modifier = Modifier.align(Alignment.TopStart)
                     ) {
@@ -387,13 +404,13 @@ fun SearchResultItem(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
                             modifier = Modifier.size(20.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CalendarToday,
                                 contentDescription = "Date",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .padding(3.dp)
                                     .size(14.dp)
@@ -418,13 +435,13 @@ fun SearchResultItem(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
                             modifier = Modifier.size(20.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.LocationOn,
                                 contentDescription = "Location",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .padding(3.dp)
                                     .size(14.dp)
@@ -448,14 +465,14 @@ fun SearchResultItem(
                 // Price
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f),
                     modifier = Modifier.align(Alignment.Start)
                 ) {
                     Text(
                         text = FormatUtils.formatEventPrice(event.minTicketPrice, event.isFree, "Từ "),
                         style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
@@ -500,7 +517,13 @@ fun FilterDialog(
                         onValueChange = { minPriceInput = it },
                         label = { Text("Giá tối thiểu") },
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                            focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                     
                     Spacer(modifier = Modifier.width(8.dp))
@@ -510,7 +533,13 @@ fun FilterDialog(
                         onValueChange = { maxPriceInput = it },
                         label = { Text("Giá tối đa") },
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                            focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                 }
                 
@@ -528,7 +557,13 @@ fun FilterDialog(
                         onValueChange = { startDateInput = it },
                         label = { Text("Từ ngày (YYYY-MM-DD)") },
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                            focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                     
                     Spacer(modifier = Modifier.width(8.dp))
@@ -538,13 +573,19 @@ fun FilterDialog(
                         onValueChange = { endDateInput = it },
                         label = { Text("Đến ngày (YYYY-MM-DD)") },
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                            focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                 }
             }
         },
         confirmButton = {
-            Button(
+            AppButton(
                 onClick = {
                     viewModel.updatePriceRange(
                         minPriceInput.toDoubleOrNull(),
@@ -572,7 +613,7 @@ fun FilterDialog(
             }
         },
         dismissButton = {
-            TextButton(
+            AppTextButton(
                 onClick = {
                     viewModel.resetFilters()
                     onDismiss()

@@ -47,7 +47,7 @@ fun DoughnutChart(
 ) {
     val density = LocalDensity.current
     val strokeWidthDp = with(density) { strokeWidth.toDp() }
-    
+
     if (data.isEmpty()) {
         Box(
             modifier = modifier,
@@ -97,7 +97,7 @@ fun DoughnutChart(
 fun LineChart(
     data: Map<String, Float>,
     modifier: Modifier = Modifier,
-    lineColor: Color = MaterialTheme.colorScheme.primary,
+    lineColor: Color = MaterialTheme.colorScheme.onSurface,
     strokeWidth: Float = 4f
 ) {
     if (data.isEmpty()) {
@@ -141,7 +141,9 @@ fun LineChart(
                 ) {
                     // Y-axis labels
                     Column(
-                        modifier = Modifier.width(40.dp).fillMaxHeight(),
+                        modifier = Modifier
+                            .width(40.dp)
+                            .fillMaxHeight(),
                         verticalArrangement = Arrangement.SpaceBetween,
                         horizontalAlignment = Alignment.End
                     ) {
@@ -154,7 +156,9 @@ fun LineChart(
                         }
                     }
                     Box(
-                        modifier = Modifier.weight(1f).fillMaxHeight()
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
                     ) {
                         Box(
                             modifier = if (chartWidth != null) Modifier
@@ -178,7 +182,8 @@ fun LineChart(
                                     val stepX = size.width / (values.size - 1)
                                     values.forEachIndexed { index, value ->
                                         val x = index * stepX
-                                        val y = size.height - (value - minValue) / range * size.height
+                                        val y =
+                                            size.height - (value - minValue) / range * size.height
                                         // Draw point
                                         drawCircle(
                                             color = lineColor,
@@ -189,7 +194,8 @@ fun LineChart(
                                     // Draw value labels above points
                                     values.forEachIndexed { index, value ->
                                         val x = index * stepX
-                                        val y = size.height - (value - minValue) / range * size.height
+                                        val y =
+                                            size.height - (value - minValue) / range * size.height
                                         drawContext.canvas.nativeCanvas.apply {
                                             val label = String.format("%.0f", value)
                                             val paint = android.graphics.Paint().apply {
@@ -242,7 +248,9 @@ fun LineChart(
                 }
             } else {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 40.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 40.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     xLabels.forEach { label ->
@@ -263,7 +271,7 @@ fun LineChart(
 fun BarChart(
     data: Map<String, Float>,
     modifier: Modifier = Modifier,
-    barColor: Color = MaterialTheme.colorScheme.primary
+    barColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     Box(
         modifier = modifier,
@@ -294,7 +302,7 @@ private fun ChartLegend(
     ) {
         data.entries.take(colors.size).forEachIndexed { index, (label, value) ->
             val percentage = (value / total * 100).takeIf { it.isFinite() } ?: 0f
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -352,12 +360,12 @@ private fun DrawScope.drawDoughnutChart(
     val centerX = size.width / 2
     val centerY = size.height / 2
     val radius = minOf(centerX, centerY) - strokeWidth / 2
-    
+
     var startAngle = -90f
-    
+
     data.entries.take(colors.size).forEachIndexed { index, (_, value) ->
         val sweepAngle = (value / total * 360f).takeIf { it.isFinite() } ?: 0f
-        
+
         drawArc(
             color = colors[index],
             startAngle = startAngle,
@@ -367,7 +375,7 @@ private fun DrawScope.drawDoughnutChart(
             size = Size(radius * 2, radius * 2),
             style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
         )
-        
+
         startAngle += sweepAngle
     }
 }
@@ -378,28 +386,28 @@ private fun DrawScope.drawLineChart(
     strokeWidth: Float
 ) {
     if (data.size < 2) return
-    
+
     val values = data.values.toList()
     val maxValue = values.maxOrNull() ?: 0f
     val minValue = values.minOrNull() ?: 0f
     val range = maxValue - minValue
-    
+
     if (range <= 0) return
-    
+
     val path = Path()
     val stepX = size.width / (values.size - 1)
-    
+
     values.forEachIndexed { index, value ->
         val x = index * stepX
         val y = size.height - (value - minValue) / range * size.height
-        
+
         if (index == 0) {
             path.moveTo(x, y)
         } else {
             path.lineTo(x, y)
         }
     }
-    
+
     drawPath(
         path = path,
         color = lineColor,
@@ -413,17 +421,17 @@ private fun DrawScope.drawBarChart(
 ) {
     val values = data.values.toList()
     val maxValue = values.maxOrNull() ?: 0f
-    
+
     if (maxValue <= 0) return
-    
+
     val barWidth = size.width / values.size * 0.7f
     val barSpacing = size.width / values.size * 0.3f
-    
+
     values.forEachIndexed { index, value ->
         val barHeight = (value / maxValue) * size.height
         val x = index * (barWidth + barSpacing) + barSpacing / 2
         val y = size.height - barHeight
-        
+
         drawRect(
             color = barColor,
             topLeft = Offset(x, y),

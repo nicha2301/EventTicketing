@@ -4,16 +4,60 @@ import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -58,13 +102,13 @@ fun ImageUploader(
     val context = LocalContext.current
     var showImagePicker by remember { mutableStateOf(false) }
     var isDragOver by remember { mutableStateOf(false) }
-    
+
     val scaleAnimation by animateFloatAsState(
         targetValue = if (isDragOver) 1.05f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "scale"
     )
-    
+
     val alphaAnimation by animateFloatAsState(
         targetValue = if (uploadState.isUploading) 0.7f else 1f,
         animationSpec = tween(300),
@@ -95,18 +139,18 @@ fun ImageUploader(
                 onRemove = onImageRemoved
             )
         }
-        
+
         if (uploadState.isUploading) {
             UploadProgressDisplay(uploadState = uploadState)
         }
-        
+
         uploadState.error?.let { error ->
             ErrorDisplay(
                 error = error,
                 onDismiss = { /* Handle error dismiss */ }
             )
         }
-        
+
         if (!uploadState.isUploading && currentImageUrl == null) {
             ImagePickerButton(
                 onClick = {
@@ -117,7 +161,7 @@ fun ImageUploader(
                 alpha = alphaAnimation
             )
         }
-        
+
         if (uploadState.isCompleted && uploadState.error == null) {
             SuccessDisplay()
         }
@@ -162,7 +206,7 @@ private fun CurrentImageDisplay(
                     .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop
             )
-            
+
             IconButton(
                 onClick = onRemove,
                 modifier = Modifier
@@ -217,20 +261,20 @@ private fun UploadProgressDisplay(uploadState: UploadState) {
                         ),
                         label = "rotation"
                     )
-                    
+
                     Icon(
                         imageVector = Icons.Default.CloudUpload,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .size(20.dp)
                             .graphicsLayer {
                                 rotationZ = rotation
                             }
                     )
-                    
+
                     Spacer(modifier = Modifier.width(8.dp))
-                    
+
                     Text(
                         text = "Đang tải ảnh lên...",
                         style = MaterialTheme.typography.bodyMedium,
@@ -238,25 +282,22 @@ private fun UploadProgressDisplay(uploadState: UploadState) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
+
                 Text(
                     text = "${(uploadState.progress * 100).toInt()}%",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    fontWeight = FontWeight.Bold
                 )
             }
-            
+
             LinearProgressIndicator(
                 progress = { uploadState.progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    .clip(RoundedCornerShape(3.dp))
             )
-            
+
             uploadState.fileName?.let { fileName ->
                 Text(
                     text = fileName,
@@ -293,16 +334,16 @@ private fun ErrorDisplay(
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(20.dp)
             )
-            
+
             Spacer(modifier = Modifier.width(12.dp))
-            
+
             Text(
                 text = error,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.weight(1f)
             )
-            
+
             TextButton(
                 onClick = onDismiss,
                 colors = ButtonDefaults.textButtonColors(
@@ -326,11 +367,11 @@ private fun ImagePickerButton(
     alpha: Float = 1f
 ) {
     val borderColor = if (isDragOver) {
-        MaterialTheme.colorScheme.primary
+        MaterialTheme.colorScheme.onSurface
     } else {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
     }
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -340,7 +381,7 @@ private fun ImagePickerButton(
             .clickable { onClick() }
             .background(
                 if (isDragOver) {
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
                 } else {
                     Color.Transparent
                 },
@@ -365,18 +406,18 @@ private fun ImagePickerButton(
                 animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                 label = "iconScale"
             )
-            
+
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = null,
                 modifier = Modifier
                     .size(48.dp)
                     .scale(iconScale),
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.onSurface
             )
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             Text(
                 text = if (isDragOver) "Thả ảnh vào đây" else "Chọn ảnh",
                 style = MaterialTheme.typography.bodyLarge,
@@ -384,9 +425,9 @@ private fun ImagePickerButton(
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             Text(
                 text = "Hỗ trợ JPG, PNG • Tối đa 10MB",
                 style = MaterialTheme.typography.bodySmall,
@@ -400,12 +441,12 @@ private fun ImagePickerButton(
 @Composable
 private fun SuccessDisplay() {
     var visible by remember { mutableStateOf(true) }
-    
+
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(3000)
         visible = false
     }
-    
+
     AnimatedVisibility(
         visible = visible,
         enter = slideInVertically() + fadeIn(),
@@ -414,7 +455,7 @@ private fun SuccessDisplay() {
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
+                containerColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
             ),
             shape = RoundedCornerShape(12.dp)
         ) {
@@ -427,17 +468,17 @@ private fun SuccessDisplay() {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
-                
+
                 Spacer(modifier = Modifier.width(12.dp))
-                
+
                 Text(
                     text = "Tải ảnh lên thành công!",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -477,7 +518,7 @@ private fun ImagePickerDialog(
                         Icon(
                             imageVector = Icons.Default.CameraAlt,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
@@ -486,7 +527,7 @@ private fun ImagePickerDialog(
                         )
                     }
                 }
-                
+
                 if (enableGallery) {
                     Row(
                         modifier = Modifier
@@ -498,7 +539,7 @@ private fun ImagePickerDialog(
                         Icon(
                             imageVector = Icons.Default.PhotoLibrary,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
@@ -509,7 +550,10 @@ private fun ImagePickerDialog(
                 }
             }
         },
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        titleContentColor = MaterialTheme.colorScheme.onSurface,
+        textContentColor = MaterialTheme.colorScheme.onSurface
     )
 }
 
@@ -523,29 +567,29 @@ private fun handleImageSelection(
     try {
         val inputStream = context.contentResolver.openInputStream(uri)
         val file = File(context.cacheDir, "image_${System.currentTimeMillis()}.jpg")
-        
+
         inputStream?.use { input ->
             file.outputStream().use { output ->
                 input.copyTo(output)
             }
         }
-        
+
         val fileSizeMB = file.length() / (1024 * 1024)
         if (fileSizeMB > maxFileSizeMB) {
             onError("Kích thước file quá lớn. Tối đa $maxFileSizeMB MB")
             file.delete()
             return
         }
-        
+
         val contentType = context.contentResolver.getType(uri)
         if (contentType == null || !contentType.startsWith("image/")) {
             onError("Định dạng file không được hỗ trợ")
             file.delete()
             return
         }
-        
+
         onImageSelected(file, false)
-        
+
     } catch (e: Exception) {
         onError("Lỗi khi xử lý file: ${e.message}")
     }

@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -78,19 +79,15 @@ fun NeumorphicOutlinedTextField(
                 modifier = Modifier.fillMaxWidth(),
                 readOnly = readOnly,
                 keyboardOptions = keyboardOptions,
-                visualTransformation = visualTransformation
+                visualTransformation = visualTransformation,
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurfaceVariant)
             )
             
             if (value.isEmpty()) {
                 Text(
                     text = placeholder,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (readOnly) 
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                    else if (isDarkTheme) 
-                        Color.Gray 
-                    else 
-                        Color.Gray.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
             }
         }

@@ -129,7 +129,7 @@ fun EventCarousel(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            color = Color.White.copy(alpha = 0.15f),
                             modifier = Modifier.size(24.dp)
                         ) {
                             Icon(
@@ -154,7 +154,7 @@ fun EventCarousel(
                         
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            color = Color.White.copy(alpha = 0.15f),
                             modifier = Modifier.size(24.dp)
                         ) {
                             Icon(
@@ -233,10 +233,10 @@ fun EventCarousel(
                             )
                             .clip(CircleShape)
                             .background(
-                                if (isSelected) 
-                                    MaterialTheme.colorScheme.primary
-                                else 
-                                    Color.White.copy(alpha = 0.5f)
+                                if (isSelected)
+                                    Color.White
+                                else
+                                    Color.White.copy(alpha = 0.4f)
                             )
                             .clickable {
                                 coroutineScope.launch {

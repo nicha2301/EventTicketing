@@ -2,23 +2,31 @@ package com.nicha.eventticketing.ui.components.charts
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
  * Simple line chart for revenue over time
@@ -45,7 +53,7 @@ fun RevenueLineChart(
                 EmptyChartPlaceholder("Không có dữ liệu doanh thu")
             } else {
                 // Use the enhanced LineChart from ChartComponents.kt for full info
-                com.nicha.eventticketing.ui.components.charts.LineChart(
+                LineChart(
                     data = data.mapValues { it.value.toFloat() },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -77,7 +85,7 @@ fun TicketSalesBarChart(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
+
             if (data.isEmpty()) {
                 EmptyChartPlaceholder("Không có dữ liệu bán vé")
             } else {
@@ -114,7 +122,7 @@ fun CheckInPieChart(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
+
             if (checkedIn == 0 && notCheckedIn == 0) {
                 EmptyChartPlaceholder("Không có dữ liệu check-in")
             } else {
@@ -152,7 +160,7 @@ fun RatingDistributionChart(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
+
             if (ratingCounts.values.sum() == 0L) {
                 EmptyChartPlaceholder("Chưa có đánh giá")
             } else {
@@ -176,9 +184,9 @@ private fun SimpleLineChart(
     data: Map<String, Double>,
     modifier: Modifier = Modifier
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val primaryColor = MaterialTheme.colorScheme.onSurface
     val surfaceColor = MaterialTheme.colorScheme.surface
-    
+
     Canvas(modifier = modifier) {
         if (data.isEmpty()) return@Canvas
 
@@ -255,26 +263,26 @@ private fun SimpleBarChart(
     data: Map<String, Int>,
     modifier: Modifier = Modifier
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    
+    val primaryColor = MaterialTheme.colorScheme.onSurface
+
     Canvas(modifier = modifier) {
         if (data.isEmpty()) return@Canvas
-        
+
         val dataList = data.values.toList()
         val maxValue = dataList.maxOrNull() ?: 0
-        
+
         if (maxValue == 0) return@Canvas
-        
+
         val width = size.width
         val height = size.height
         val barWidth = width / data.size * 0.8f
         val barSpacing = width / data.size * 0.2f
-        
+
         dataList.forEachIndexed { index, value ->
             val barHeight = (value.toFloat() / maxValue * height)
             val x = index * (barWidth + barSpacing) + barSpacing / 2
             val y = height - barHeight
-            
+
             drawRect(
                 color = primaryColor,
                 topLeft = Offset(x, y),
@@ -295,7 +303,7 @@ private fun SimplePieChart(
 ) {
     val checkedInColor = MaterialTheme.colorScheme.primary
     val notCheckedInColor = MaterialTheme.colorScheme.surfaceVariant
-    
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -307,11 +315,11 @@ private fun SimplePieChart(
         ) {
             val total = checkedIn + notCheckedIn
             if (total == 0) return@Canvas
-            
+
             val checkedInAngle = (checkedIn.toFloat() / total * 360f)
             val center = Offset(size.width / 2, size.height / 2)
             val radius = size.minDimension / 2
-            
+
             // Draw checked in
             drawArc(
                 color = checkedInColor,
@@ -321,7 +329,7 @@ private fun SimplePieChart(
                 topLeft = Offset(center.x - radius, center.y - radius),
                 size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2)
             )
-            
+
             // Draw not checked in
             drawArc(
                 color = notCheckedInColor,
@@ -332,7 +340,7 @@ private fun SimplePieChart(
                 size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2)
             )
         }
-        
+
         // Legend
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -368,7 +376,7 @@ private fun SimpleDonutChart(
         MaterialTheme.colorScheme.primary
     )
     val defaultColor = MaterialTheme.colorScheme.surfaceVariant
-    
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -382,18 +390,18 @@ private fun SimpleDonutChart(
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val total = ratingCounts.values.sum()
                 if (total == 0L) return@Canvas
-                
+
                 val center = Offset(size.width / 2, size.height / 2)
                 val radius = size.minDimension / 2
                 val strokeWidth = 20.dp.toPx()
-                
+
                 var startAngle = 0f
-                
+
                 ratingCounts.entries.forEachIndexed { index, (rating, count) ->
                     val sweepAngle = (count.toFloat() / total * 360f)
-                    val color = colors.getOrNull(rating.toIntOrNull()?.minus(1) ?: 0) 
+                    val color = colors.getOrNull(rating.toIntOrNull()?.minus(1) ?: 0)
                         ?: defaultColor
-                    
+
                     drawArc(
                         color = color,
                         startAngle = startAngle,
@@ -403,11 +411,11 @@ private fun SimpleDonutChart(
                         size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
                         style = Stroke(width = strokeWidth)
                     )
-                    
+
                     startAngle += sweepAngle
                 }
             }
-            
+
             // Center text
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -424,15 +432,15 @@ private fun SimpleDonutChart(
                 )
             }
         }
-        
+
         // Legend
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             ratingCounts.entries.forEach { (rating, count) ->
-                val color = colors.getOrNull(rating.toIntOrNull()?.minus(1) ?: 0) 
+                val color = colors.getOrNull(rating.toIntOrNull()?.minus(1) ?: 0)
                     ?: MaterialTheme.colorScheme.surfaceVariant
-                
+
                 ChartLegendItem(
                     color = color,
                     label = "$rating ★",
@@ -464,13 +472,13 @@ fun ChartLegendItem(
                 .clip(RoundedCornerShape(2.dp))
                 .background(color)
         )
-        
+
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f)
         )
-        
+
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
@@ -488,7 +496,9 @@ private fun EmptyChartPlaceholder(
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier.fillMaxWidth().height(200.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(200.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(

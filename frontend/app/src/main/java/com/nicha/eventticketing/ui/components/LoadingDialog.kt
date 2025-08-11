@@ -47,7 +47,7 @@ fun LoadingDialog(
             ) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(50.dp),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     strokeWidth = 4.dp
                 )
                 

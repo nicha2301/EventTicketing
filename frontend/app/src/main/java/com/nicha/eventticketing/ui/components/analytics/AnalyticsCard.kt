@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -90,9 +91,9 @@ fun RevenueCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             Text(
                 text = amount,
                 style = MaterialTheme.typography.titleMedium,
@@ -101,7 +102,7 @@ fun RevenueCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            
+
             if (subtitle != null) {
                 Text(
                     text = subtitle,
@@ -111,14 +112,14 @@ fun RevenueCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            
+
             growth?.let { g ->
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 val isPositive = g >= 0
                 val color = if (isPositive) Color.Green else Color.Red
                 val icon = if (isPositive) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown
-                
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -128,9 +129,9 @@ fun RevenueCard(
                         tint = color,
                         modifier = Modifier.size(12.dp)
                     )
-                    
+
                     Spacer(modifier = Modifier.width(4.dp))
-                    
+
                     Text(
                         text = "${if (isPositive) "+" else ""}${String.format("%.1f", g)}%",
                         style = MaterialTheme.typography.bodySmall,
@@ -226,14 +227,14 @@ fun DateRangeFilterCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 Text(
                     text = "$startDate - $endDate",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
             }
-            
+
             IconButton(
                 onClick = {
                     // Open date picker - would implement with date picker dialog
@@ -242,7 +243,7 @@ fun DateRangeFilterCard(
                 Icon(
                     imageVector = Icons.Filled.DateRange,
                     contentDescription = "Chọn ngày",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -273,19 +274,23 @@ fun ErrorMessage(
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(48.dp)
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Button(
-                onClick = onRetry
+                onClick = onRetry,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = MaterialTheme.colorScheme.surface
+                )
             ) {
                 Text("Thử lại")
             }
@@ -305,7 +310,7 @@ fun ShimmerRevenueCard(
         Color.LightGray.copy(alpha = 0.2f),
         Color.LightGray.copy(alpha = 0.6f)
     )
-    
+
     val transition = rememberInfiniteTransition(label = "shimmer")
     val translateAnim = transition.animateFloat(
         initialValue = 0f,
@@ -316,7 +321,7 @@ fun ShimmerRevenueCard(
         ),
         label = "shimmer"
     )
-    
+
     NeumorphicCard(
         modifier = modifier
     ) {
@@ -333,13 +338,16 @@ fun ShimmerRevenueCard(
                         brush = Brush.linearGradient(
                             colors = shimmerColors,
                             start = androidx.compose.ui.geometry.Offset.Zero,
-                            end = androidx.compose.ui.geometry.Offset(x = translateAnim.value, y = 0f)
+                            end = androidx.compose.ui.geometry.Offset(
+                                x = translateAnim.value,
+                                y = 0f
+                            )
                         )
                     )
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -349,13 +357,16 @@ fun ShimmerRevenueCard(
                         brush = Brush.linearGradient(
                             colors = shimmerColors,
                             start = androidx.compose.ui.geometry.Offset.Zero,
-                            end = androidx.compose.ui.geometry.Offset(x = translateAnim.value, y = 0f)
+                            end = androidx.compose.ui.geometry.Offset(
+                                x = translateAnim.value,
+                                y = 0f
+                            )
                         )
                     )
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.5f)
@@ -365,7 +376,10 @@ fun ShimmerRevenueCard(
                         brush = Brush.linearGradient(
                             colors = shimmerColors,
                             start = androidx.compose.ui.geometry.Offset.Zero,
-                            end = androidx.compose.ui.geometry.Offset(x = translateAnim.value, y = 0f)
+                            end = androidx.compose.ui.geometry.Offset(
+                                x = translateAnim.value,
+                                y = 0f
+                            )
                         )
                     )
             )
@@ -386,7 +400,7 @@ fun ShimmerChart(
         Color.LightGray.copy(alpha = 0.2f),
         Color.LightGray.copy(alpha = 0.6f)
     )
-    
+
     val transition = rememberInfiniteTransition(label = "shimmer")
     val translateAnim = transition.animateFloat(
         initialValue = 0f,
@@ -397,7 +411,7 @@ fun ShimmerChart(
         ),
         label = "shimmer"
     )
-    
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -449,10 +463,10 @@ fun StatsCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                
+
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = iconColor.copy(alpha = 0.1f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
                     modifier = Modifier.size(32.dp)
                 ) {
                     Box(
@@ -462,20 +476,20 @@ fun StatsCard(
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
-                            tint = iconColor,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)
                         )
                     }
                 }
             }
-            
+
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            
+
             subtitle?.let {
                 Text(
                     text = it,
@@ -522,7 +536,7 @@ fun TrendCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
@@ -530,7 +544,7 @@ fun TrendCard(
                     modifier = Modifier.size(20.dp)
                 )
             }
-            
+
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -540,7 +554,7 @@ fun TrendCard(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -550,7 +564,7 @@ fun TrendCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
+
                     GrowthIndicator(growth = trendPercentage)
                 }
             }
@@ -587,7 +601,7 @@ fun PercentageCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -599,7 +613,7 @@ fun PercentageCard(
                     fontWeight = FontWeight.Bold,
                     color = color
                 )
-                
+
                 // Circular progress indicator
                 Box(
                     modifier = Modifier.size(48.dp)
@@ -611,7 +625,7 @@ fun PercentageCard(
                         strokeWidth = 4.dp,
                         trackColor = color.copy(alpha = 0.2f)
                     )
-                    
+
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -625,7 +639,7 @@ fun PercentageCard(
                     }
                 }
             }
-            
+
             description?.let {
                 Text(
                     text = it,
@@ -648,7 +662,7 @@ fun GrowthIndicator(
     val isPositive = growth >= 0
     val color = if (isPositive) Color(0xFF4CAF50) else Color(0xFFF44336)
     val icon = if (isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown
-    
+
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = color.copy(alpha = 0.1f),
@@ -665,7 +679,7 @@ fun GrowthIndicator(
                 tint = color,
                 modifier = Modifier.size(12.dp)
             )
-            
+
             Text(
                 text = "${if (isPositive) "+" else ""}${String.format("%.1f", growth)}%",
                 style = MaterialTheme.typography.labelSmall,
@@ -690,7 +704,7 @@ fun TicketTypesPieChart(
         )
         return
     }
-    
+
     // Simple pie chart representation with progress bars for now
     Column(
         modifier = modifier
@@ -702,7 +716,7 @@ fun TicketTypesPieChart(
                 Color(0xFF2196F3), Color(0xFF4CAF50), Color(0xFFFF9800),
                 Color(0xFF9C27B0), Color(0xFFF44336)
             )
-            
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -714,15 +728,15 @@ fun TicketTypesPieChart(
                     color = colors[index % colors.size],
                     shape = CircleShape
                 ) {}
-                
+
                 Spacer(modifier = Modifier.width(8.dp))
-                
+
                 Text(
                     text = type,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f)
                 )
-                
+
                 Text(
                     text = "$count (${String.format("%.1f", percentage)}%)",
                     style = MaterialTheme.typography.bodySmall,
@@ -738,12 +752,12 @@ fun TicketTypesLegend(
     data: Map<String, Int>
 ) {
     if (data.isEmpty()) return
-    
+
     val colors = listOf(
         Color(0xFF2196F3), Color(0xFF4CAF50), Color(0xFFFF9800),
         Color(0xFF9C27B0), Color(0xFFF44336)
     )
-    
+
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(horizontal = 8.dp)
@@ -757,9 +771,9 @@ fun TicketTypesLegend(
                     color = colors[index % colors.size],
                     shape = CircleShape
                 ) {}
-                
+
                 Spacer(modifier = Modifier.width(4.dp))
-                
+
                 Text(
                     text = "$type ($count)",
                     style = MaterialTheme.typography.bodySmall
@@ -781,14 +795,14 @@ fun SalesTimelineChart(
         )
         return
     }
-    
+
     // Simple line chart visualization
     Column(
         modifier = modifier
     ) {
         val maxValue = data.values.maxOrNull() ?: 1
         val sortedData = data.toList().sortedBy { it.first }
-        
+
         // Chart area
         Canvas(
             modifier = Modifier
@@ -798,7 +812,7 @@ fun SalesTimelineChart(
             val width = size.width
             val height = size.height
             val pointCount = sortedData.size
-            
+
             if (pointCount > 1) {
                 val stepX = width / (pointCount - 1)
                 val points = sortedData.mapIndexed { index, (_, value) ->
@@ -806,28 +820,28 @@ fun SalesTimelineChart(
                     val y = height - (value.toFloat() / maxValue) * height
                     Offset(x, y)
                 }
-                
+
                 // Draw line
                 for (i in 0 until points.size - 1) {
                     drawLine(
-                        color = androidx.compose.ui.graphics.Color.Blue,
+                        color = Color.Blue,
                         start = points[i],
                         end = points[i + 1],
                         strokeWidth = 3.dp.toPx()
                     )
                 }
-                
+
                 // Draw points
                 points.forEach { point ->
                     drawCircle(
-                        color = androidx.compose.ui.graphics.Color.Blue,
+                        color = Color.Blue,
                         radius = 4.dp.toPx(),
                         center = point
                     )
                 }
             }
         }
-        
+
         // X-axis labels
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -856,12 +870,12 @@ fun AgeDistributionChart(
         )
         return
     }
-    
+
     Column(
         modifier = modifier
     ) {
         val maxValue = data.values.maxOrNull() ?: 1
-        
+
         data.entries.forEach { (ageGroup, count) ->
             Column(
                 modifier = Modifier.padding(vertical = 2.dp)
@@ -880,7 +894,7 @@ fun AgeDistributionChart(
                         fontWeight = FontWeight.Medium
                     )
                 }
-                
+
                 LinearProgressIndicator(
                     progress = count.toFloat() / maxValue,
                     modifier = Modifier.fillMaxWidth(),
@@ -903,22 +917,22 @@ fun GenderDistributionChart(
         )
         return
     }
-    
+
     val colors = mapOf(
         "Nam" to Color.Blue,
-        "Nữ" to androidx.compose.ui.graphics.Color(0xFFE91E63),
+        "Nữ" to Color(0xFFE91E63),
         "Khác" to Color.Gray
     )
-    
+
     Column(
         modifier = modifier
     ) {
         val total = data.values.sum()
-        
+
         data.entries.forEach { (gender, count) ->
             val percentage = if (total > 0) (count.toFloat() / total) * 100 else 0f
             val color = colors[gender] ?: Color.Gray
-            
+
             Column(
                 modifier = Modifier.padding(vertical = 2.dp)
             ) {
@@ -936,7 +950,7 @@ fun GenderDistributionChart(
                         fontWeight = FontWeight.Medium
                     )
                 }
-                
+
                 LinearProgressIndicator(
                     progress = percentage / 100f,
                     modifier = Modifier.fillMaxWidth(),
@@ -959,13 +973,13 @@ fun LocationDistributionChart(
         )
         return
     }
-    
+
     Column(
         modifier = modifier
     ) {
         val maxValue = data.values.maxOrNull() ?: 1
         val sortedData = data.toList().sortedByDescending { it.second }.take(10)
-        
+
         sortedData.forEach { (location, count) ->
             Column(
                 modifier = Modifier.padding(vertical = 2.dp)
@@ -987,7 +1001,7 @@ fun LocationDistributionChart(
                         fontWeight = FontWeight.Medium
                     )
                 }
-                
+
                 LinearProgressIndicator(
                     progress = count.toFloat() / maxValue,
                     modifier = Modifier.fillMaxWidth(),
@@ -1010,14 +1024,13 @@ fun RegistrationTimelineChart(
         )
         return
     }
-    
-    // Similar to SalesTimelineChart but with different styling
+
     Column(
         modifier = modifier
     ) {
         val maxValue = data.values.maxOrNull() ?: 1
         val sortedData = data.toList().sortedBy { it.first }
-        
+
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1026,7 +1039,7 @@ fun RegistrationTimelineChart(
             val width = size.width
             val height = size.height
             val pointCount = sortedData.size
-            
+
             if (pointCount > 1) {
                 val stepX = width / (pointCount - 1)
                 val points = sortedData.mapIndexed { index, (_, value) ->
@@ -1034,7 +1047,7 @@ fun RegistrationTimelineChart(
                     val y = height - (value.toFloat() / maxValue) * height
                     Offset(x, y)
                 }
-                
+
                 // Draw area under the curve
                 val path = Path().apply {
                     moveTo(points.first().x, height)
@@ -1044,26 +1057,26 @@ fun RegistrationTimelineChart(
                     lineTo(points.last().x, height)
                     close()
                 }
-                
+
                 drawPath(
                     path = path,
-                    color = androidx.compose.ui.graphics.Color.Green.copy(alpha = 0.3f)
+                    color = Color.Green.copy(alpha = 0.3f)
                 )
-                
+
                 // Draw line
                 for (i in 0 until points.size - 1) {
                     drawLine(
-                        color = androidx.compose.ui.graphics.Color.Green,
+                        color = Color.Green,
                         start = points[i],
                         end = points[i + 1],
                         strokeWidth = 3.dp.toPx()
                     )
                 }
-                
+
                 // Draw points
                 points.forEach { point ->
                     drawCircle(
-                        color = androidx.compose.ui.graphics.Color.Green,
+                        color = Color.Green,
                         radius = 4.dp.toPx(),
                         center = point
                     )
@@ -1081,10 +1094,10 @@ fun PerformanceScoreCircle(
 ) {
     val color = when {
         score >= 80 -> Color.Green
-        score >= 60 -> androidx.compose.ui.graphics.Color(0xFFFF9800)
+        score >= 60 -> Color(0xFFFF9800)
         else -> Color.Red
     }
-    
+
     Box(
         modifier = modifier.size(size),
         contentAlignment = Alignment.Center
@@ -1095,18 +1108,18 @@ fun PerformanceScoreCircle(
             val strokeWidth = 8.dp.toPx()
             val radius = (size.toPx() - strokeWidth) / 2
             val center = Offset(size.toPx() / 2, size.toPx() / 2)
-            
+
             // Background circle
             drawCircle(
-                color = androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.3f),
+                color = Color.Gray.copy(alpha = 0.3f),
                 radius = radius,
                 center = center,
                 style = Stroke(strokeWidth)
             )
-            
+
             // Progress arc
             drawArc(
-                color = color.toArgb().let { androidx.compose.ui.graphics.Color(it) },
+                color = color.toArgb().let { Color(it) },
                 startAngle = -90f,
                 sweepAngle = (score / 100f) * 360f,
                 useCenter = false,
@@ -1115,7 +1128,7 @@ fun PerformanceScoreCircle(
                 topLeft = Offset(center.x - radius, center.y - radius)
             )
         }
-        
+
         Text(
             text = "$score%",
             style = MaterialTheme.typography.titleMedium,
@@ -1137,21 +1150,21 @@ fun CostBreakdownChart(
         )
         return
     }
-    
+
     val colors = listOf(
         Color(0xFF2196F3), Color(0xFF4CAF50), Color(0xFFFF9800),
         Color(0xFF9C27B0), Color(0xFFF44336), Color(0xFF795548)
     )
-    
+
     Column(
         modifier = modifier
     ) {
         val total = data.values.sum()
-        
+
         data.entries.forEachIndexed { index, (category, amount) ->
             val percentage = if (total > 0) (amount / total) * 100 else 0.0
             val color = colors[index % colors.size]
-            
+
             Column(
                 modifier = Modifier.padding(vertical = 2.dp)
             ) {
@@ -1167,22 +1180,22 @@ fun CostBreakdownChart(
                             color = color,
                             shape = CircleShape
                         ) {}
-                        
+
                         Spacer(modifier = Modifier.width(8.dp))
-                        
+
                         Text(
                             text = category,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
-                    
+
                     Text(
                         text = "${String.format("%.1f", percentage)}%",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium
                     )
                 }
-                
+
                 LinearProgressIndicator(
                     progress = (percentage / 100).toFloat(),
                     modifier = Modifier.fillMaxWidth(),
@@ -1211,9 +1224,9 @@ fun EmptyChart(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(48.dp)
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,

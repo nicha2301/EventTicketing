@@ -9,6 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
+import com.nicha.eventticketing.ui.components.app.AppButton
+import com.nicha.eventticketing.ui.components.app.AppTextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,7 +111,7 @@ fun StyledDatePicker(
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                Button(
+                AppButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
                             onDateSelected(Date(millis))
@@ -121,14 +123,14 @@ fun StyledDatePicker(
                 }
             },
             dismissButton = {
-                TextButton(
+                AppTextButton(
                     onClick = { showDatePicker = false }
-                ) {
-                    Text("Hủy")
-                }
+                ) { Text("Hủy") }
             }
         ) {
-            DatePicker(state = datePickerState)
+            DatePicker(
+                state = datePickerState
+            )
         }
     }
 }
@@ -240,13 +242,11 @@ fun StyledTimePicker(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        TextButton(onClick = { showTimePicker = false }) {
-                            Text("Hủy")
-                        }
+                        AppTextButton(onClick = { showTimePicker = false }) { Text("Hủy") }
                         
                         Spacer(modifier = Modifier.width(8.dp))
                         
-                        Button(
+                        AppButton(
                             onClick = {
                                 val calendar = Calendar.getInstance()
                                 calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)

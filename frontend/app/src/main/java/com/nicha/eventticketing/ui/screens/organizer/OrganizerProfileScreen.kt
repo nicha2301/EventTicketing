@@ -3,17 +3,58 @@ package com.nicha.eventticketing.ui.screens.organizer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +67,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.nicha.eventticketing.ui.components.app.AppDestructiveButton
+import com.nicha.eventticketing.ui.components.app.AppOutlinedButton
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicGradientButton
 import com.nicha.eventticketing.ui.theme.CardBackground
@@ -52,14 +95,14 @@ fun OrganizerProfileScreen(
     val neumorphismStyle = LocalNeumorphismStyle.current
     val profileState by viewModel.profileState.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
-    
+
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    
+
     LaunchedEffect(Unit) {
         viewModel.fetchUserProfile()
     }
-    
+
     LaunchedEffect(profileState) {
         if (profileState is ProfileState.Error) {
             val errorMessage = (profileState as ProfileState.Error).message
@@ -67,18 +110,18 @@ fun OrganizerProfileScreen(
             viewModel.resetError()
         }
     }
-    
+
     var showLogoutDialog by remember { mutableStateOf(false) }
-    
+
     val isLoading = profileState is ProfileState.Loading
-    
+
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
             title = { Text("Xác nhận đăng xuất") },
             text = { Text("Bạn có chắc chắn muốn đăng xuất không?") },
             confirmButton = {
-                Button(
+                AppDestructiveButton(
                     onClick = {
                         showLogoutDialog = false
                         authViewModel.logout()
@@ -89,7 +132,7 @@ fun OrganizerProfileScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(
+                AppOutlinedButton(
                     onClick = { showLogoutDialog = false }
                 ) {
                     Text("Hủy")
@@ -97,17 +140,17 @@ fun OrganizerProfileScreen(
             }
         )
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
                         "Hồ sơ nhà tổ chức",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         )
-                    ) 
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
@@ -166,14 +209,15 @@ fun OrganizerProfileScreen(
                         .background(CardBackground)
                         .border(
                             width = 4.dp,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             shape = CircleShape
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     // User image or placeholder
                     AsyncImage(
-                        model = userProfile?.profilePictureUrl ?: "https://picsum.photos/id/64/120/120",
+                        model = userProfile?.profilePictureUrl
+                            ?: "https://picsum.photos/id/64/120/120",
                         contentDescription = "Avatar",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -181,28 +225,28 @@ fun OrganizerProfileScreen(
                             .clip(CircleShape)
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // User name
                 Text(
                     text = userProfile?.fullName ?: "Đang tải...",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
-                
+
                 // Email
                 Text(
                     text = userProfile?.email ?: "",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
-                
+
                 // Badge for organizer
                 Surface(
                     modifier = Modifier.padding(vertical = 8.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -211,20 +255,20 @@ fun OrganizerProfileScreen(
                         Icon(
                             imageVector = Icons.Default.VerifiedUser,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Nhà tổ chức",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Personal Information Section
                 NeumorphicCard(
                     modifier = Modifier.fillMaxWidth()
@@ -239,7 +283,7 @@ fun OrganizerProfileScreen(
                             Icon(
                                 imageVector = Icons.Filled.Person,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
@@ -249,38 +293,38 @@ fun OrganizerProfileScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        
+
                         // Phone number
                         ProfileInfoItem(
                             icon = Icons.Filled.Phone,
                             label = "Số điện thoại",
                             value = userProfile?.phoneNumber ?: "Chưa cập nhật"
                         )
-                        
+
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 8.dp),
                             thickness = 1.dp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                         )
-                        
+
                         // Role
                         ProfileInfoItem(
                             icon = Icons.Filled.Badge,
                             label = "Vai trò",
-                            value = when(userProfile?.role) {
+                            value = when (userProfile?.role) {
                                 "USER" -> "Người dùng"
                                 "ORGANIZER" -> "Nhà tổ chức"
                                 "ADMIN" -> "Quản trị viên"
                                 else -> userProfile?.role ?: "Không xác định"
                             }
                         )
-                        
+
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 8.dp),
                             thickness = 1.dp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                         )
-                        
+
                         // Created date
                         ProfileInfoItem(
                             icon = Icons.Filled.CalendarToday,
@@ -289,9 +333,9 @@ fun OrganizerProfileScreen(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Organizer Tools Section
                 NeumorphicCard(
                     modifier = Modifier.fillMaxWidth()
@@ -306,7 +350,7 @@ fun OrganizerProfileScreen(
                             Icon(
                                 imageVector = Icons.Filled.Build,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
@@ -316,7 +360,7 @@ fun OrganizerProfileScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        
+
                         // My Events
                         ProfileSettingItem(
                             icon = Icons.Filled.EventNote,
@@ -324,13 +368,13 @@ fun OrganizerProfileScreen(
                             subtitle = "Quản lý các sự kiện đã tạo",
                             onClick = onMyEventsClick
                         )
-                        
+
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 8.dp),
                             thickness = 1.dp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                         )
-                        
+
                         // Create Event
                         ProfileSettingItem(
                             icon = Icons.Filled.AddCircle,
@@ -338,13 +382,13 @@ fun OrganizerProfileScreen(
                             subtitle = "Tạo và cấu hình sự kiện mới",
                             onClick = onCreateEventClick
                         )
-                        
+
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 8.dp),
                             thickness = 1.dp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                         )
-                        
+
                         // Dashboard
                         ProfileSettingItem(
                             icon = Icons.Filled.Dashboard,
@@ -352,13 +396,13 @@ fun OrganizerProfileScreen(
                             subtitle = "Xem tổng quan các sự kiện",
                             onClick = onEventDashboardClick
                         )
-                        
+
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 8.dp),
                             thickness = 1.dp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                         )
-                        
+
                         // Analytics
                         ProfileSettingItem(
                             icon = Icons.Filled.Analytics,
@@ -366,13 +410,13 @@ fun OrganizerProfileScreen(
                             subtitle = "Xem báo cáo và thống kê sự kiện",
                             onClick = onAnalyticsClick
                         )
-                        
+
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 8.dp),
                             thickness = 1.dp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                         )
-                        
+
                         // Scan QR
                         ProfileSettingItem(
                             icon = Icons.Filled.QrCode2,
@@ -382,9 +426,9 @@ fun OrganizerProfileScreen(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Account Settings Section
                 NeumorphicCard(
                     modifier = Modifier.fillMaxWidth()
@@ -399,7 +443,7 @@ fun OrganizerProfileScreen(
                             Icon(
                                 imageVector = Icons.Filled.Settings,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
@@ -409,7 +453,7 @@ fun OrganizerProfileScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        
+
                         // Settings item
                         ProfileSettingItem(
                             icon = Icons.Filled.Settings,
@@ -419,9 +463,9 @@ fun OrganizerProfileScreen(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Logout button
                 NeumorphicGradientButton(
                     onClick = { showLogoutDialog = true },
@@ -433,12 +477,6 @@ fun OrganizerProfileScreen(
                         )
                     )
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Đăng xuất",
@@ -470,9 +508,9 @@ fun ProfileInfoItem(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
-        
+
         Spacer(modifier = Modifier.width(16.dp))
-        
+
         Column(
             modifier = Modifier.weight(1f)
         ) {
@@ -481,7 +519,7 @@ fun ProfileInfoItem(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
@@ -511,9 +549,9 @@ fun ProfileSettingItem(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp)
         )
-        
+
         Spacer(modifier = Modifier.width(16.dp))
-        
+
         Column(
             modifier = Modifier.weight(1f)
         ) {
@@ -522,14 +560,14 @@ fun ProfileSettingItem(
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium
             )
-            
+
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        
+
         Icon(
             imageVector = Icons.Filled.ChevronRight,
             contentDescription = null,

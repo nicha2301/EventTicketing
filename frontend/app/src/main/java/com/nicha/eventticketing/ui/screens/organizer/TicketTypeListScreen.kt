@@ -9,6 +9,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import com.nicha.eventticketing.ui.components.app.AppButton
+import com.nicha.eventticketing.ui.components.app.AppTextButton
+import com.nicha.eventticketing.ui.components.app.AppOutlinedButton
+import com.nicha.eventticketing.ui.components.app.AppDestructiveButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -103,7 +107,7 @@ fun TicketTypeListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreateDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
+                containerColor = MaterialTheme.colorScheme.onSurface,
                 elevation = FloatingActionButtonDefaults.elevation(
                     defaultElevation = 6.dp,
                     pressedElevation = 8.dp
@@ -112,7 +116,7 @@ fun TicketTypeListScreen(
                 Icon(
                     imageVector = Icons.Filled.Add,
                     contentDescription = "Tạo loại vé mới",
-                    tint = MaterialTheme.colorScheme.onPrimary
+                    tint = MaterialTheme.colorScheme.surface
                 )
             }
         }
@@ -151,9 +155,8 @@ fun TicketTypeListScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Button(
+                            AppButton(
                                 onClick = { viewModel.getTicketTypes(eventId) },
-                                shape = RoundedCornerShape(8.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Refresh,
@@ -196,12 +199,13 @@ fun TicketTypeListScreen(
                                 
                                 Spacer(modifier = Modifier.height(16.dp))
                                 
-                                Button(onClick = { showCreateDialog = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
+                                AppButton(onClick = { showCreateDialog = true }) {
+                                                                    Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Tạo loại vé mới")
                                 }
@@ -240,20 +244,17 @@ fun TicketTypeListScreen(
                     title = { Text("Xác nhận xóa") },
                     text = { Text("Bạn có chắc chắn muốn xóa loại vé '${ticketTypeToDelete.name}' không?") },
                     confirmButton = {
-                        Button(
+                        AppDestructiveButton(
                             onClick = {
                                 viewModel.deleteTicketType(ticketTypeToDelete.id, eventId)
                                 showDeleteConfirmDialog = null
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            )
                         ) {
                             Text("Xóa")
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showDeleteConfirmDialog = null }) {
+                        AppTextButton(onClick = { showDeleteConfirmDialog = null }) {
                             Text("Hủy")
                         }
                     }
@@ -334,7 +335,7 @@ fun TicketTypeItem(
                         Surface(
                             shape = RoundedCornerShape(16.dp),
                             color = if (ticketType.isActive) 
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                             else 
                                 MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
                         ) {
@@ -342,7 +343,7 @@ fun TicketTypeItem(
                                 text = if (ticketType.isActive) "Đang bán" else "Ngừng bán",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (ticketType.isActive) 
-                                    MaterialTheme.colorScheme.primary
+                                    MaterialTheme.colorScheme.onSurfaceVariant
                                 else 
                                     MaterialTheme.colorScheme.error,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -364,7 +365,7 @@ fun TicketTypeItem(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Chỉnh sửa",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     
@@ -405,7 +406,7 @@ fun TicketTypeItem(
                             "Miễn phí",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 
@@ -790,13 +791,13 @@ fun TicketTypeFormDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    AppTextButton(onClick = onDismiss) {
                         Text("Hủy")
                     }
                     
                     Spacer(modifier = Modifier.width(8.dp))
                     
-                    Button(
+                    AppButton(
                         onClick = {
                             if (validateForm()) {
                                 val newTicketType = TicketTypeDto(
@@ -833,7 +834,7 @@ fun TicketTypeFormDialog(
         DatePickerDialog(
             onDismissRequest = { showStartDatePicker = false },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let {
                             val selectedDate = Calendar.getInstance().apply {
@@ -855,7 +856,7 @@ fun TicketTypeFormDialog(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showStartDatePicker = false }) {
+                AppTextButton(onClick = { showStartDatePicker = false }) {
                     Text("Hủy")
                 }
             }
@@ -868,7 +869,7 @@ fun TicketTypeFormDialog(
         DatePickerDialog(
             onDismissRequest = { showEndDatePicker = false },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let {
                             val selectedDate = Calendar.getInstance().apply {
@@ -902,7 +903,7 @@ fun TicketTypeFormDialog(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showEndDatePicker = false }) {
+                AppTextButton(onClick = { showEndDatePicker = false }) {
                     Text("Hủy")
                 }
             }

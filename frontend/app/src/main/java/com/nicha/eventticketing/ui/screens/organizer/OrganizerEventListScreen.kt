@@ -1,54 +1,65 @@
 package com.nicha.eventticketing.ui.screens.organizer
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.PeopleAlt
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.QrCode2
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
+import com.nicha.eventticketing.data.remote.dto.event.PageDto
 import com.nicha.eventticketing.domain.model.ResourceState
-import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
-import com.nicha.eventticketing.ui.theme.CardBackground
-import com.nicha.eventticketing.ui.theme.LocalNeumorphismStyle
-import com.nicha.eventticketing.viewmodel.OrganizerEventViewModel
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import com.nicha.eventticketing.ui.components.EventCard
-import androidx.compose.foundation.background
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
-import com.nicha.eventticketing.R
-import com.nicha.eventticketing.ui.components.EventStatusChip
+import com.nicha.eventticketing.ui.components.app.AppButton
+import com.nicha.eventticketing.ui.components.app.AppTabRow
+import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
+import com.nicha.eventticketing.viewmodel.OrganizerEventViewModel
 
 enum class EventStatusFilter {
     ALL, DRAFT, PUBLISHED, CANCELLED, COMPLETED
@@ -66,23 +77,23 @@ fun OrganizerEventListScreen(
     val organizerEventsState by viewModel.organizerEventsState.collectAsState()
     var selectedStatusFilter by remember { mutableStateOf(EventStatusFilter.ALL) }
     var searchQuery by remember { mutableStateOf("") }
-    
+
     // Fetch events when component is first displayed
     LaunchedEffect(Unit) {
         viewModel.getOrganizerEvents()
     }
-    
+
     Scaffold(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { 
+                    title = {
                         Text(
                             "Sự kiện của tôi",
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold
                             )
-                        ) 
+                        )
                     },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
@@ -102,10 +113,10 @@ fun OrganizerEventListScreen(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.primary
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
-                
+
                 NeumorphicCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -120,7 +131,7 @@ fun OrganizerEventListScreen(
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Tìm kiếm",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
                         trailingIcon = {
@@ -141,7 +152,7 @@ fun OrganizerEventListScreen(
                             disabledContainerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = MaterialTheme.colorScheme.primary
+                            cursorColor = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -151,7 +162,7 @@ fun OrganizerEventListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCreateEventClick,
-                containerColor = MaterialTheme.colorScheme.primary,
+                containerColor = MaterialTheme.colorScheme.onSurface,
                 elevation = FloatingActionButtonDefaults.elevation(
                     defaultElevation = 6.dp,
                     pressedElevation = 8.dp
@@ -184,45 +195,27 @@ fun OrganizerEventListScreen(
                 .padding(paddingValues)
         ) {
             // Status filter tabs
-            ScrollableTabRow(
-                selectedTabIndex = selectedStatusFilter.ordinal,
-                edgePadding = 16.dp,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.primary,
-                divider = {
-                    HorizontalDivider(
-                        thickness = 2.dp,
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                }
-            ) {
-                EventStatusFilter.values().forEachIndexed { index, filter ->
-                    Tab(
-                        selected = selectedStatusFilter.ordinal == index,
-                        onClick = { selectedStatusFilter = filter },
-                        text = {
-                            Text(
-                                when (filter) {
-                                    EventStatusFilter.ALL -> "Tất cả"
-                                    EventStatusFilter.DRAFT -> "Bản nháp"
-                                    EventStatusFilter.PUBLISHED -> "Đã đăng"
-                                    EventStatusFilter.CANCELLED -> "Đã hủy"
-                                    EventStatusFilter.COMPLETED -> "Đã kết thúc"
-                                }
-                            )
-                        },
-                        selectedContentColor = MaterialTheme.colorScheme.primary,
-                        unselectedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-            }
-            
+            AppTabRow(
+                selectedIndex = selectedStatusFilter.ordinal,
+                titles = EventStatusFilter.values().map {
+                    when (it) {
+                        EventStatusFilter.ALL -> "Tất cả"
+                        EventStatusFilter.DRAFT -> "Bản nháp"
+                        EventStatusFilter.PUBLISHED -> "Đã đăng"
+                        EventStatusFilter.CANCELLED -> "Đã hủy"
+                        EventStatusFilter.COMPLETED -> "Đã kết thúc"
+                    }
+                },
+                onSelect = { idx -> selectedStatusFilter = EventStatusFilter.values()[idx] }
+            )
+
             when (organizerEventsState) {
                 is ResourceState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
                 }
+
                 is ResourceState.Error -> {
                     val errorMessage = (organizerEventsState as ResourceState.Error).message
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -256,9 +249,8 @@ fun OrganizerEventListScreen(
                                     textAlign = TextAlign.Center
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Button(
-                                    onClick = { viewModel.getOrganizerEvents() },
-                                    shape = RoundedCornerShape(12.dp)
+                                AppButton(
+                                    onClick = { viewModel.getOrganizerEvents() }
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Refresh,
@@ -271,9 +263,11 @@ fun OrganizerEventListScreen(
                         }
                     }
                 }
+
                 is ResourceState.Success -> {
-                    val events = (organizerEventsState as ResourceState.Success<*>).data as? com.nicha.eventticketing.data.remote.dto.event.PageDto<EventDto>
-                    
+                    val events =
+                        (organizerEventsState as ResourceState.Success<*>).data as? PageDto<EventDto>
+
                     val filteredEvents = events?.content?.filter { event ->
                         val matchesStatus = when (selectedStatusFilter) {
                             EventStatusFilter.ALL -> true
@@ -282,20 +276,23 @@ fun OrganizerEventListScreen(
                             EventStatusFilter.CANCELLED -> event.status == "CANCELLED"
                             EventStatusFilter.COMPLETED -> event.status == "COMPLETED"
                         }
-                        
+
                         val matchesSearch = if (searchQuery.isEmpty()) {
                             true
                         } else {
                             event.title.contains(searchQuery, ignoreCase = true) ||
-                            event.description.contains(searchQuery, ignoreCase = true) ||
-                            event.locationName.contains(searchQuery, ignoreCase = true)
+                                    event.description.contains(searchQuery, ignoreCase = true) ||
+                                    event.locationName.contains(searchQuery, ignoreCase = true)
                         }
-                        
+
                         matchesStatus && matchesSearch
                     } ?: emptyList()
-                    
+
                     if (filteredEvents.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
                             NeumorphicCard(
                                 modifier = Modifier
                                     .padding(16.dp)
@@ -308,12 +305,12 @@ fun OrganizerEventListScreen(
                                     Icon(
                                         imageVector = Icons.Default.Event,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                         modifier = Modifier.size(64.dp)
                                     )
-                                    
+
                                     Spacer(modifier = Modifier.height(16.dp))
-                                    
+
                                     Text(
                                         text = if (searchQuery.isNotEmpty()) {
                                             "Không tìm thấy sự kiện phù hợp"
@@ -330,17 +327,17 @@ fun OrganizerEventListScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         textAlign = TextAlign.Center
                                     )
-                                    
+
                                     Spacer(modifier = Modifier.height(16.dp))
-                                    
-                                    Button(
-                                        onClick = onCreateEventClick,
-                                        shape = RoundedCornerShape(12.dp)
+
+                                    AppButton(
+                                        onClick = onCreateEventClick
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Add,
                                             contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onSurface
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("Tạo sự kiện mới")
@@ -363,7 +360,7 @@ fun OrganizerEventListScreen(
                                     onEventClick = { onEventClick(event.id) }
                                 )
                             }
-                            
+
                             // Thêm khoảng trống ở cuối để tránh FAB che nội dung
                             item {
                                 Spacer(modifier = Modifier.height(80.dp))
@@ -371,6 +368,7 @@ fun OrganizerEventListScreen(
                         }
                     }
                 }
+
                 else -> {}
             }
         }

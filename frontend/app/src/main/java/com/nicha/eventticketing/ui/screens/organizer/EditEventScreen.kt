@@ -1,42 +1,81 @@
 package com.nicha.eventticketing.ui.screens.organizer
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShortText
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.LocationCity
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MoneyOff
+import androidx.compose.material.icons.filled.PeopleAlt
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.nicha.eventticketing.domain.model.EventType
 import com.nicha.eventticketing.data.remote.dto.event.EventDto
+import com.nicha.eventticketing.domain.model.EventType
 import com.nicha.eventticketing.domain.model.ResourceState
-import com.nicha.eventticketing.ui.components.StyledTextField
 import com.nicha.eventticketing.ui.components.StyledDatePicker
+import com.nicha.eventticketing.ui.components.StyledTextField
 import com.nicha.eventticketing.ui.components.StyledTimePicker
+import com.nicha.eventticketing.ui.components.app.AppButton
+import com.nicha.eventticketing.ui.components.app.AppOutlinedButton
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
-import com.nicha.eventticketing.viewmodel.OrganizerEventViewModel
 import com.nicha.eventticketing.util.ImageUtils.getAllImageUrls
+import com.nicha.eventticketing.viewmodel.OrganizerEventViewModel
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -440,7 +479,7 @@ fun EditEventScreen(
                                 color = MaterialTheme.colorScheme.error
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { viewModel.getEventById(eventId) }) {
+                            AppButton(onClick = { viewModel.getEventById(eventId) }) {
                                 Text("Thử lại")
                             }
                         }
@@ -639,7 +678,7 @@ fun EditEventScreen(
                                             Icon(
                                                 imageVector = Icons.Default.MoneyOff,
                                                 contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                             Spacer(modifier = Modifier.width(12.dp))
                                             Text(
@@ -647,7 +686,7 @@ fun EditEventScreen(
                                                 style = MaterialTheme.typography.bodyLarge,
                                                 modifier = Modifier.weight(1f)
                                             )
-                                            Switch(
+                                            com.nicha.eventticketing.ui.components.app.AppSwitch(
                                                 checked = isFree,
                                                 onCheckedChange = { isFree = it }
                                             )
@@ -660,7 +699,7 @@ fun EditEventScreen(
                                             Icon(
                                                 imageVector = Icons.Default.Lock,
                                                 contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                             Spacer(modifier = Modifier.width(12.dp))
                                             Text(
@@ -668,7 +707,7 @@ fun EditEventScreen(
                                                 style = MaterialTheme.typography.bodyLarge,
                                                 modifier = Modifier.weight(1f)
                                             )
-                                            Switch(
+                                            com.nicha.eventticketing.ui.components.app.AppSwitch(
                                                 checked = isPrivate,
                                                 onCheckedChange = { isPrivate = it }
                                             )
@@ -697,7 +736,7 @@ fun EditEventScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 
-                                Button(
+                            AppButton(
                                     onClick = { 
                                         if (hasChanges()) {
                                             showSaveChangesDialog = true
@@ -705,15 +744,7 @@ fun EditEventScreen(
                                             onManageImagesClick(eventId)
                                         }
                                     },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                    ),
-                                    elevation = ButtonDefaults.buttonElevation(
-                                        defaultElevation = 2.dp,
-                                        pressedElevation = 8.dp
-                                    )
+                                modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.PhotoLibrary,
@@ -765,14 +796,14 @@ fun EditEventScreen(
                                                 Icon(
                                                     imageVector = Icons.Default.AddPhotoAlternate,
                                                     contentDescription = "Add image",
-                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.size(48.dp)
                                                 )
                                                 Spacer(modifier = Modifier.height(12.dp))
                                                 Text(
                                                     text = "Chưa có ảnh banner",
                                                     style = MaterialTheme.typography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.primary
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                         }
@@ -782,22 +813,12 @@ fun EditEventScreen(
                         }
                         
                         // Nút cập nhật sự kiện
-                        Button(
+                        AppButton(
                             onClick = { submitForm() },
                             enabled = isFormValid,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            ),
-                            elevation = ButtonDefaults.buttonElevation(
-                                defaultElevation = 4.dp,
-                                pressedElevation = 8.dp,
-                                disabledElevation = 0.dp
-                            ),
-                            shape = RoundedCornerShape(16.dp)
+                                .padding(vertical = 16.dp)
                         ) {
                             Row(
                                 modifier = Modifier.padding(vertical = 8.dp),
@@ -852,7 +873,7 @@ fun EditEventScreen(
             title = { Text("Thành công") },
             text = { Text("Sự kiện đã được cập nhật thành công!") },
             confirmButton = {
-                Button(
+                AppButton(
                     onClick = {
                         showSuccessDialog = false
                         onEventUpdated(eventId)
@@ -883,20 +904,17 @@ fun EditEventScreen(
                 ) 
             },
             confirmButton = {
-                Button(
+                AppButton(
                     onClick = {
                         showSaveChangesDialog = false
                         submitForm()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
                 ) {
                     Text("Lưu và tiếp tục")
                 }
             },
             dismissButton = {
-                OutlinedButton(
+                AppOutlinedButton(
                     onClick = {
                         showSaveChangesDialog = false
                         onManageImagesClick(eventId)

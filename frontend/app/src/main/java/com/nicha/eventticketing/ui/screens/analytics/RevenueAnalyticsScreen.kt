@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.nicha.eventticketing.ui.components.app.AppTextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -103,7 +104,7 @@ fun RevenueAnalyticsScreen(
                 // Period selector
                 var expanded by remember { mutableStateOf(false) }
                 
-                TextButton(
+                AppTextButton(
                     onClick = { expanded = true }
                 ) {
                     Text(selectedPeriod)

@@ -4,44 +4,71 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ShortText
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.nicha.eventticketing.data.remote.dto.category.CategoryDto
-import com.nicha.eventticketing.data.remote.dto.location.LocationDto
 import com.nicha.eventticketing.ui.components.LoadingDialog
-import com.nicha.eventticketing.ui.components.StyledTextField
 import com.nicha.eventticketing.ui.components.StyledDatePicker
-import com.nicha.eventticketing.ui.components.StyledTimePicker
 import com.nicha.eventticketing.ui.components.StyledDropdown
+import com.nicha.eventticketing.ui.components.StyledTimePicker
+import com.nicha.eventticketing.ui.components.app.AppButton
+import com.nicha.eventticketing.ui.components.app.AppSwitch
+import com.nicha.eventticketing.ui.components.app.AppTextButton
+import com.nicha.eventticketing.ui.components.app.AppTextField
 import com.nicha.eventticketing.ui.components.neumorphic.NeumorphicCard
-import com.nicha.eventticketing.util.FormatUtils
 import com.nicha.eventticketing.viewmodel.CreateEventViewModel
-import java.io.File
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,47 +100,47 @@ fun CreateEventScreen(
     var isDraft by remember { mutableStateOf(true) }
     var isFree by remember { mutableStateOf(false) }
     var selectedImageUris by remember { mutableStateOf(emptyList<Uri>()) }
-    
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         selectedImageUris = uris
     }
-    
+
     // Form validation errors
     var startDateError by remember { mutableStateOf<String?>(null) }
     var endDateError by remember { mutableStateOf<String?>(null) }
-    
+
     // Dialog states
     var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
-    
+
     // Validate form
-    val isFormValid = title.isNotBlank() && description.isNotBlank() && 
-                     shortDescription.isNotBlank() && address.isNotBlank() && 
-                     city.isNotBlank() && maxAttendees.isNotBlank() && 
-                     selectedCategoryId != null && selectedLocationId != null && 
-                     startDate != null && startTime != null && 
-                     endDate != null && endTime != null &&
-                     startDateError == null && endDateError == null
-    
+    val isFormValid = title.isNotBlank() && description.isNotBlank() &&
+            shortDescription.isNotBlank() && address.isNotBlank() &&
+            city.isNotBlank() && maxAttendees.isNotBlank() &&
+            selectedCategoryId != null && selectedLocationId != null &&
+            startDate != null && startTime != null &&
+            endDate != null && endTime != null &&
+            startDateError == null && endDateError == null
+
     fun combineDateTime(date: Date, time: Date): Date {
         val calendar1 = Calendar.getInstance()
         calendar1.time = date
-        
+
         val calendar2 = Calendar.getInstance()
         calendar2.time = time
-        
+
         calendar1.set(Calendar.HOUR_OF_DAY, calendar2.get(Calendar.HOUR_OF_DAY))
         calendar1.set(Calendar.MINUTE, calendar2.get(Calendar.MINUTE))
         calendar1.set(Calendar.SECOND, 0)
-        
+
         return calendar1.time
     }
-    
+
     fun validateDates() {
         val now = Calendar.getInstance().time
-        
+
         startDate?.let { sDate ->
             startTime?.let { sTime ->
                 val startDateTime = combineDateTime(sDate, sTime)
@@ -121,7 +148,7 @@ fun CreateEventScreen(
                     startDateError = "Ngày bắt đầu phải là ngày trong tương lai"
                 } else {
                     startDateError = null
-                    
+
                     endDate?.let { eDate ->
                         endTime?.let { eTime ->
                             val endDateTime = combineDateTime(eDate, eTime)
@@ -136,20 +163,22 @@ fun CreateEventScreen(
             }
         }
     }
-    
+
     LaunchedEffect(startDate, startTime, endDate, endTime) {
         validateDates()
     }
-    
+
     // Handle form submission
     fun submitForm() {
         if (isFormValid) {
             val startDateTime = combineDateTime(startDate!!, startTime!!)
             val endDateTime = combineDateTime(endDate!!, endTime!!)
-            
-            val startDateString = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(startDateTime)
-            val endDateString = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(endDateTime)
-            
+
+            val startDateString =
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(startDateTime)
+            val endDateString =
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(endDateTime)
+
             viewModel.createEventWithImages(
                 title = title,
                 description = description,
@@ -174,13 +203,16 @@ fun CreateEventScreen(
         when (uiState) {
             is CreateEventViewModel.UiState.Success -> {
                 val eventId = (uiState as CreateEventViewModel.UiState.Success).eventId
-            showSuccessDialog = true
+                showSuccessDialog = true
                 onEventCreated(eventId)
             }
+
             is CreateEventViewModel.UiState.Error -> {
                 showErrorDialog = true
             }
-            else -> { /* Loading or Idle */ }
+
+            else -> { /* Loading or Idle */
+            }
         }
     }
 
@@ -189,17 +221,17 @@ fun CreateEventScreen(
         viewModel.loadCategories()
         viewModel.loadLocations()
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
                         "Tạo sự kiện mới",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         )
-                    ) 
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
@@ -223,7 +255,7 @@ fun CreateEventScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            
+
             NeumorphicCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -236,34 +268,28 @@ fun CreateEventScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    
-                    StyledTextField(
+
+                    AppTextField(
                         value = title,
                         onValueChange = { title = it },
-                        label = "Tên sự kiện",
                         placeholder = "Nhập tên sự kiện",
-                        leadingIcon = Icons.Default.Event,
                         singleLine = true
                     )
-                    
-                    StyledTextField(
+
+                    AppTextField(
                         value = shortDescription,
                         onValueChange = { shortDescription = it },
-                        label = "Mô tả ngắn",
                         placeholder = "Nhập mô tả ngắn",
-                        leadingIcon = Icons.AutoMirrored.Filled.ShortText,
                         singleLine = true
                     )
-                    
-                    StyledTextField(
+
+                    AppTextField(
                         value = description,
                         onValueChange = { description = it },
-                        label = "Mô tả chi tiết",
                         placeholder = "Nhập mô tả chi tiết",
-                        leadingIcon = Icons.Default.Description,
-                        maxLines = 5
+                        singleLine = false
                     )
-                    
+
                     StyledDropdown(
                         label = "Danh mục",
                         items = categories,
@@ -275,7 +301,7 @@ fun CreateEventScreen(
                     )
                 }
             }
-            
+
             // Hình ảnh sự kiện
             NeumorphicCard(
                 modifier = Modifier.fillMaxWidth()
@@ -289,18 +315,18 @@ fun CreateEventScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    
+
                     Text(
                         text = "Chọn nhiều hình ảnh cho sự kiện",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
+
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(120.dp)
-                            .clickable { 
+                            .clickable {
                                 imagePickerLauncher.launch("image/*")
                             },
                         colors = CardDefaults.cardColors(
@@ -319,25 +345,25 @@ fun CreateEventScreen(
                                     imageVector = Icons.Default.Add,
                                     contentDescription = "Thêm ảnh",
                                     modifier = Modifier.size(48.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = "Nhấn để chọn ảnh",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     }
-                    
+
                     if (selectedImageUris.isNotEmpty()) {
                         Text(
                             text = "Đã chọn ${selectedImageUris.size} ảnh",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        
+
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -353,10 +379,11 @@ fun CreateEventScreen(
                                             .clip(RoundedCornerShape(8.dp)),
                                         contentScale = ContentScale.Crop
                                     )
-                                    
+
                                     IconButton(
                                         onClick = {
-                                            selectedImageUris = selectedImageUris.filter { it != uri }
+                                            selectedImageUris =
+                                                selectedImageUris.filter { it != uri }
                                         },
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
@@ -379,7 +406,7 @@ fun CreateEventScreen(
                     }
                 }
             }
-            
+
             // Thời gian và địa điểm
             NeumorphicCard(
                 modifier = Modifier.fillMaxWidth()
@@ -393,7 +420,7 @@ fun CreateEventScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -401,26 +428,26 @@ fun CreateEventScreen(
                         StyledDatePicker(
                             label = "Ngày bắt đầu",
                             selectedDate = startDate,
-                            onDateSelected = { 
+                            onDateSelected = {
                                 startDate = it
                                 validateDates()
                             },
-                    modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f),
                             isError = startDateError != null,
                             errorMessage = startDateError
                         )
-                        
+
                         StyledTimePicker(
                             label = "Giờ bắt đầu",
                             selectedTime = startTime,
-                            onTimeSelected = { 
+                            onTimeSelected = {
                                 startTime = it
                                 validateDates()
                             },
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -428,31 +455,31 @@ fun CreateEventScreen(
                         StyledDatePicker(
                             label = "Ngày kết thúc",
                             selectedDate = endDate,
-                            onDateSelected = { 
+                            onDateSelected = {
                                 endDate = it
                                 validateDates()
                             },
-                    modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f),
                             isError = endDateError != null,
                             errorMessage = endDateError
                         )
-                        
+
                         StyledTimePicker(
                             label = "Giờ kết thúc",
                             selectedTime = endTime,
-                            onTimeSelected = { 
+                            onTimeSelected = {
                                 endTime = it
                                 validateDates()
                             },
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    
+
                     StyledDropdown(
                         label = "Địa điểm",
                         items = locations,
                         selectedItem = locations.find { it.id == selectedLocationId },
-                        onItemSelected = { 
+                        onItemSelected = {
                             selectedLocationId = it.id
                             address = it.address
                             city = it.city
@@ -461,27 +488,23 @@ fun CreateEventScreen(
                         leadingIcon = Icons.Default.LocationOn,
                         placeholder = "Chọn địa điểm"
                     )
-                    
-                    StyledTextField(
+
+                    AppTextField(
                         value = address,
                         onValueChange = { address = it },
-                        label = "Địa chỉ chi tiết",
                         placeholder = "Nhập địa chỉ chi tiết",
-                        leadingIcon = Icons.Default.Home,
                         singleLine = true
                     )
-                    
-                    StyledTextField(
+
+                    AppTextField(
                         value = city,
                         onValueChange = { city = it },
-                        label = "Thành phố",
                         placeholder = "Nhập tên thành phố",
-                        leadingIcon = Icons.Default.LocationCity,
                         singleLine = true
                     )
                 }
             }
-            
+
             // Cấu hình bổ sung
             NeumorphicCard(
                 modifier = Modifier.fillMaxWidth()
@@ -495,22 +518,19 @@ fun CreateEventScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    
-                    StyledTextField(
+
+                    AppTextField(
                         value = maxAttendees,
-                        onValueChange = { 
+                        onValueChange = {
                             // Chỉ cho phép nhập số
                             if (it.isEmpty() || it.all { char -> char.isDigit() }) {
                                 maxAttendees = it
                             }
                         },
-                        label = "Số lượng người tham dự tối đa",
                         placeholder = "Nhập số lượng người tối đa",
-                        leadingIcon = Icons.Default.PeopleAlt,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        singleLine = true
                     )
-                    
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -522,13 +542,13 @@ fun CreateEventScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f)
                         )
-                        
-                        Switch(
+
+                        AppSwitch(
                             checked = isFree,
                             onCheckedChange = { isFree = it }
                         )
                     }
-                    
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -540,49 +560,48 @@ fun CreateEventScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f)
                         )
-                        
-                        Switch(
+
+                        AppSwitch(
                             checked = isPrivate,
                             onCheckedChange = { isPrivate = it }
                         )
                     }
-                    
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                    Text(
+                        Text(
                             text = "Lưu dưới dạng bản nháp",
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f)
                         )
-                        
-                        Switch(
+
+                        AppSwitch(
                             checked = isDraft,
                             onCheckedChange = { isDraft = it }
                         )
                     }
                 }
             }
-            
+
             // Nút tạo sự kiện
-            Button(
+            AppButton(
                 onClick = { submitForm() },
                 enabled = isFormValid,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .padding(vertical = 16.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Save,
                     contentDescription = null
                 )
-                
+
                 Spacer(modifier = Modifier.width(8.dp))
-                
+
                 Text(
                     text = if (isDraft) "Lưu bản nháp" else "Tạo sự kiện",
                     style = MaterialTheme.typography.bodyLarge,
@@ -591,7 +610,7 @@ fun CreateEventScreen(
             }
         }
     }
-    
+
     // Success dialog
     if (showSuccessDialog) {
         AlertDialog(
@@ -599,7 +618,7 @@ fun CreateEventScreen(
             title = { Text("Thành công") },
             text = { Text("Sự kiện đã được tạo thành công!") },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     onClick = {
                         showSuccessDialog = false
                     }
@@ -609,28 +628,31 @@ fun CreateEventScreen(
             }
         )
     }
-    
+
     // Error dialog
     if (showErrorDialog) {
         AlertDialog(
             onDismissRequest = { showErrorDialog = false },
             title = { Text("Lỗi") },
-            text = { 
+            text = {
                 val errorMessage = error ?: "Không thể tạo sự kiện. Vui lòng thử lại sau."
                 val errorText = when {
-                    errorMessage.contains("Ngày bắt đầu phải là ngày trong tương lai") -> 
+                    errorMessage.contains("Ngày bắt đầu phải là ngày trong tương lai") ->
                         "Ngày bắt đầu phải là ngày trong tương lai"
-                    errorMessage.contains("rejected value") && errorMessage.contains("startDate") -> 
+
+                    errorMessage.contains("rejected value") && errorMessage.contains("startDate") ->
                         "Ngày bắt đầu phải là ngày trong tương lai"
-                    errorMessage.contains("endDate") -> 
+
+                    errorMessage.contains("endDate") ->
                         "Ngày kết thúc phải sau ngày bắt đầu"
-                    else -> 
+
+                    else ->
                         errorMessage
                 }
-                Text(errorText) 
+                Text(errorText)
             },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     onClick = {
                         showErrorDialog = false
                     }

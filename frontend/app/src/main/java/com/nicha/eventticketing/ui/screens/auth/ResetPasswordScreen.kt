@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import com.nicha.eventticketing.ui.components.app.AppButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -167,7 +168,7 @@ fun ResetPasswordScreen(
                                 brush = Brush.linearGradient(
                                     colors = listOf(
                                         MaterialTheme.colorScheme.tertiary,
-                                        MaterialTheme.colorScheme.primary
+                                        MaterialTheme.colorScheme.onSurface
                                     )
                                 )
                             ),
@@ -208,7 +209,7 @@ fun ResetPasswordScreen(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                                containerColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
                             )
                         ) {
                             Column(
@@ -273,7 +274,7 @@ fun ResetPasswordScreen(
                                         Icon(
                                             imageVector = Icons.Rounded.Lock,
                                             contentDescription = "Password Icon",
-                                            tint = MaterialTheme.colorScheme.primary
+                                            tint = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 )
@@ -298,7 +299,7 @@ fun ResetPasswordScreen(
                                         Icon(
                                             imageVector = Icons.Rounded.Lock,
                                             contentDescription = "Confirm Password Icon",
-                                            tint = MaterialTheme.colorScheme.primary
+                                            tint = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 )
@@ -308,7 +309,7 @@ fun ResetPasswordScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                         
                         // Reset password button
-                        Button(
+                        AppButton(
                             onClick = {
                                 passwordError = ValidationUtils.validatePassword(password)
                                 confirmPasswordError = ValidationUtils.validateConfirmPassword(confirmPassword, password)
@@ -320,15 +321,6 @@ fun ResetPasswordScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
-                            shape = RoundedCornerShape(28.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            ),
-                            elevation = ButtonDefaults.buttonElevation(
-                                defaultElevation = 4.dp,
-                                pressedElevation = 8.dp
-                            ),
                             enabled = authState !is AuthState.Loading
                         ) {
                             if (authState is AuthState.Loading) {
@@ -347,20 +339,11 @@ fun ResetPasswordScreen(
                         }
                     } else {
                         // Button to go to login
-                        Button(
+                        AppButton(
                             onClick = onResetSuccess,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(28.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            ),
-                            elevation = ButtonDefaults.buttonElevation(
-                                defaultElevation = 4.dp,
-                                pressedElevation = 8.dp
-                            )
+                                .height(56.dp)
                         ) {
                             Text(
                                 text = "Đăng nhập",

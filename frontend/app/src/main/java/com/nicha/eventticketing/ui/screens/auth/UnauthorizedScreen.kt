@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import com.nicha.eventticketing.ui.components.app.AppButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -86,16 +87,11 @@ fun UnauthorizedScreen(
             
             Spacer(modifier = Modifier.height(32.dp))
             
-            Button(
+            AppButton(
                 onClick = onLoginClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                    .height(56.dp)
             ) {
                 Text(
                     text = "Đăng nhập với tài khoản khác",
@@ -106,16 +102,11 @@ fun UnauthorizedScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            Button(
+            AppButton(
                 onClick = onBackClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    .height(56.dp)
             ) {
                 Text(
                     text = "Quay lại",

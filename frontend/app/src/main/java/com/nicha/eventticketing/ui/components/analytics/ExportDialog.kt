@@ -130,7 +130,10 @@ fun ExportDialog(
                     ) {
                         TextButton(
                             onClick = onDismiss,
-                            enabled = !isExporting
+                            enabled = !isExporting,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
                         ) {
                             Text("Cancel")
                         }
@@ -270,7 +273,12 @@ fun ExportSuccessDialog(
                 }
             },
             dismissButton = {
-                TextButton(onClick = onDismiss) {
+                TextButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
                     Text("Close")
                 }
             }
@@ -308,12 +316,23 @@ fun ExportErrorDialog(
                 Text(errorMessage)
             },
             confirmButton = {
-                Button(onClick = onRetry) {
+                Button(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onSurface,
+                        contentColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
                     Text("Retry")
                 }
             },
             dismissButton = {
-                TextButton(onClick = onDismiss) {
+                TextButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
                     Text("Cancel")
                 }
             }

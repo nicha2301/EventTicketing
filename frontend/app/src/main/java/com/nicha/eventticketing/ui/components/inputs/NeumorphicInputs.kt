@@ -54,7 +54,7 @@ fun NeumorphicTextField(
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
     val shape = RoundedCornerShape(16.dp)
-    
+
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value,
@@ -72,7 +72,7 @@ fun NeumorphicTextField(
                 unfocusedContainerColor = CardBackground,
                 focusedContainerColor = CardBackground,
                 unfocusedBorderColor = Color.Transparent,
-                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                focusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
             label = if (label != null) {
                 { Text(text = label) }
@@ -106,7 +106,7 @@ fun NeumorphicTextField(
             enabled = enabled,
             readOnly = readOnly
         )
-        
+
         if (isError && errorMessage != null) {
             Text(
                 text = errorMessage,
@@ -134,7 +134,7 @@ fun NeumorphicPasswordTextField(
     var passwordVisible by remember { mutableStateOf(false) }
     val neumorphismStyle = LocalNeumorphismStyle.current
     val shape = RoundedCornerShape(16.dp)
-    
+
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value,
@@ -152,7 +152,7 @@ fun NeumorphicPasswordTextField(
                 unfocusedContainerColor = CardBackground,
                 focusedContainerColor = CardBackground,
                 unfocusedBorderColor = Color.Transparent,
-                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                focusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
             label = if (label != null) {
                 { Text(text = label) }
@@ -177,7 +177,7 @@ fun NeumorphicPasswordTextField(
             singleLine = true,
             enabled = enabled
         )
-        
+
         if (isError && errorMessage != null) {
             Text(
                 text = errorMessage,
@@ -205,25 +205,25 @@ fun NeumorphicSearchField(
     val shape = RoundedCornerShape(24.dp)
     val isDarkTheme = MaterialTheme.colorScheme.background == Color(0xFF121212)
     val bgColor = if (isDarkTheme) CardBackground else Color.White
-    
+
     // Theo dõi trạng thái focus
     var isFocused by remember { mutableStateOf(false) }
-    
+
     // Hiệu ứng shadow dựa trên trạng thái focus
     val elevation = if (isFocused) 8.dp else neumorphismStyle.shadowElevation
-    
+
     // Màu border khi focus
-    val borderColor = if (isFocused) 
-        MaterialTheme.colorScheme.primary 
-    else 
+    val borderColor = if (isFocused)
+        MaterialTheme.colorScheme.onSurface
+    else
         Color.Transparent
-    
+
     val modifierWithClick = if (onClick != null && readOnly) {
         modifier.clickable(onClick = onClick)
     } else {
         modifier
     }
-    
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -239,26 +239,26 @@ fun NeumorphicSearchField(
             .onFocusChanged { isFocused = it.isFocused },
         shape = shape,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            focusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
             unfocusedBorderColor = Color.Transparent,
             focusedContainerColor = bgColor,
             unfocusedContainerColor = bgColor,
             focusedTextColor = MaterialTheme.colorScheme.onSurface,
             unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+            focusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
             unfocusedLeadingIconColor = if (isDarkTheme) Color.White.copy(alpha = 0.7f) else Color.Gray,
-            focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+            focusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
             unfocusedTrailingIconColor = if (isDarkTheme) Color.White.copy(alpha = 0.7f) else Color.Gray,
             focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         ),
         placeholder = { Text(text = placeholder) },
-        leadingIcon = { 
+        leadingIcon = {
             Icon(
-                Icons.Default.Search, 
+                Icons.Default.Search,
                 contentDescription = "Search",
                 modifier = Modifier.size(20.dp)
-            ) 
+            )
         },
         trailingIcon = {
             AnimatedVisibility(
@@ -270,7 +270,7 @@ fun NeumorphicSearchField(
                     Icon(
                         Icons.Default.Search,
                         contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -284,7 +284,7 @@ fun NeumorphicSearchField(
         singleLine = true,
         readOnly = readOnly
     )
-} 
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -308,7 +308,7 @@ fun NeumorphicOutlinedTextField(
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
     val shape = RoundedCornerShape(16.dp)
-    
+
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value,
@@ -326,9 +326,9 @@ fun NeumorphicOutlinedTextField(
                 unfocusedContainerColor = Color.Transparent,
                 focusedContainerColor = Color.Transparent,
                 unfocusedBorderColor = neumorphismStyle.lightShadowColor,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                focusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                focusedLabelColor = MaterialTheme.colorScheme.primary
+                focusedLabelColor = MaterialTheme.colorScheme.onSurface
             ),
             label = if (label != null) {
                 { Text(text = label) }
@@ -362,7 +362,7 @@ fun NeumorphicOutlinedTextField(
             enabled = enabled,
             readOnly = readOnly
         )
-        
+
         if (isError && errorMessage != null) {
             Text(
                 text = errorMessage,

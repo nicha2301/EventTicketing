@@ -51,7 +51,7 @@ fun Splash(alpha: Float) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary),
+                            .background(MaterialTheme.colorScheme.onSurface),
         contentAlignment = Alignment.Center
     ) {
         // Logo sẽ được thay thế bằng logo thực tế của ứng dụng

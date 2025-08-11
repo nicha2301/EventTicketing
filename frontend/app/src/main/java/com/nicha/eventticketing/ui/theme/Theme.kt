@@ -88,7 +88,9 @@ private val DarkColorScheme = darkColorScheme(
 private val LightColorScheme = lightColorScheme(
     primary = Primary,
     secondary = Secondary,
-    tertiary = AccentSkyBlue
+    tertiary = AccentSkyBlue,
+    background = Color.White,
+    surface = Color.White
 )
 
 @Composable

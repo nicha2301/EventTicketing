@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
+import com.nicha.eventticketing.ui.components.app.AppButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,7 +74,7 @@ fun NotificationsScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.primary
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },
@@ -175,7 +176,7 @@ fun NotificationsScreen(
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        Button(
+                        AppButton(
                             onClick = {
                                 val updatedPreferences = NotificationPreferencesDto(
                                     emailNotifications = emailNotifications,
