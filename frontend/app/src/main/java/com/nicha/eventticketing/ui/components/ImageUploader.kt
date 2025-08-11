@@ -234,7 +234,7 @@ private fun UploadProgressDisplay(uploadState: UploadState) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -295,7 +295,9 @@ private fun UploadProgressDisplay(uploadState: UploadState) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp))
+                    .clip(RoundedCornerShape(3.dp)),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
             )
 
             uploadState.fileName?.let { fileName ->

@@ -137,7 +137,11 @@ fun OrganizerProfileScreen(
                 ) {
                     Text("Hủy")
                 }
-            }
+            },
+            shape = RoundedCornerShape(16.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurface
         )
     }
 

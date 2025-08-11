@@ -283,7 +283,7 @@ fun EventDetailScreen(
 
                         // Organizer
                         Text(
-                            text = "Organizer: ${event.organizerName}",
+                            text = "Nhà tổ chức: ${event.organizerName}",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Normal,
                                 fontSize = 16.sp,
@@ -330,7 +330,7 @@ fun EventDetailScreen(
                         ) {
                             // Description section
                             Text(
-                                text = "Description",
+                                text = "Mô tả",
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = FontWeight.Normal,
                                     fontSize = 16.sp,
@@ -432,7 +432,7 @@ fun EventDetailScreen(
                                 .height(74.dp)
                         ) {
                             Text(
-                                text = "Buy Ticket",
+                                text = "Mua vé",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 18.sp,
@@ -490,7 +490,7 @@ fun TicketTypeSelectionSheet(
                 .padding(24.dp)
         ) {
             Text(
-                text = "Select Ticket Type",
+                text = "Chọn loại vé",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold
                 ),
@@ -577,9 +577,9 @@ fun TicketTypeSelectionSheet(
                             ) {
                                 Text(
                                     text = if (availableQuantity > 0) {
-                                        "Available: $availableQuantity tickets"
+                                        "Còn lại: $availableQuantity vé"
                                     } else {
-                                        "Sold out"
+                                        "Hết vé"
                                     },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = if (availableQuantity > 0)

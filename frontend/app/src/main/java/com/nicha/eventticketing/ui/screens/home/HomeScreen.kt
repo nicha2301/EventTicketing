@@ -456,7 +456,7 @@ private fun HomeBottomNavBar(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Home",
+                    text = "Sự kiện",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF171924)
@@ -482,7 +482,7 @@ private fun HomeBottomNavBar(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Notification",
+                    text = "Thông báo",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal,
                     color = Color(0xFFA9A9A9)
@@ -508,7 +508,7 @@ private fun HomeBottomNavBar(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Ticket",
+                    text = "Vé",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal,
                     color = Color(0xFFA9A9A9)
@@ -534,7 +534,7 @@ private fun HomeBottomNavBar(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Profile",
+                    text = "Tài khoản",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal,
                     color = Color(0xFFA9A9A9)

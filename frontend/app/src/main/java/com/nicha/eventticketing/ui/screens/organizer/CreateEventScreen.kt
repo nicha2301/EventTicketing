@@ -24,6 +24,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.automirrored.filled.ShortText
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.LocationCity
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
@@ -57,6 +63,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.nicha.eventticketing.ui.components.LoadingDialog
 import com.nicha.eventticketing.ui.components.StyledDatePicker
+import com.nicha.eventticketing.ui.components.StyledTextField
 import com.nicha.eventticketing.ui.components.StyledDropdown
 import com.nicha.eventticketing.ui.components.StyledTimePicker
 import com.nicha.eventticketing.ui.components.app.AppButton
@@ -269,25 +276,31 @@ fun CreateEventScreen(
                         fontWeight = FontWeight.Bold
                     )
 
-                    AppTextField(
+                    StyledTextField(
                         value = title,
                         onValueChange = { title = it },
+                        label = "Tên sự kiện",
                         placeholder = "Nhập tên sự kiện",
+                        leadingIcon = Icons.Default.Event,
                         singleLine = true
                     )
 
-                    AppTextField(
+                    StyledTextField(
                         value = shortDescription,
                         onValueChange = { shortDescription = it },
+                        label = "Mô tả ngắn",
                         placeholder = "Nhập mô tả ngắn",
-                        singleLine = true
+                        leadingIcon = Icons.AutoMirrored.Filled.ShortText,
+                        maxLines = 2
                     )
 
-                    AppTextField(
+                    StyledTextField(
                         value = description,
                         onValueChange = { description = it },
+                        label = "Mô tả chi tiết",
                         placeholder = "Nhập mô tả chi tiết",
-                        singleLine = false
+                        leadingIcon = Icons.Default.Description,
+                        maxLines = 5
                     )
 
                     StyledDropdown(
@@ -489,17 +502,21 @@ fun CreateEventScreen(
                         placeholder = "Chọn địa điểm"
                     )
 
-                    AppTextField(
+                    StyledTextField(
                         value = address,
                         onValueChange = { address = it },
+                        label = "Địa chỉ chi tiết",
                         placeholder = "Nhập địa chỉ chi tiết",
+                        leadingIcon = Icons.Default.Home,
                         singleLine = true
                     )
 
-                    AppTextField(
+                    StyledTextField(
                         value = city,
                         onValueChange = { city = it },
+                        label = "Thành phố",
                         placeholder = "Nhập tên thành phố",
+                        leadingIcon = Icons.Default.LocationCity,
                         singleLine = true
                     )
                 }
@@ -519,15 +536,16 @@ fun CreateEventScreen(
                         fontWeight = FontWeight.Bold
                     )
 
-                    AppTextField(
+                    StyledTextField(
                         value = maxAttendees,
                         onValueChange = {
-                            // Chỉ cho phép nhập số
                             if (it.isEmpty() || it.all { char -> char.isDigit() }) {
                                 maxAttendees = it
                             }
                         },
-                        placeholder = "Nhập số lượng người tối đa",
+                        label = "Số lượng người tham dự tối đa",
+                        placeholder = "Nhập số lượng tối đa",
+                        leadingIcon = Icons.Default.PeopleAlt,
                         singleLine = true
                     )
 

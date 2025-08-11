@@ -4,7 +4,6 @@ import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,7 +21,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -45,8 +42,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
@@ -90,7 +85,13 @@ private val LightColorScheme = lightColorScheme(
     secondary = Secondary,
     tertiary = AccentSkyBlue,
     background = Color.White,
-    surface = Color.White
+    surface = Color.White,
+    onBackground = Color(0xFF1E1E1E),
+    onSurface = Color(0xFF1E1E1E),
+    onSurfaceVariant = Color(0xFF6B7280),
+    surfaceVariant = Color(0xFFF3F4F6),
+    outline = Color(0xFFE5E7EB),
+    outlineVariant = Color(0xFFD1D5DB)
 )
 
 @Composable
@@ -104,10 +105,11 @@ fun EventTicketingTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
+
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
-    
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -116,7 +118,7 @@ fun EventTicketingTheme(
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
-    
+
     // Set system bars color
     val systemUiController = rememberSystemUiController()
     DisposableEffect(systemUiController) {
@@ -126,12 +128,14 @@ fun EventTicketingTheme(
         )
         onDispose {}
     }
-    
+
     val neumorphismStyle = NeumorphismStyle(
-        lightShadowColor = if (darkTheme) Color.White.copy(alpha = 0.05f) else Color.White.copy(alpha = 0.7f),
+        lightShadowColor = if (darkTheme) Color.White.copy(alpha = 0.05f) else Color.White.copy(
+            alpha = 0.7f
+        ),
         darkShadowColor = if (darkTheme) Color.Black.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.15f)
     )
-    
+
     CompositionLocalProvider(LocalNeumorphismStyle provides neumorphismStyle) {
         MaterialTheme(
             colorScheme = colorScheme,
@@ -151,7 +155,7 @@ fun NeumorphicSurface(
     content: @Composable () -> Unit
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
-    
+
     Surface(
         modifier = modifier
             .shadow(
@@ -174,7 +178,7 @@ fun NeumorphicCard(
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
     val isDarkTheme = MaterialTheme.colorScheme.background == DarkBackground
-    
+
     NeumorphicSurface(
         modifier = modifier,
         shape = RoundedCornerShape(neumorphismStyle.cornerRadius),
@@ -194,7 +198,7 @@ fun NeumorphicButton(
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
     val isDarkTheme = MaterialTheme.colorScheme.background == DarkBackground
-    
+
     Button(
         onClick = onClick,
         modifier = modifier
@@ -223,7 +227,7 @@ fun NeumorphicGradientButton(
 ) {
     val neumorphismStyle = LocalNeumorphismStyle.current
     val shape = RoundedCornerShape(16.dp)
-    
+
     Button(
         onClick = onClick,
         modifier = modifier
@@ -276,7 +280,7 @@ fun NeumorphicTag(
     val neumorphismStyle = LocalNeumorphismStyle.current
     val shape = RoundedCornerShape(12.dp)
     val isDarkTheme = MaterialTheme.colorScheme.background == DarkBackground
-    
+
     Surface(
         modifier = modifier
             .then(
@@ -345,12 +349,12 @@ fun NeumorphicSearchField(
             unfocusedBorderColor = Color.Transparent
         ),
         leadingIcon = if (leadingIcon != null) {
-            { 
+            {
                 Icon(
-                    leadingIcon, 
+                    leadingIcon,
                     contentDescription = null,
                     tint = if (isDarkTheme) Color.White else Color.Gray
-                ) 
+                )
             }
         } else null,
         trailingIcon = if (trailingIcon != null) {

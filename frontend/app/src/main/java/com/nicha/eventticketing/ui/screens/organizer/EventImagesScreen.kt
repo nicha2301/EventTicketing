@@ -297,13 +297,17 @@ fun EventImagesScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.7f)),
+                                    .background(Color.Black.copy(alpha = 0.4f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                NeumorphicCard(
+                                Surface(
                                     modifier = Modifier
                                         .padding(16.dp)
                                         .width(300.dp)
+                                    ,
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    tonalElevation = 6.dp
                                 ) {
                                     Column(
                                         modifier = Modifier.padding(24.dp),
@@ -321,8 +325,8 @@ fun EventImagesScreen(
                                         LinearProgressIndicator(
                                             progress = { uploadState.progress },
                                             modifier = Modifier.fillMaxWidth(),
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
                                         )
 
                                         Spacer(modifier = Modifier.height(16.dp))
@@ -362,13 +366,17 @@ fun EventImagesScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.7f)),
+                    .background(Color.Black.copy(alpha = 0.4f)),
                 contentAlignment = Alignment.Center
             ) {
-                NeumorphicCard(
+                Surface(
                     modifier = Modifier
                         .padding(16.dp)
                         .width(300.dp)
+                    ,
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 6.dp
                 ) {
                     Column(
                         modifier = Modifier.padding(24.dp),
@@ -386,8 +394,8 @@ fun EventImagesScreen(
                         LinearProgressIndicator(
                             progress = { uploadState.progress },
                             modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -481,7 +489,11 @@ fun EventImagesScreen(
                             Text("Đóng")
                         }
                     }
-                }
+                },
+                shape = RoundedCornerShape(16.dp),
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                textContentColor = MaterialTheme.colorScheme.onSurface
             )
         }
 
