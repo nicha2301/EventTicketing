@@ -10,6 +10,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -22,8 +24,12 @@ fun AppButton(
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
     content: @Composable () -> Unit
 ) {
+    val haptics = LocalHapticFeedback.current
     Button(
-        onClick = onClick,
+        onClick = {
+            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
         enabled = enabled,
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
@@ -46,8 +52,12 @@ fun AppDestructiveButton(
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
     content: @Composable () -> Unit
 ) {
+    val haptics = LocalHapticFeedback.current
     Button(
-        onClick = onClick,
+        onClick = {
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            onClick()
+        },
         enabled = enabled,
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
@@ -69,8 +79,12 @@ fun AppTextButton(
     enabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    val haptics = LocalHapticFeedback.current
     TextButton(
-        onClick = onClick,
+        onClick = {
+            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
         enabled = enabled,
         modifier = modifier,
         colors = ButtonDefaults.textButtonColors(
@@ -88,8 +102,12 @@ fun AppOutlinedButton(
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
     content: @Composable () -> Unit
 ) {
+    val haptics = LocalHapticFeedback.current
     OutlinedButton(
-        onClick = onClick,
+        onClick = {
+            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
         enabled = enabled,
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),

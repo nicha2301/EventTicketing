@@ -10,7 +10,9 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
@@ -20,6 +22,7 @@ fun AppTabRow(
     titles: List<String>,
     onSelect: (Int) -> Unit
 ) {
+    val haptics = LocalHapticFeedback.current
     ScrollableTabRow(
         selectedTabIndex = selectedIndex,
         indicator = {},
@@ -40,7 +43,10 @@ fun AppTabRow(
                         .clickable(
                             interactionSource = interaction,
                             indication = null
-                        ) { onSelect(i) }
+                        ) {
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onSelect(i)
+                        }
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Text(
