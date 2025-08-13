@@ -68,7 +68,6 @@ EventTicketing/
 | Token Transport | HTTP Bearer tokens (Authorization header) |
 | Input Validation | Bean Validation (Jakarta) + custom checks |
 | Logging Hygiene | (Needs prod adjustments: disable SQL value TRACE) |
-| Secrets | Currently hardcoded in `application.yml`; must be externalized & rotated |
 
 ---
 ## 🛠 Technology Stack
@@ -150,16 +149,34 @@ frontend/app/src/main/java/com/nicha/eventticketing/
 
 ---
 ## 🖼 Visual Assets (Preview)
-(Replace with real screenshots when ready.)
 
+### Global / Onboarding
 | Onboarding 1 | Onboarding 2 | Onboarding 3 |
 |--------------|--------------|--------------|
-| ![Onboarding 1](frontend/app/src/main/res/drawable/onboarding_bg_1.png) | ![Onboarding 2](frontend/app/src/main/res/drawable/onboarding_bg_2_1.png) | ![Onboarding 3](frontend/app/src/main/res/drawable/onboarding_bg_3.png) |
+| ![Onboarding 1](docs//screenshots/8efe2c6a847a0c24556b1.jpg) | ![Onboarding 2](docs//screenshots/11080c99a4892cd775982.jpg) | ![Onboarding 3](docs//screenshots/afb57024d834506a09253.jpg) |
 
-| Ticket Icon | Notification Icon | MoMo Icon |
-|-------------|-------------------|-----------|
-| ![Ticket](frontend/app/src/main/res/drawable/ticket.png) | ![Bell](frontend/app/src/main/res/drawable/bell.png) | (Vector `ic_momo.xml`) |
+### Authentication
+| Login | ... | ... |
+|-------|----------|-----------------|
+| ![](docs//screenshots/48cf4340eb50630e3a414.jpg)|![](docs//screenshots/48cf4340eb50630e3a414.jpg)|...|
 
+### User (Attendee)
+| Home Feed | Event Detail | Ticket Purchase |
+|-----------|--------------|-----------------|
+| ![](docs//screenshots/faf94774ef64673a3e755.jpg)|![](docs//screenshots/0a4a01c1a9d1218f78c06.jpg)|![](docs//screenshots/8656b5d01dc0959eccd18.jpg)|
+
+| Ticket Wallet | Ticket QR |...|
+|---------------|----------|-|
+| ![](docs//screenshots/7784fe43b950310e68411.jpg)|![](docs//screenshots/1552f7d85fc8d7968ed97.jpg)|...|
+
+### Organizer
+| Organizer Dashboard | Create Event | Create Event (Tickets) |
+|---------------------|----------------------|------------------------|
+| ![](docs//screenshots/c41196943e84b6daef959.jpg)|![](docs//screenshots/ff98101bb80b3055691a12.jpg)|![](docs//screenshots/5b895dae22bdaae3f3ac.jpg)|
+
+| Event Analytics | Sales Breakdown | ... |
+|-----------------|-----------------|------------------|
+| ![](docs//screenshots/f77baff907e98fb7d6f811.jpg)|![](docs//screenshots/f906e3c6a4d52c8b75c42.jpg)|...|
 ---
 ## ✅ Feature Matrix
 | Area | Implemented | Notes |
