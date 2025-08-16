@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Ticket, Search, Filter, Calendar, MapPin, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getUserTickets } from "@/lib/api/modules/tickets";
@@ -14,9 +15,10 @@ export default function MyTicketsPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
-  
+  const router = useRouter();
+
   const currentStatus = TICKET_FILTER_TABS.find(tab => tab.key === activeTab)?.status;
-  
+
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["my-tickets", currentStatus, currentPage],
     queryFn: ({ signal }) => getUserTickets(currentStatus, currentPage, 10, signal),
@@ -24,15 +26,12 @@ export default function MyTicketsPage() {
   });
 
   const tickets = (data?.data.data as any)?.content || [];
-  
+
   const filteredTickets = tickets.filter((ticket: any) =>
     ticket.eventTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleViewDetail = (ticketId: string) => {
-    window.location.href = `/tickets/${ticketId}`;
-  };
 
   if (isLoading) {
     return (
@@ -139,7 +138,7 @@ export default function MyTicketsPage() {
               <div
                 key={ticket.id}
                 className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => handleViewDetail(ticket.id)}
+                onClick={() => router.push(`/tickets/${ticket.id}`)}
               >
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   {/* Ticket Info */}

@@ -121,7 +121,6 @@ export default function TicketDetailPage() {
   const params = useParams();
   const router = useRouter();
   const ticketId = params.id as string;
-  const { currentUser, isAuthenticated } = useAuthStore();
 
   const { data: ticket, isLoading, error } = useQuery({
     queryKey: ["ticket", ticketId],
@@ -132,7 +131,7 @@ export default function TicketDetailPage() {
       }
       throw new Error("Ticket not found");
     },
-    enabled: !!ticketId && isAuthenticated,
+    enabled: !!ticketId,
   });
 
   const [isDownloading, setIsDownloading] = useState(false);
@@ -186,22 +185,6 @@ export default function TicketDetailPage() {
       toast.success("Đã copy link vé!");
     }
   };
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">Vui lòng đăng nhập</h1>
-            <p className="mt-2 text-gray-600">Bạn cần đăng nhập để xem chi tiết vé.</p>
-            <Link href="/login" className="mt-4 inline-block text-blue-600 hover:text-blue-800">
-              Đăng nhập ngay
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (
