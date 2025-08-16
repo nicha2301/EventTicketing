@@ -141,6 +141,14 @@ export function usePurchaseFlow() {
 
       const purchaseResult = await purchaseTicketsMutation.mutateAsync(purchaseData);
       
+      sessionStorage.setItem('purchaseTicketInfo', JSON.stringify({
+        orderId: purchaseResult.orderId,
+        ticketId: purchaseResult.tickets?.[0]?.id,
+        tickets: purchaseResult.tickets,
+        eventTitle: purchaseResult.eventTitle,
+        totalAmount: purchaseResult.totalAmount
+      }));
+      
       // Step 2: Create payment for the purchased tickets
       if (purchaseResult.tickets && purchaseResult.tickets.length > 0) {
         const firstTicket = purchaseResult.tickets[0];
@@ -210,7 +218,6 @@ export function validatePurchaseData(
   return errors;
 }
 
-// Calculate total amount helper
 export function calculateTotalAmount(
   selectedTickets: TicketItemDto[],
   ticketTypes: TicketTypeDto[],

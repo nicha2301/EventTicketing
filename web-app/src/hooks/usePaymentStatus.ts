@@ -1,55 +1,35 @@
 import { useQuery } from "@tanstack/react-query";
-import { ApiResponsePaymentResponseDto, PaymentResponseDto } from "@/lib/api/generated/client";
-import { http } from "@/lib/api/http";
+import { TicketDto, getTicketById } from "@/lib/api/generated/client";
 
-// Hook check trạng thái thanh toán
-export function usePaymentStatus(orderId: string | null, enabled: boolean = true) {
+// Hook check trạng thái thanh toán thông qua ticket
+export function usePaymentStatus(ticketId: string | null, enabled: boolean = true) {
   return useQuery({
-    queryKey: ['payment-status', orderId],
-    queryFn: async (): Promise<PaymentResponseDto | null> => {
-      if (!orderId) return null;
+    queryKey: ['payment-status', ticketId],
+    queryFn: async (): Promise<TicketDto | null> => {
+      if (!ticketId) return null;
       
       try {
-        const response = await http<ApiResponsePaymentResponseDto>({
-          url: `/api/payments/status/${orderId}`,
-          method: 'GET'
-        });
+        const response = await getTicketById(ticketId);
         
         return response.data?.data || null;
       } catch (error) {
         console.error('Error checking payment status:', error);
-        return {
-          id: orderId,
-          status: 'PENDING' as any,
-          amount: 0,
-          paymentMethod: 'MOMO',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          eventId: '',
-          eventTitle: '',
-          ticketId: '',
-          ticketTypeName: '',
-          userId: '',
-          userName: ''
-        };
+        return null;
       }
     },
-    enabled: enabled && !!orderId,
-    refetchInterval: 5000, // Check every 5 seconds
+    enabled: enabled && !!ticketId,
+    refetchInterval: 5000,
     retry: false,
   });
 }
 
 // Hook check trạng thái thanh toán thủ công
 export function useCheckPaymentStatus() {
-  return async (orderId: string): Promise<PaymentResponseDto | null> => {
-    if (!orderId) return null;
+  return async (ticketId: string): Promise<TicketDto | null> => {
+    if (!ticketId) return null;
     
     try {
-      const response = await http<ApiResponsePaymentResponseDto>({
-        url: `/api/payments/status/${orderId}`,
-        method: 'GET'
-      });
+      const response = await getTicketById(ticketId);
       
       return response.data?.data || null;
     } catch (error) {
