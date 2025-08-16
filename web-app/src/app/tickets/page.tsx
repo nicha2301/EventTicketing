@@ -1,154 +1,215 @@
 "use client";
 
 import { useState } from "react";
-import { Ticket, Search, Filter } from "lucide-react";
-import { useMyTickets } from "@/hooks/useMyTickets";
-import { useAuthHydration } from "@/hooks/useAuthHydration";
-import { TicketCard } from "@/components/tickets/TicketCard";
+import { Ticket, Search, Filter, Calendar, MapPin, Clock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getUserTickets } from "@/lib/api/modules/tickets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PageLoading, ErrorState, EmptyState } from "@/components/ui/LoadingSpinner";
-import { TICKET_FILTER_TABS } from "@/lib/utils/ticket";
-import type { GetMyTicketsStatus } from "@/lib/api/generated/client";
+import { getTicketStatusConfig, TICKET_FILTER_TABS } from "@/lib/utils/ticket";
+import { formatCurrency } from "@/lib/utils/currency";
+import { formatDate, formatDateShort, formatTime } from "@/lib/utils/date";
 
 export default function MyTicketsPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
   
-  const isHydrated = useAuthHydration();
   const currentStatus = TICKET_FILTER_TABS.find(tab => tab.key === activeTab)?.status;
-  const { data, isLoading, isError, refetch } = useMyTickets(currentStatus, 0, 20);
   
-  // Show loading while hydrating
-  if (!isHydrated) {
-    return <PageLoading message="Đang khởi tạo..." />;
-  }
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["my-tickets", currentStatus, currentPage],
+    queryFn: ({ signal }) => getUserTickets(currentStatus, currentPage, 10, signal),
+    placeholderData: (previousData) => previousData,
+  });
+
+  const tickets = (data?.data.data as any)?.content || [];
   
-  const tickets = data?.data?.data?.content || [];
-  
-  // Filter tickets by search query
   const filteredTickets = tickets.filter((ticket: any) =>
     ticket.eventTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
+
   const handleViewDetail = (ticketId: string) => {
-    setSelectedTicket(ticketId);
-    // TODO: Implement ticket detail modal
-    console.log("View ticket detail:", ticketId);
+    window.location.href = `/tickets/${ticketId}`;
   };
 
-  // Early return for auth not hydrated yet
-  if (!isHydrated) {
-    return <PageLoading message="Đang khởi tạo..." />;
-  }
-
-  // Early return for loading state
   if (isLoading) {
-    return <PageLoading message="Đang tải danh sách vé..." />;
-  }
-
-  // Early return for error state  
-  if (isError) {
     return (
-      <ErrorState
-        title="Không thể tải danh sách vé"
-        message="Vui lòng thử lại sau hoặc kiểm tra kết nối mạng."
-        onRetry={() => refetch()}
-      />
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải danh sách vé...</p>
+          </div>
+        </div>
+      </div>
     );
   }
-  
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container-page py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Ticket className="h-6 w-6 text-blue-600" />
+
+  if (isError) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">
+              <Ticket className="w-16 h-16 mx-auto mb-2" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Vé của tôi</h1>
-          </div>
-          <p className="text-gray-600">Quản lý tất cả vé sự kiện của bạn</p>
-        </div>
-        
-        {/* Search and Filter */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Tìm vé theo tên sự kiện hoặc mã vé..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button variant="outline" className="sm:w-auto">
-              <Filter className="h-4 w-4 mr-2" />
-              Lọc nâng cao
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Không thể tải danh sách vé
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {error?.message || "Đã xảy ra lỗi khi tải dữ liệu"}
+            </p>
+            <Button onClick={() => refetch()}>
+              Thử lại
             </Button>
           </div>
-          
-          {/* Status Tabs */}
-          <div className="flex flex-wrap gap-2">
-            {TICKET_FILTER_TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === tab.key
-                    ? "bg-blue-100 text-blue-700 border border-blue-200"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                }`}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Vé của tôi</h1>
+        <p className="text-gray-600">Quản lý và theo dõi tất cả vé sự kiện của bạn</p>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="mb-6 space-y-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Input
+            type="text"
+            placeholder="Tìm kiếm theo tên sự kiện hoặc mã vé..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-4 py-2 w-full"
+          />
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="flex flex-wrap gap-2">
+          {TICKET_FILTER_TABS.map((tab) => (
+            <Button
+              key={tab.key}
+              variant={activeTab === tab.key ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setActiveTab(tab.key);
+                setCurrentPage(0);
+              }}
+              className="text-sm"
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              {tab.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tickets List */}
+      {filteredTickets.length === 0 ? (
+        <div className="text-center py-12">
+          <Ticket className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {searchQuery ? "Không tìm thấy vé" : "Chưa có vé nào"}
+          </h3>
+          <p className="text-gray-600 mb-6">
+            {searchQuery 
+              ? "Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc"
+              : "Vé đã mua sẽ xuất hiện ở đây"
+            }
+          </p>
+          {!searchQuery && (
+            <Button onClick={() => window.location.href = "/search"}>
+              Khám phá sự kiện
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredTickets.map((ticket: any) => {
+            const statusConfig = getTicketStatusConfig(ticket.status);
+            return (
+              <div
+                key={ticket.id}
+                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => handleViewDetail(ticket.id)}
               >
-                {tab.label}
-              </button>
-            ))}
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  {/* Ticket Info */}
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        {ticket.eventTitle}
+                      </h3>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
+                        {statusConfig.label}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-600">
+                      <div className="flex items-center">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        <span>{formatDate(ticket.eventStartDate)}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Clock className="w-4 h-4 mr-2" />
+                        <span>{formatTime(ticket.eventStartDate)}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-2" />
+                        <span>{ticket.eventLocation || ticket.eventAddress}</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Mã vé: {ticket.ticketNumber}</span>
+                        <span className="font-semibold text-gray-900">
+                          {formatCurrency(ticket.price)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {data?.data && (data.data as any).totalPages && (data.data as any).totalPages > 1 && (
+        <div className="flex justify-center mt-8">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === 0}
+              onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+            >
+              Trước
+            </Button>
+            
+            <span className="flex items-center px-4 py-2 text-sm text-gray-600">
+              Trang {currentPage + 1} / {(data.data as any).totalPages}
+            </span>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage >= ((data.data as any).totalPages || 1) - 1}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+            >
+              Sau
+            </Button>
           </div>
         </div>
-        
-        {/* Tickets List */}
-        {filteredTickets.length === 0 ? (
-          <EmptyState
-            title={searchQuery ? "Không tìm thấy vé" : "Chưa có vé nào"}
-            description={
-              searchQuery 
-                ? "Thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc"
-                : "Khi bạn mua vé sự kiện, chúng sẽ hiển thị ở đây"
-            }
-            icon={<Ticket className="h-12 w-12 text-gray-400" />}
-            action={
-              !searchQuery ? (
-                <Button onClick={() => window.location.href = "/"}>
-                  Khám phá sự kiện
-                </Button>
-              ) : undefined
-            }
-          />
-        ) : (
-          <div className="space-y-4">
-            {filteredTickets.map((ticket: any) => (
-              <TicketCard
-                key={ticket.id}
-                ticket={ticket}
-                onViewDetail={handleViewDetail}
-              />
-            ))}
-          </div>
-        )}
-        
-        {/* TODO: Add pagination if needed */}
-        {filteredTickets.length > 0 && (
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-500">
-              Hiển thị {filteredTickets.length} vé
-            </p>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

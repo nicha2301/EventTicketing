@@ -9,6 +9,7 @@ import {
   type ApiResponsePageTicketDto,
   type Pageable
 } from '../generated/client';
+import { http } from "../http";
 
 export async function getTicketDetail(ticketId: string, signal?: AbortSignal): Promise<TicketDto> {
   try {
@@ -32,17 +33,17 @@ export async function getUserTickets(
   signal?: AbortSignal
 ) {
   try {
-    const pageable: Pageable = {
-      page,
-      size,
-      sort: []
-    };
-    
-    const response = await getMyTickets({
-      status,
-      pageable
-    }, signal);
-    
+    const response = await http({
+      url: '/api/tickets/my-tickets',
+      method: 'GET',
+      params: {
+        page,
+        size,
+        status
+      },
+      signal
+    });
+    console.log('Fetched user tickets:', response);
     return response;
   } catch (error) {
     console.error('Error fetching user tickets:', error);
