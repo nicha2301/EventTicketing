@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { LogOut, Menu, User, Ticket, ChevronDown, CreditCard } from "lucide-react";
+import { LogOut, Menu, User, Ticket, ChevronDown, CreditCard, Bell } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/store/auth";
@@ -62,7 +62,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/80 backdrop-blur">
-      <div className="container-page grid grid-cols-3 h-16 items-center">
+      <div className="container-page flex justify-between items-center h-16">
         {/* Left: Logo */}
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
@@ -70,13 +70,6 @@ export default function Navbar() {
             <span className="font-semibold">EventTicketing</span>
           </Link>
         </div>
-        
-        {/* Center: Navigation - Fixed position */}
-        <nav className="hidden items-center justify-center gap-6 text-sm font-medium md:flex">
-          <Link href="#events" className="text-slate-600 hover:text-slate-900 transition-colors">Sự kiện</Link>
-          <Link href="#categories" className="text-slate-600 hover:text-slate-900 transition-colors">Danh mục</Link>
-          <Link href="#about" className="text-slate-600 hover:text-slate-900 transition-colors">Về chúng tôi</Link>
-        </nav>
         
         {/* Right: Auth button - Fixed width */}
         <div className="flex justify-end items-center">
@@ -108,7 +101,15 @@ export default function Navbar() {
                         Tài khoản
                       </Link>
                       <Link
-                        href="/my-tickets"
+                        href="/notifications"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
+                      >
+                        <Bell className="h-4 w-4" />
+                        Thông báo
+                      </Link>
+                      <Link
+                        href="/tickets"
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
                       >
