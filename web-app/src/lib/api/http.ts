@@ -1,8 +1,8 @@
 import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 import { getAccessToken, clearAccessToken } from "@/lib/auth/token";
 
-const baseURL = typeof window !== 'undefined'
-  ? '' : process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+
 export const api = axios.create({
   baseURL,
   withCredentials: true,

@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 
-// Password change schema
 const passwordChangeSchema = z.object({
   currentPassword: z.string().min(1, 'Mật khẩu hiện tại là bắt buộc'),
   newPassword: z

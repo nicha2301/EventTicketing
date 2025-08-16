@@ -2,16 +2,19 @@
 
 import { useState } from 'react'
 import { User, Settings, Shield, Bell, Camera, Edit3, CheckCircle } from 'lucide-react'
+import { cn } from '@/lib/utils/cn'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { useAuthHydration } from '@/hooks/useAuthHydration'
 import { useAuthStore } from '@/store/auth'
 import { PageLoading, ErrorState } from '@/components/ui/LoadingSpinner'
+import { Button } from '@/components/ui/button'
 import { ProfileHeader } from '@/components/profile/ProfileHeader'
 import { ProfileTabs } from '@/components/profile/ProfileTabs'
 import { PersonalInfo } from '@/components/profile/PersonalInfo'
 import { AccountSecurity } from '@/components/profile/AccountSecurity'
 import { NotificationSettings } from '@/components/profile/NotificationSettings'
 import { ActivityHistory } from '@/components/profile/ActivityHistory'
+import Image from 'next/image'
 
 // Tab definitions với detailed info
 const tabs = [

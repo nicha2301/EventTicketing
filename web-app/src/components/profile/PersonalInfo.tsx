@@ -28,6 +28,7 @@ interface PersonalInfoProps {
   user: User | null
 }
 
+// Validation schema - chỉ các trường từ UserUpdateDto
 const personalInfoSchema = z.object({
   fullName: z.string().min(2, 'Họ tên phải có ít nhất 2 ký tự'),
   phoneNumber: z.string().optional(),
@@ -56,6 +57,7 @@ export function PersonalInfo({ user }: PersonalInfoProps) {
   const onSubmit = async (data: PersonalInfoInput) => {
     setIsSaving(true)
     try {
+      // Call real API to update user profile
       await updateCurrentUserMutation.mutateAsync({
         data: {
           fullName: data.fullName,
@@ -63,6 +65,7 @@ export function PersonalInfo({ user }: PersonalInfoProps) {
         }
       })
       
+      // Update auth store with new data
       const { updateUser } = useAuthStore.getState()
       updateUser({
         fullName: data.fullName,
