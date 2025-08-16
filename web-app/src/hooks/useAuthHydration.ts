@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth";
 import { getAccessToken } from "@/lib/auth/token";
 
 export function useAuthHydration() {
   const { setHydrated, setSession, clearSession, isHydrated } = useAuthStore();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    setIsClient(true);
 
     const handleAuthClear = () => {
       clearSession();
@@ -25,12 +28,15 @@ export function useAuthHydration() {
       }
     }
     
-    setHydrated(true);
+    const timer = setTimeout(() => {
+      setHydrated(true);
+    }, 50);
     
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('auth-clear', handleAuthClear);
     };
   }, [setHydrated, setSession, clearSession]);
 
-  return isHydrated;
+  return isClient && isHydrated;
 }
