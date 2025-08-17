@@ -47,11 +47,11 @@ export default function PaymentPendingPage() {
     }
   }, []);
 
-  const ticketId = ticketInfo?.ticketId || paymentId;
+  const ticketId = ticketInfo?.tickets?.[0]?.id || paymentId;
 
   const { data: ticketResult, error, refetch, isLoading } = usePaymentStatus(
     ticketId, 
-    true 
+    !!ticketId
   );
   
   const checkPaymentStatus = useCheckPaymentStatus();
@@ -67,15 +67,27 @@ export default function PaymentPendingPage() {
   useEffect(() => {
     if (ticketResult) {
       if (ticketResult.status === 'PAID') {
-        sessionStorage.removeItem('pendingPaymentInfo');
-        sessionStorage.removeItem('purchaseTicketInfo');
         const params = new URLSearchParams({
           orderId: orderId || ticketInfo?.orderId || '',
           resultCode: '0',
-          amount: ticketResult.price?.toString() || '',
-          paymentMethod: ticketResult.paymentStatus || 'MOMO',
-          message: 'Thanh toán thành công'
+          amount: ticketResult.price?.toString() || ticketInfo?.totalAmount?.toString() || '',
+          paymentMethod: ticketResult.paymentStatus || ticketInfo?.paymentMethod || 'MOMO',
+          message: 'Thanh toán thành công',
+          eventTitle: ticketInfo?.eventTitle || '',
+          ticketCount: ticketInfo?.ticketCount?.toString() || '',
+          purchaseTime: ticketInfo?.purchaseTime || ''
         });
+        
+        sessionStorage.setItem('successfulPurchaseInfo', JSON.stringify({
+          ...ticketInfo,
+          paymentId: paymentId,
+          paymentStatus: 'PAID',
+          paymentTime: new Date().toISOString()
+        }));
+        
+        sessionStorage.removeItem('pendingPaymentInfo');
+        sessionStorage.removeItem('purchaseTicketInfo');
+        
         router.push(`/purchase/result?${params.toString()}`);
       } else if (ticketResult.status === 'CANCELLED' || ticketResult.status === 'EXPIRED') {
         sessionStorage.removeItem('pendingPaymentInfo');
@@ -88,7 +100,7 @@ export default function PaymentPendingPage() {
         router.push(`/purchase/result?${params.toString()}`);
       }
     }
-  }, [ticketResult, router, orderId, ticketInfo]);
+  }, [ticketResult, router, orderId, ticketInfo, paymentId]);
 
   // Timeout after 10 minutes
   useEffect(() => {
@@ -170,6 +182,18 @@ export default function PaymentPendingPage() {
               <div className="flex items-center justify-between text-sm mt-2">
                 <span className="text-gray-600">Mã thanh toán:</span>
                 <span className="font-mono font-medium">{paymentId}</span>
+              </div>
+            )}
+            {ticketInfo?.eventTitle && (
+              <div className="flex items-center justify-between text-sm mt-2">
+                <span className="text-gray-600">Sự kiện:</span>
+                <span className="font-medium">{ticketInfo.eventTitle}</span>
+              </div>
+            )}
+            {ticketInfo?.totalAmount && (
+              <div className="flex items-center justify-between text-sm mt-2">
+                <span className="text-gray-600">Số tiền:</span>
+                <span className="font-medium">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(ticketInfo.totalAmount)}</span>
               </div>
             )}
           </div>

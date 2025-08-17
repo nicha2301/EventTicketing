@@ -11,7 +11,11 @@ export function usePaymentStatus(ticketId: string | null, enabled: boolean = tru
       try {
         const response = await getTicketById(ticketId);
         
-        return response.data?.data || null;
+        if (response.data?.success && response.data?.data) {
+          return response.data.data;
+        }
+        
+        return null;
       } catch (error) {
         console.error('Error checking payment status:', error);
         return null;
@@ -31,7 +35,11 @@ export function useCheckPaymentStatus() {
     try {
       const response = await getTicketById(ticketId);
       
-      return response.data?.data || null;
+      if (response.data?.success && response.data?.data) {
+        return response.data.data;
+      }
+      
+      return null;
     } catch (error) {
       console.error('Error checking payment status:', error);
       throw error;

@@ -7,7 +7,8 @@ import {
   type GetMyTicketsStatus,
   type ApiResponseTicketDto,
   type ApiResponsePageTicketDto,
-  type Pageable
+  type Pageable,
+  ApiResponsePageTicketTypeDto
 } from '../generated/client';
 import { http } from "../http";
 
@@ -33,20 +34,21 @@ export async function getUserTickets(
   signal?: AbortSignal
 ) {
   try {
-    const response = await http({
-      url: '/api/tickets/my-tickets',
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    if (status) {
+      params.set('status', status);
+    }
+    
+    const response = await http<ApiResponsePageTicketDto>({
+      url: `/api/tickets/my-tickets?${params.toString()}`,
       method: 'GET',
-      params: {
-        page,
-        size,
-        status
-      },
       signal
     });
-    console.log('Fetched user tickets:', response);
-    return response;
+    
+    return response.data;
   } catch (error) {
-    console.error('Error fetching user tickets:', error);
     throw error;
   }
 }
@@ -67,6 +69,25 @@ export async function cancelUserTicket(ticketId: string) {
     return response;
   } catch (error) {
     console.error('Error canceling ticket:', error);
+    throw error;
+  }
+}
+
+export async function getTicketTypesByEvent(eventId: string, signal?: AbortSignal) {
+  try {
+    const response = await http<ApiResponsePageTicketTypeDto>({
+      url: `/api/events/${eventId}/ticket-types`,
+      method: "GET",
+      params: {
+        page: 0,
+        size: 50
+      },
+      signal
+    });
+    console.log('Fetched ticket types for event:', response);
+    return response.data?.data?.content || [];
+  } catch (error) {
+    console.error("Error fetching ticket types by event:", error);
     throw error;
   }
 }

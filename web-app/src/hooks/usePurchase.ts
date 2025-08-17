@@ -14,21 +14,16 @@ import {
 } from "@/lib/api/generated/client";
 import { useAuthStore } from "@/store/auth";
 import { toast } from "sonner";
+import { getTicketTypesByEvent } from "@/lib/api/modules/tickets";
+import { useState, useEffect, useCallback } from "react";
 
 // Hook lấy ticket types của event
 export function useTicketTypes(eventId: string) {
   return useQuery({
     queryKey: ["ticket-types", eventId],
     queryFn: async () => {
-      const response = await getTicketTypesByEventId(eventId, { 
-        pageable: { page: 0, size: 50 } as Pageable 
-      });
-      
-      if (response.data?.success && response.data?.data) {
-        return response.data.data;
-      }
-      
-      throw new Error("Failed to fetch ticket types");
+      const ticketTypes = await getTicketTypesByEvent(eventId);
+      return { content: ticketTypes };
     },
     enabled: !!eventId,
   });
@@ -141,13 +136,26 @@ export function usePurchaseFlow() {
 
       const purchaseResult = await purchaseTicketsMutation.mutateAsync(purchaseData);
       
-      sessionStorage.setItem('purchaseTicketInfo', JSON.stringify({
+      const ticketInfo = {
         orderId: purchaseResult.orderId,
-        ticketId: purchaseResult.tickets?.[0]?.id,
-        tickets: purchaseResult.tickets,
+        eventId: purchaseResult.eventId,
         eventTitle: purchaseResult.eventTitle,
-        totalAmount: purchaseResult.totalAmount
-      }));
+        totalAmount: purchaseResult.totalAmount,
+        ticketCount: selectedTickets.reduce((sum, item) => sum + item.quantity, 0),
+        buyerInfo,
+        paymentMethod,
+        promoCode,
+        purchaseTime: new Date().toISOString(),
+        tickets: purchaseResult.tickets?.map(ticket => ({
+          id: ticket.id,
+          ticketNumber: ticket.ticketNumber,
+          ticketTypeName: ticket.ticketTypeName,
+          price: ticket.price,
+          status: ticket.status
+        })) || []
+      };
+      
+      sessionStorage.setItem('purchaseTicketInfo', JSON.stringify(ticketInfo));
       
       // Step 2: Create payment for the purchased tickets
       if (purchaseResult.tickets && purchaseResult.tickets.length > 0) {
@@ -166,7 +174,20 @@ export function usePurchaseFlow() {
           },
         };
 
-        await createPaymentMutation.mutateAsync(paymentData);
+        const paymentResult = await createPaymentMutation.mutateAsync(paymentData);
+        
+        const paymentInfo = {
+          orderId: purchaseResult.orderId,
+          paymentId: paymentResult.id,
+          amount: purchaseResult.totalAmount,
+          paymentMethod,
+          paymentUrl: paymentResult.paymentUrl,
+          eventTitle: purchaseResult.eventTitle,
+          ticketCount: ticketInfo.ticketCount,
+          createTime: new Date().toISOString()
+        };
+        
+        sessionStorage.setItem('pendingPaymentInfo', JSON.stringify(paymentInfo));
       }
 
       return purchaseResult;
@@ -180,6 +201,47 @@ export function usePurchaseFlow() {
     isPurchasing: purchaseTicketsMutation.isPending,
     isCreatingPayment: createPaymentMutation.isPending,
     isLoading: purchaseTicketsMutation.isPending || createPaymentMutation.isPending,
+  };
+}
+
+export function usePurchaseInfo() {
+  const [purchaseInfo, setPurchaseInfo] = useState<any>(null);
+  const [successfulPurchaseInfo, setSuccessfulPurchaseInfo] = useState<any>(null);
+
+  useEffect(() => {
+    const storedPurchase = sessionStorage.getItem('purchaseTicketInfo');
+    if (storedPurchase) {
+      try {
+        setPurchaseInfo(JSON.parse(storedPurchase));
+      } catch (error) {
+        console.error('Error parsing purchase info:', error);
+      }
+    }
+
+    const storedSuccessful = sessionStorage.getItem('successfulPurchaseInfo');
+    if (storedSuccessful) {
+      try {
+        setSuccessfulPurchaseInfo(JSON.parse(storedSuccessful));
+      } catch (error) {
+        console.error('Error parsing successful purchase info:', error);
+      }
+    }
+  }, []);
+
+  const clearPurchaseInfo = useCallback(() => {
+    sessionStorage.removeItem('purchaseTicketInfo');
+    sessionStorage.removeItem('pendingPaymentInfo');
+    sessionStorage.removeItem('successfulPurchaseInfo');
+    setPurchaseInfo(null);
+    setSuccessfulPurchaseInfo(null);
+  }, []);
+
+  return {
+    purchaseInfo,
+    successfulPurchaseInfo,
+    clearPurchaseInfo,
+    hasPurchaseInfo: !!purchaseInfo,
+    hasSuccessfulPurchase: !!successfulPurchaseInfo
   };
 }
 

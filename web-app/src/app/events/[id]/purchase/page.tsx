@@ -27,7 +27,7 @@ export default function PurchasePage() {
   const params = useParams();
   const router = useRouter();
   const eventId = params.id as string;
-  const { currentUser, isAuthenticated } = useAuthStore();
+  const { currentUser, isAuthenticated, isHydrated } = useAuthStore();
   
   // State
   const [selectedTickets, setSelectedTickets] = useState<SelectedTicket[]>([]);
@@ -59,7 +59,6 @@ export default function PurchasePage() {
 
   const ticketTypes = ticketTypesData?.content || [];
 
-  // Update buyer info when user is loaded
   useEffect(() => {
     if (currentUser && !buyerInfo.name) {
       setBuyerInfo(prev => ({
@@ -71,13 +70,12 @@ export default function PurchasePage() {
     }
   }, [currentUser, buyerInfo.name]);
 
-  // Redirect if not authenticated
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (isHydrated && !isAuthenticated) {
       toast.error("Vui lòng đăng nhập để mua vé");
       router.push(`/login?redirect=/events/${eventId}/purchase`);
     }
-  }, [isAuthenticated, router, eventId]);
+  }, [isHydrated, isAuthenticated, router, eventId]);
 
   const { subtotal, discount, total } = calculateTotalAmount(
     selectedTickets.map(st => ({ 

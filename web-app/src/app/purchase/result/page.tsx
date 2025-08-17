@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPriceVND } from "@/lib/utils";
@@ -20,8 +19,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { getMyTickets, TicketDto } from "@/lib/api/generated/client";
 import { generateTicketPDF, printTicket } from "@/lib/utils/pdf";
+import { usePurchaseInfo } from "@/hooks/usePurchase";
 
 interface PaymentResult {
   success: boolean;
@@ -31,7 +30,12 @@ interface PaymentResult {
   eventTitle?: string;
   ticketCount?: number;
   message?: string;
-  tickets?: TicketDto[];
+  tickets?: any[];
+  eventId?: string;
+  buyerInfo?: any;
+  paymentMethod?: string;
+  purchaseTime?: string;
+  paymentTime?: string;
 }
 
 export default function PaymentResultPage() {
@@ -39,46 +43,22 @@ export default function PaymentResultPage() {
   const searchParams = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(true);
   const [result, setResult] = useState<PaymentResult | null>(null);
+  const { successfulPurchaseInfo, clearPurchaseInfo } = usePurchaseInfo();
 
-  // Extract payment parameters from URL
   const orderId = searchParams.get("orderId");
-  const partnerCode = searchParams.get("partnerCode");
-  const requestId = searchParams.get("requestId");
-  const amount = searchParams.get("amount");
-  const orderInfo = searchParams.get("orderInfo");
-  const orderType = searchParams.get("orderType");
-  const transId = searchParams.get("transId");
   const resultCode = searchParams.get("resultCode");
   const message = searchParams.get("message");
-  const payType = searchParams.get("payType");
-  const responseTime = searchParams.get("responseTime");
-  const extraData = searchParams.get("extraData");
-  const signature = searchParams.get("signature");
+  const amount = searchParams.get("amount");
+  const paymentMethod = searchParams.get("paymentMethod");
+  const eventTitle = searchParams.get("eventTitle");
+  const ticketCount = searchParams.get("ticketCount");
+  const purchaseTime = searchParams.get("purchaseTime");
 
-  // Get recent tickets by orderId to find the purchased tickets
-  const { data: ticketsData, isLoading: ticketsLoading, error: ticketsError } = useQuery({
-    queryKey: ["recent-tickets", orderId],
-    queryFn: async () => {
-      if (!orderId) return null;
-      
-      // Get recent tickets (last 10 minutes) to find tickets from this purchase
-      const response = await getMyTickets({
-        pageable: { page: 0, size: 50 }, // Get recent tickets
-        status: resultCode === "0" ? "PAID" : "RESERVED"
-      });
-      
-      return response.data?.data?.content || [];
-    },
-    enabled: !!orderId,
-  });
-
-  // Process payment result
   useEffect(() => {
     const processPaymentResult = async () => {
       try {
         setIsProcessing(true);
 
-        // Check if we have the required parameters
         if (!orderId || !resultCode) {
           setResult({
             success: false,
@@ -87,31 +67,60 @@ export default function PaymentResultPage() {
           return;
         }
 
-        // Wait for tickets data to load
-        if (ticketsLoading) return;
-        
         if (resultCode === "0") {
-          // Payment successful - find tickets from this purchase
-          const purchaseTickets = ticketsData?.filter(ticket => 
-            // Find tickets purchased recently (within last 10 minutes)
-            ticket.purchaseDate && 
-            new Date().getTime() - new Date(ticket.purchaseDate).getTime() < 10 * 60 * 1000
-          ) || [];
+          let ticketData = successfulPurchaseInfo;
+          
+          if (!ticketData) {
+            const stored = sessionStorage.getItem('successfulPurchaseInfo');
+            if (stored) {
+              try {
+                ticketData = JSON.parse(stored);
+              } catch (error) {
+                console.error('Error parsing successful purchase info:', error);
+              }
+            }
+          }
+
+          const tickets = ticketData?.tickets?.map((ticket: any) => ({
+            id: ticket.id,
+            ticketNumber: ticket.ticketNumber,
+            ticketTypeName: ticket.ticketTypeName,
+            price: ticket.price,
+            status: 'PAID',
+            eventTitle: ticketData.eventTitle,
+            eventId: ticketData.eventId,
+            eventStartDate: ticketData.purchaseTime,
+            eventLocation: ticketData.eventLocation || 'Địa điểm sự kiện',
+            userId: ticketData.buyerInfo?.id || 'current-user-id', 
+            eventEndDate: ticketData.eventEndDate || ticketData.purchaseTime,
+            eventAddress: ticketData.eventAddress || 'Địa chỉ sự kiện',
+            eventDescription: ticketData.eventDescription || 'Mô tả sự kiện',
+            buyerName: ticketData.buyerInfo?.name || 'Người mua',
+            buyerEmail: ticketData.buyerInfo?.email || 'email@example.com',
+            buyerPhone: ticketData.buyerInfo?.phone || 'Số điện thoại',
+            paymentMethod: ticketData.paymentMethod || 'MOMO',
+            paymentTime: ticketData.paymentTime || new Date().toISOString(),
+            orderId: ticketData.orderId
+          })) || [];
 
           setResult({
             success: true,
             orderId,
-            paymentId: transId || undefined,
-            amount: amount ? parseInt(amount) : (purchaseTickets[0]?.price || 0),
-            eventTitle: purchaseTickets[0]?.eventTitle || "Sự kiện",
-            ticketCount: purchaseTickets.length,
+            paymentId: ticketData?.paymentId,
+            amount: amount ? parseInt(amount) : ticketData?.totalAmount || 0,
+            eventTitle: eventTitle || ticketData?.eventTitle || "Sự kiện",
+            ticketCount: ticketCount ? parseInt(ticketCount) : ticketData?.ticketCount || 0,
             message: "Thanh toán thành công",
-            tickets: purchaseTickets
+            tickets,
+            eventId: ticketData?.eventId,
+            buyerInfo: ticketData?.buyerInfo,
+            paymentMethod: paymentMethod || ticketData?.paymentMethod,
+            purchaseTime: purchaseTime || ticketData?.purchaseTime,
+            paymentTime: ticketData?.paymentTime
           });
           
           toast.success("Thanh toán thành công! Vé đã được gửi về email của bạn.");
         } else {
-          // Payment failed
           setResult({
             success: false,
             orderId,
@@ -132,7 +141,7 @@ export default function PaymentResultPage() {
     };
 
     processPaymentResult();
-  }, [orderId, resultCode, transId, amount, message, ticketsData, ticketsLoading]);
+  }, [orderId, resultCode, message, amount, paymentMethod, eventTitle, ticketCount, purchaseTime, successfulPurchaseInfo]);
 
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -144,7 +153,6 @@ export default function PaymentResultPage() {
 
     setIsDownloading(true);
     try {
-      // Download PDF for each ticket
       for (const ticket of result.tickets) {
         await generateTicketPDF(ticket);
       }
@@ -164,7 +172,6 @@ export default function PaymentResultPage() {
     }
 
     try {
-      // Print each ticket
       result.tickets.forEach(ticket => {
         printTicket(ticket);
       });
@@ -177,6 +184,11 @@ export default function PaymentResultPage() {
 
   const handleRetryPayment = () => {
     router.back();
+  };
+
+  const handleViewAllTickets = () => {
+    clearPurchaseInfo();
+    router.push("/tickets");
   };
 
   if (isProcessing) {
@@ -326,13 +338,13 @@ export default function PaymentResultPage() {
                     
                     <div className="space-y-2">
                       {result.tickets.map((ticket, index) => (
-                        <div key={ticket.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div key={ticket.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div>
                             <p className="font-medium text-gray-900">
-                              {ticket.ticketTypeName}
+                              {ticket.ticketTypeName || 'Vé tham dự'}
                             </p>
                             <p className="text-sm text-gray-600">
-                              Mã vé: {ticket.ticketNumber}
+                              Mã vé: {ticket.ticketNumber || ticket.id || 'N/A'}
                             </p>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -371,14 +383,12 @@ export default function PaymentResultPage() {
                   </Button>
                   
                   <Button 
-                    asChild
+                    onClick={handleViewAllTickets}
                     variant="outline"
                     className="flex-1"
                   >
-                    <Link href="/tickets">
-                      <Ticket className="h-4 w-4 mr-2" />
-                      Xem tất cả vé
-                    </Link>
+                    <Ticket className="h-4 w-4 mr-2" />
+                    Xem tất cả vé
                   </Button>
                 </div>
               </div>

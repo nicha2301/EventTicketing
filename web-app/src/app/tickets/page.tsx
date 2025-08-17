@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getTicketStatusConfig, TICKET_FILTER_TABS } from "@/lib/utils/ticket";
 import { formatCurrency } from "@/lib/utils/currency";
-import { formatDate, formatDateShort, formatTime } from "@/lib/utils/date";
+import { formatDate, formatTime } from "@/lib/utils/date";
 
 export default function MyTicketsPage() {
   const [activeTab, setActiveTab] = useState("all");
@@ -22,16 +22,16 @@ export default function MyTicketsPage() {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["my-tickets", currentStatus, currentPage],
     queryFn: ({ signal }) => getUserTickets(currentStatus, currentPage, 10, signal),
-    placeholderData: (previousData) => previousData,
+    retry: 2,
   });
 
-  const tickets = (data?.data.data as any)?.content || [];
+  const tickets = data?.data?.content || [];
+  const totalPages = data?.data?.totalPages || 0;
 
   const filteredTickets = tickets.filter((ticket: any) =>
     ticket.eventTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
 
   if (isLoading) {
     return (
@@ -101,6 +101,7 @@ export default function MyTicketsPage() {
               onClick={() => {
                 setActiveTab(tab.key);
                 setCurrentPage(0);
+                refetch();
               }}
               className="text-sm"
             >
@@ -182,27 +183,35 @@ export default function MyTicketsPage() {
       )}
 
       {/* Pagination */}
-      {data?.data && (data.data as any).totalPages && (data.data as any).totalPages > 1 && (
+      {totalPages > 1 && (
         <div className="flex justify-center mt-8">
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
               disabled={currentPage === 0}
-              onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+              onClick={() => {
+                const newPage = Math.max(0, currentPage - 1);
+                setCurrentPage(newPage);
+                refetch();
+              }}
             >
               Trước
             </Button>
             
             <span className="flex items-center px-4 py-2 text-sm text-gray-600">
-              Trang {currentPage + 1} / {(data.data as any).totalPages}
+              Trang {currentPage + 1} / {totalPages}
             </span>
             
             <Button
               variant="outline"
               size="sm"
-              disabled={currentPage >= ((data.data as any).totalPages || 1) - 1}
-              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={currentPage >= totalPages - 1}
+              onClick={() => {
+                const newPage = currentPage + 1;
+                setCurrentPage(newPage);
+                refetch();
+              }}
             >
               Sau
             </Button>
