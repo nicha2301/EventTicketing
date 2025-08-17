@@ -5,16 +5,19 @@ import { NotificationCard } from '@/components/notifications/NotificationCard'
 import { NotificationFilter } from '@/components/notifications/NotificationFilter'
 import { NotificationActions } from '@/components/notifications/NotificationActions'
 import { NotificationPreferences } from '@/components/notifications/NotificationPreferences'
-import { useNotifications } from '@/hooks/useNotifications-simple'
 import { NotificationResponseNotificationType } from '@/lib/api/generated/client'
 import { Bell, Settings, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useNotifications } from '@/hooks/useNotifications'
+import { useAuthHydration } from '@/hooks/useAuthHydration'
+import { PageLoading, ErrorState } from '@/components/ui/LoadingSpinner'
 
 export default function NotificationsPage() {
   const [selectedType, setSelectedType] = useState<NotificationResponseNotificationType | 'ALL'>('ALL')
   const [showPreferences, setShowPreferences] = useState(false)
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([])
   
+  const isHydrated = useAuthHydration()
   const {
     notifications,
     isLoading,
@@ -27,6 +30,10 @@ export default function NotificationsPage() {
     deleteAllNotificationsMutation,
     unreadCount
   } = useNotifications({ type: selectedType === 'ALL' ? undefined : selectedType })
+
+  if (!isHydrated || isLoading) {
+    return <PageLoading message="Đang tải thông báo..." />
+  }
 
   const handleSelectNotification = (id: string) => {
     setSelectedNotifications(prev => 
@@ -47,7 +54,7 @@ export default function NotificationsPage() {
     
     try {
       await Promise.all(
-        selectedNotifications.map(id => markAsReadMutation.mutateAsync({ notificationId: id }))
+        selectedNotifications.map(id => markAsReadMutation.mutateAsync(id))
       )
       setSelectedNotifications([])
     } catch (error) {
@@ -60,7 +67,7 @@ export default function NotificationsPage() {
     
     try {
       await Promise.all(
-        selectedNotifications.map(id => deleteNotificationMutation.mutateAsync({ notificationId: id }))
+        selectedNotifications.map(id => deleteNotificationMutation.mutateAsync(id))
       )
       setSelectedNotifications([])
     } catch (error) {
@@ -154,23 +161,7 @@ export default function NotificationsPage() {
 
       {/* Notifications List */}
       <div className="space-y-4">
-        {isLoading ? (
-          // Loading skeleton
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-lg p-4 animate-pulse">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-                  <div className="flex-1">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/4"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : allNotifications.length === 0 ? (
+        {allNotifications.length === 0 ? (
           // Empty state
           <div className="text-center py-12">
             <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -197,8 +188,8 @@ export default function NotificationsPage() {
                 notification={notification}
                 isSelected={selectedNotifications.includes(notification.id)}
                 onSelect={handleSelectNotification}
-                onMarkAsRead={(id) => markAsReadMutation.mutate({ notificationId: id })}
-                onDelete={(id) => deleteNotificationMutation.mutate({ notificationId: id })}
+                onMarkAsRead={(id) => markAsReadMutation.mutate(id)}
+                onDelete={(id) => deleteNotificationMutation.mutate(id)}
               />
             ))}
 
