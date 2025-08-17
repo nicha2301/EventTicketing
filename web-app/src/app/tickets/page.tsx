@@ -2,72 +2,67 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ticket, Search, Filter, Calendar, MapPin, Clock } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { getUserTickets } from "@/lib/api/modules/tickets";
+import { Ticket, Search, Filter, Calendar, MapPin, Clock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getTicketStatusConfig, TICKET_FILTER_TABS } from "@/lib/utils/ticket";
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatDate, formatTime } from "@/lib/utils/date";
+import { useTickets } from "@/hooks/useTickets";
+import { useAuthHydration } from "@/hooks/useAuthHydration";
+import { PageLoading, ErrorState } from "@/components/ui/LoadingSpinner";
+import { CancelTicketModal } from "@/components/tickets/CancelTicketModal";
 
 export default function MyTicketsPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
+  const [cancelTicketModal, setCancelTicketModal] = useState<{
+    isOpen: boolean;
+    ticket: any;
+  }>({ isOpen: false, ticket: null });
   const router = useRouter();
 
+  const isHydrated = useAuthHydration()
   const currentStatus = TICKET_FILTER_TABS.find(tab => tab.key === activeTab)?.status;
+  const { tickets, totalPages, isLoading, isError, error, refetch, cancelTicketMutation } = useTickets(currentStatus, currentPage);
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["my-tickets", currentStatus, currentPage],
-    queryFn: ({ signal }) => getUserTickets(currentStatus, currentPage, 10, signal),
-    retry: 2,
-  });
+  if (!isHydrated || isLoading) {
+    return <PageLoading message="Đang tải danh sách vé..." />
+  }
 
-  const tickets = data?.data?.content || [];
-  const totalPages = data?.data?.totalPages || 0;
+  if (isError) {
+    return (
+      <ErrorState
+        title="Không thể tải danh sách vé"
+        message={error?.message || "Đã xảy ra lỗi khi tải dữ liệu"}
+        onRetry={() => refetch()}
+      />
+    )
+  }
 
   const filteredTickets = tickets.filter((ticket: any) =>
     ticket.eventTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Đang tải danh sách vé...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleCancelTicket = (ticket: any) => {
+    setCancelTicketModal({ isOpen: true, ticket });
+  };
 
-  if (isError) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="text-red-500 mb-4">
-              <Ticket className="w-16 h-16 mx-auto mb-2" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Không thể tải danh sách vé
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {error?.message || "Đã xảy ra lỗi khi tải dữ liệu"}
-            </p>
-            <Button onClick={() => refetch()}>
-              Thử lại
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleConfirmCancel = async () => {
+    if (cancelTicketModal.ticket) {
+      try {
+        await cancelTicketMutation.mutateAsync(cancelTicketModal.ticket.id);
+        setCancelTicketModal({ isOpen: false, ticket: null });
+      } catch (error) {
+      }
+    }
+  };
+
+  const canCancelTicket = (ticket: any) => {
+    return ticket.status === 'PENDING' || ticket.status === 'PAID' || ticket.status === 'CONFIRMED';
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -138,12 +133,14 @@ export default function MyTicketsPage() {
             return (
               <div
                 key={ticket.id}
-                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => router.push(`/tickets/${ticket.id}`)}
+                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow"
               >
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   {/* Ticket Info */}
-                  <div className="flex-1">
+                  <div 
+                    className="flex-1 cursor-pointer"
+                    onClick={() => router.push(`/tickets/${ticket.id}`)}
+                  >
                     <div className="flex items-start justify-between mb-3">
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">
                         {ticket.eventTitle}
@@ -174,6 +171,31 @@ export default function MyTicketsPage() {
                         </span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+                    {canCancelTicket(ticket) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCancelTicket(ticket);
+                        }}
+                        className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Hủy vé
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/tickets/${ticket.id}`)}
+                    >
+                      Xem chi tiết
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -218,6 +240,15 @@ export default function MyTicketsPage() {
           </div>
         </div>
       )}
+
+      {/* Cancel Ticket Modal */}
+      <CancelTicketModal
+        isOpen={cancelTicketModal.isOpen}
+        onClose={() => setCancelTicketModal({ isOpen: false, ticket: null })}
+        onConfirm={handleConfirmCancel}
+        ticket={cancelTicketModal.ticket}
+        isCancelling={cancelTicketMutation.isPending}
+      />
     </div>
   );
 }

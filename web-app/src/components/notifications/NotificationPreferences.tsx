@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useNotificationPreferences } from '@/hooks/useNotifications-simple'
 import { NotificationChannelPreference } from '@/lib/api/generated/client'
 import { Button } from '@/components/ui/button'
 import { X, Mail, Smartphone, Bell } from 'lucide-react'
+import { useNotificationPreferences } from '@/hooks/useNotifications'
 
 interface NotificationPreferencesProps {
   isOpen: boolean

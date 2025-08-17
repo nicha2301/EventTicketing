@@ -1,18 +1,19 @@
 'use client'
 
-import { 
-  useCountUnreadNotifications,
-  useMarkAsRead,
-  useMarkAllAsRead,
-  useDeleteNotification,
-  useDeleteAllNotifications,
-  useGetNotificationPreferences,
-  useUpdateNotificationPreferences,
-  useGetUserNotifications,
-  NotificationResponseNotificationType,
-  NotificationResponse
-} from '@/lib/api/generated/client'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import {
+  getUserNotifications,
+  getUnreadNotificationsCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification,
+  deleteAllNotifications,
+  getNotificationPreferences,
+  updateNotificationPreferences
+} from '@/lib/api/modules/notifications'
+import type { NotificationResponse, NotificationResponseNotificationType } from '@/lib/api/generated/client'
+import { useInitialization } from '@/hooks/useInitialization'
 
 interface UseNotificationsOptions {
   type?: NotificationResponseNotificationType
@@ -20,65 +21,70 @@ interface UseNotificationsOptions {
 }
 
 export function useNotifications(options: UseNotificationsOptions = {}) {
-  const { data: notificationsData, isLoading, refetch } = useGetUserNotifications({
-    pageable: { page: 0, size: 50 }
+  const queryClient = useQueryClient()
+  const { isAuthenticated } = useInitialization()
+
+  const { data: notificationsData, isLoading, refetch } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: ({ signal }) => getUserNotifications(0, 50, signal),
+    enabled: isAuthenticated,
   })
 
-  const { data: unreadCountData } = useCountUnreadNotifications()
+  const { data: unreadCountData } = useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: () => getUnreadNotificationsCount(),
+    enabled: isAuthenticated,
+  })
   
-  const markAsReadMutation = useMarkAsRead({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Đã đánh dấu thông báo đã đọc')
-        refetch()
-      },
-      onError: (error: any) => {
-        toast.error('Có lỗi xảy ra khi đánh dấu đã đọc')
-        console.error('Mark as read error:', error)
-      }
+  const markAsReadMutation = useMutation({
+    mutationFn: (notificationId: string) => markNotificationAsRead(notificationId),
+    onSuccess: () => {
+      toast.success('Đã đánh dấu thông báo đã đọc')
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] })
+    },
+    onError: (error: any) => {
+      toast.error('Có lỗi xảy ra khi đánh dấu đã đọc')
     }
   })
 
-  const markAllAsReadMutation = useMarkAllAsRead({
-    mutation: {
-      onSuccess: (result: any) => {
-        toast.success(`Đã đánh dấu ${result?.data || 0} thông báo đã đọc`)
-        refetch()
-      },
-      onError: (error: any) => {
-        toast.error('Có lỗi xảy ra khi đánh dấu tất cả đã đọc')
-        console.error('Mark all as read error:', error)
-      }
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => markAllNotificationsAsRead(),
+    onSuccess: (result: any) => {
+      toast.success(`Đã đánh dấu ${result?.data || 0} thông báo đã đọc`)
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] })
+    },
+    onError: (error: any) => {
+      toast.error('Có lỗi xảy ra khi đánh dấu tất cả đã đọc')
     }
   })
 
-  const deleteNotificationMutation = useDeleteNotification({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Đã xóa thông báo')
-        refetch()
-      },
-      onError: (error: any) => {
-        toast.error('Có lỗi xảy ra khi xóa thông báo')
-        console.error('Delete notification error:', error)
-      }
+  const deleteNotificationMutation = useMutation({
+    mutationFn: (notificationId: string) => deleteNotification(notificationId),
+    onSuccess: () => {
+      toast.success('Đã xóa thông báo')
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] })
+    },
+    onError: (error: any) => {
+      toast.error('Có lỗi xảy ra khi xóa thông báo')
     }
   })
 
-  const deleteAllNotificationsMutation = useDeleteAllNotifications({
-    mutation: {
-      onSuccess: (result: any) => {
-        toast.success(`Đã xóa ${result?.data || 0} thông báo`)
-        refetch()
-      },
-      onError: (error: any) => {
-        toast.error('Có lỗi xảy ra khi xóa tất cả thông báo')
-        console.error('Delete all notifications error:', error)
-      }
+  const deleteAllNotificationsMutation = useMutation({
+    mutationFn: () => deleteAllNotifications(),
+    onSuccess: (result: any) => {
+      toast.success(`Đã xóa ${result?.data || 0} thông báo`)
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] })
+    },
+    onError: (error: any) => {
+      toast.error('Có lỗi xảy ra khi xóa tất cả thông báo')
     }
   })
 
-  const notifications: NotificationResponse[] = notificationsData?.data?.content || []
+  const notifications: NotificationResponse[] = (notificationsData as any)?.data?.content || []
   
   return {
     notifications,
@@ -97,18 +103,24 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
 
 // Hook cho notification preferences
 export function useNotificationPreferences() {
-  const { data: preferences, isLoading, refetch } = useGetNotificationPreferences()
+  const queryClient = useQueryClient()
+  const { isAuthenticated } = useInitialization()
   
-  const updatePreferencesMutation = useUpdateNotificationPreferences({
-    mutation: {
-      onSuccess: () => {
-        toast.success('Cài đặt thông báo đã được cập nhật')
-        refetch()
-      },
-      onError: (error: any) => {
-        toast.error('Có lỗi xảy ra khi cập nhật cài đặt')
-        console.error('Update preferences error:', error)
-      }
+  const { data: preferences, isLoading, refetch } = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: () => getNotificationPreferences(),
+    enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+  })
+  
+  const updatePreferencesMutation = useMutation({
+    mutationFn: (preferences: any) => updateNotificationPreferences(preferences),
+    onSuccess: () => {
+      toast.success('Cài đặt thông báo đã được cập nhật')
+      queryClient.invalidateQueries({ queryKey: ['notification-preferences'] })
+    },
+    onError: (error: any) => {
+      toast.error('Có lỗi xảy ra khi cập nhật cài đặt')
     }
   })
 

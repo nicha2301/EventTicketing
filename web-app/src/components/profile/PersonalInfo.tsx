@@ -25,7 +25,7 @@ interface User {
 }
 
 interface PersonalInfoProps {
-  user: User | null
+  user: User
 }
 
 // Validation schema - chỉ các trường từ UserUpdateDto

@@ -49,6 +49,7 @@ export default function ProfilePage() {
   const isHydrated = useAuthHydration()
   const { currentUser } = useAuthStore()
   const { data: user, isLoading, isError, refetch } = useUserProfile()
+  const currentUserData = user || currentUser
 
   // Show loading on SSR or when data is loading
   if (!isHydrated || isLoading) {
@@ -67,9 +68,17 @@ export default function ProfilePage() {
   }
 
   const renderTabContent = () => {
+    if (!currentUserData) {
+      return (
+        <div className="p-6 text-center">
+          <p className="text-gray-500">Không thể tải thông tin người dùng</p>
+        </div>
+      )
+    }
+
     switch (activeTab) {
       case 'personal':
-        return <PersonalInfo user={user || currentUser} />
+        return <PersonalInfo user={currentUserData as any} />
       case 'security':
         return <AccountSecurity />
       case 'notifications':
@@ -77,7 +86,7 @@ export default function ProfilePage() {
       case 'activity':
         return <ActivityHistory />
       default:
-        return <PersonalInfo user={user || currentUser} />
+        return <PersonalInfo user={currentUserData as any} />
     }
   }
 
@@ -86,7 +95,7 @@ export default function ProfilePage() {
       {/* Header Section */}
       <div className="bg-white border-b">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ProfileHeader user={user || currentUser} />
+          <ProfileHeader user={currentUserData as any} />
         </div>
       </div>
 
