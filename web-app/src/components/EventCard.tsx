@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Calendar, MapPin } from "lucide-react";
-import { formatPriceVND, truncate } from "@/lib/utils";
+import { Calendar, MapPin, Tag } from "lucide-react";
+import { formatPriceVND } from "@/lib/utils";
 import { EventImage } from "@/components/ui/event-image";
 
 export type EventItem = {
@@ -14,31 +14,62 @@ export type EventItem = {
 };
 
 export default function EventCard({ event }: { event: EventItem }) {
+  const isFree = event.price === 0;
+  
   return (
     <Link
       href={`/events/${event.id}`}
-      className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+      className="group block overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-lg hover:border-gray-200 hover:-translate-y-1"
     >
-      <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
+      {/* Image Container */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
         <EventImage
           src={event.image}
           alt={event.title}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className="object-cover transition duration-300 group-hover:scale-105"
+          className="object-cover transition duration-500 group-hover:scale-110"
         />
-      </div>
-      <div className="space-y-2 p-4">
-        <h3 className="line-clamp-1 text-base font-semibold text-slate-900">
-          {truncate(event.title, 70)}
-        </h3>
-        <div className="flex items-center gap-3 text-sm text-slate-600">
-          <span className="inline-flex items-center gap-1"><Calendar className="h-4 w-4" />{event.date}</span>
-          <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" />{event.location}</span>
+        
+        {/* Category Badge */}
+        <div className="absolute top-3 left-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium text-gray-700 shadow-sm">
+            <Tag className="w-3 h-3" />
+            {event.category}
+          </span>
         </div>
-        <div className="flex items-center justify-between pt-1">
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">{event.category}</span>
-          <span className="text-sm font-semibold text-slate-900">{formatPriceVND(event.price)}</span>
+        
+        {/* Price Badge */}
+        <div className="absolute top-3 right-3">
+          <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${
+            isFree 
+              ? 'bg-green-500 text-white' 
+              : 'bg-white/90 backdrop-blur-sm text-gray-900'
+          }`}>
+            {isFree ? 'Miễn phí' : formatPriceVND(event.price)}
+          </span>
+        </div>
+      </div>
+      
+      {/* Content */}
+      <div className="p-5 space-y-3">
+        {/* Title */}
+        <h3 className="font-bold text-gray-900 text-lg leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors">
+          {event.title}
+        </h3>
+        
+        {/* Date and Time */}
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-4 h-4 text-blue-500" />
+            <span>{event.date}</span>
+          </div>
+        </div>
+        
+        {/* Location */}
+        <div className="flex items-center gap-1.5 text-sm text-gray-600">
+          <MapPin className="w-4 h-4 text-red-500" />
+          <span className="line-clamp-1">{event.location}</span>
         </div>
       </div>
     </Link>

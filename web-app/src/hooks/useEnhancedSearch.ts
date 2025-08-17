@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { searchEvents, type SearchEventsParams } from '@/lib/api/generated/client';
+import { searchEvents, type SearchEventsParams } from '@/lib/api/modules/events';
 import { useSearchMetadata } from './useSearchMetadata';
 import type { SearchFilters } from '@/components/search/SearchFilters';
 import type { SortOption } from '@/components/search/SearchSort';
@@ -100,7 +100,6 @@ export function useEnhancedSearch() {
     queryKey: ['enhanced-search', searchParams],
     queryFn: async () => {
       try {
-        // Build API parameters using the generated client interface
         const apiParams: SearchEventsParams = {
           keyword: filters.query || undefined,
           categoryId: filters.category ? getCategoryId(filters.category) : undefined,
@@ -109,20 +108,15 @@ export function useEnhancedSearch() {
           maxPrice: filters.priceMax,
           startDate: filters.dateFrom || undefined,
           endDate: filters.dateTo || undefined,
-          pageable: {
-            page: page - 1, // API uses 0-based indexing
-            size: limit,
-            sort: sortBy === 'relevance' ? undefined : [mapSortToAPI(sortBy)],
-          },
+          page: page - 1, 
+          size: limit,
+          sort: sortBy === 'relevance' ? undefined : mapSortToAPI(sortBy),
         };
 
-        // Remove undefined values
-        const cleanParams: SearchEventsParams = {
-          ...apiParams,
-          pageable: apiParams.pageable,
-        };
+        const cleanParams: SearchEventsParams = Object.fromEntries(
+          Object.entries(apiParams).filter(([_, value]) => value !== undefined)
+        ) as SearchEventsParams;
 
-        // Use the generated client
         const response = await searchEvents(cleanParams);
         
         // Transform API response to our format
@@ -145,22 +139,22 @@ export function useEnhancedSearch() {
         };
       }
     },
-    staleTime: 30000, // 30 seconds
+    staleTime: 30000,
     enabled: true,
-    retry: 1, // Only retry once
-    retryOnMount: false, // Don't retry on mount
+    retry: 1, 
+    retryOnMount: false,
   });
 
   // Update filters
   const updateFilters = useCallback((newFilters: Partial<SearchFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
-    setPage(1); // Reset to first page when filters change
+    setPage(1);
   }, []);
 
   // Update sort
   const updateSort = useCallback((newSort: SortOption) => {
     setSortBy(newSort);
-    setPage(1); // Reset to first page when sort changes
+    setPage(1); 
   }, []);
 
   // Apply complete search
@@ -169,7 +163,6 @@ export function useEnhancedSearch() {
     setSortBy(newSort);
     setPage(1);
     
-    // Add to search history if there's a query
     if (newFilters.query && newFilters.query.trim()) {
       addToSearchHistory(newFilters.query.trim());
     }
@@ -240,12 +233,12 @@ export function useEnhancedSearch() {
 // Helper function to map our sort options to API format
 function mapSortToAPI(sort: SortOption): string {
   const mapping: Record<SortOption, string> = {
-    relevance: 'title,asc', // Default sorting
+    relevance: 'title,asc', 
     'date-asc': 'startDate,asc',
     'date-desc': 'startDate,desc',
     'price-asc': 'price,asc',
     'price-desc': 'price,desc',
-    popularity: 'title,asc', // Backend might not have popularity field yet
+    popularity: 'title,asc', 
     newest: 'createdDate,desc',
   };
   return mapping[sort] || 'title,asc';
@@ -253,9 +246,8 @@ function mapSortToAPI(sort: SortOption): string {
 
 // Helper function to transform API response
 function transformSearchResponse(apiResponse: any): SearchResponse {
-  const data = apiResponse.data;
   return {
-    events: (data?.content || []).map((event: any) => ({
+    events: (apiResponse.events || []).map((event: any) => ({
       id: event.id,
       title: event.title || '',
       description: event.shortDescription || event.description || '',
@@ -282,12 +274,12 @@ function transformSearchResponse(apiResponse: any): SearchResponse {
       isPopular: event.isPopular || false,
       isFeatured: event.isFeatured || false,
     })),
-    total: data?.totalElements || 0,
-    totalPages: data?.totalPages || 1,
-    currentPage: (data?.number || 0) + 1, // API returns 0-based, we use 1-based
-    hasMore: data?.totalPages ? (data.number + 1) < data.totalPages : false,
+    total: apiResponse.totalElements || 0,
+    totalPages: apiResponse.totalPages || 1,
+    currentPage: (apiResponse.currentPage || 0) + 1, 
+    hasMore: apiResponse.totalPages ? (apiResponse.currentPage + 1) < apiResponse.totalPages : false,
     aggregations: {
-      categories: [], // Mock - API doesn't provide aggregations yet
+      categories: [], 
       locations: [],
       priceRanges: [],
     },
