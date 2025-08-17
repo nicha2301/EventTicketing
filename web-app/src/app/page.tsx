@@ -19,8 +19,6 @@ export default function HomePage() {
       <CategoriesSection active={activeCategory} onChange={setActiveCategory} />
       <FeaturedEventsSection activeCategory={activeCategory} />
       <UpcomingEventsSection />
-      <PartnersSection />
-      <StatsSection />
       <NewsletterSection />
       <FAQSection />
       <CTASection />

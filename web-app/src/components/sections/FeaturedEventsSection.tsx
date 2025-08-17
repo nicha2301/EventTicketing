@@ -10,7 +10,7 @@ type Props = {
 
 export default function FeaturedEventsSection({ activeCategory }: Props) {
   const { data, isLoading, isError } = useFeaturedEvents(6);
-  const apiMapped = (data?.data?.data ?? []).map((e) => ({
+  const apiMapped = (data ?? []).map((e: any) => ({
     id: e.id ?? "",
     title: e.title ?? "",
     image: sanitizeEventImageUrl(e.featuredImageUrl, e.imageUrls),

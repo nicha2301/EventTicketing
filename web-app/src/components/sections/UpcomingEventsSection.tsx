@@ -6,7 +6,7 @@ import { sanitizeEventImageUrl } from "@/lib/utils/image";
 
 export default function UpcomingEventsSection() {
   const { data, isLoading, isError } = useUpcomingEvents(6);
-  const mapped = (data?.data?.data ?? []).map((e) => ({
+  const mapped = (data ?? []).map((e: any) => ({
     id: e.id ?? "",
     title: e.title ?? "",
     image: sanitizeEventImageUrl(e.featuredImageUrl, e.imageUrls),

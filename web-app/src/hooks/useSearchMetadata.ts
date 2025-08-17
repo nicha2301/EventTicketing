@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getAllCategories, getAllLocations } from '@/lib/api/generated/client';
+import { getAllCategories } from '@/lib/api/modules/categories';
+import { getAllLocations } from '@/lib/api/modules/locations';
 
 // Hook to get all categories and locations for mapping
 export function useSearchMetadata() {
   const categoriesQuery = useQuery({
     queryKey: ['all-categories'],
-    queryFn: () => getAllCategories({ pageable: { page: 0, size: 100 } }),
+    queryFn: () => getAllCategories(0, 100),
     staleTime: 5 * 60 * 1000,
     retry: 1,
     retryOnMount: false, 
@@ -14,7 +15,7 @@ export function useSearchMetadata() {
 
   const locationsQuery = useQuery({
     queryKey: ['all-locations'], 
-    queryFn: () => getAllLocations({ pageable: { page: 0, size: 100 } }),
+    queryFn: () => getAllLocations(0, 100),
     staleTime: 5 * 60 * 1000,
     retry: 1, 
     retryOnMount: false,
@@ -22,7 +23,7 @@ export function useSearchMetadata() {
 
   // Create lookup maps from API data
   const categoryMap = useMemo(() => {
-    const categories = (categoriesQuery.data?.data as any)?.content || [];
+    const categories = categoriesQuery.data?.categories || [];
     const nameToId = new Map<string, string>();
     const idToName = new Map<string, string>();
     
@@ -37,7 +38,7 @@ export function useSearchMetadata() {
   }, [categoriesQuery.data]);
 
   const locationMap = useMemo(() => {
-    const locations = (locationsQuery.data?.data as any)?.content || [];
+    const locations = locationsQuery.data?.locations || [];
     const nameToId = new Map<string, string>();
     const idToName = new Map<string, string>();
     
@@ -64,5 +65,4 @@ export function useSearchMetadata() {
     getLocationId: (name: string) => locationMap.nameToId.get(name),
     getLocationName: (id: string) => locationMap.idToName.get(id),
   };
-
 }

@@ -1,49 +1,50 @@
-// Re-export the http instance
-export { http } from "./http";
+// Manual API modules
+export * from './modules/auth';
+export * from './modules/events';
+export * from './modules/tickets';
+export * from './modules/notifications';
+export * from './modules/categories';
+export * from './modules/locations';
 
-// Re-export auth API
-export * from "./modules/auth";
+// Generated client types only (to avoid conflicts)
+export type {
+  EventDto,
+  UserDto,
+  CategoryDto,
+  LocationDto,
+  TicketDto,
+  TicketTypeDto,
+  CommentDto,
+  CommentResponse,
+  RatingResponse,
+  NotificationResponse,
+  PaymentResponseDto,
+  UserAuthResponseDto,
+  UserCreateDto,
+  LoginRequestDto,
+  ApiResponseEventDto,
+  ApiResponseUserDto,
+  ApiResponseCategoryDto,
+  ApiResponseLocationDto,
+  ApiResponseTicketDto,
+  ApiResponseTicketTypeDto,
+  ApiResponseNotificationResponse,
+  ApiResponsePaymentResponseDto,
+  ApiResponseUserAuthResponseDto,
+  PageEventDto,
+  PagedResponseUserDto,
+  PageCategoryDto,
+  PageLocationDto,
+  PageTicketDto,
+  PageTicketTypeDto,
+  PageNotificationResponse,
+  Pageable,
+  SortObject,
+  PageableObject,
+} from './generated/client';
 
-// Re-export events API
-export * from "./modules/events";
-
-// Re-export generated client (excluding conflicts)
+// Generated client enums
 export {
-  // Types
-  type EventDto,
-  type UserDto,
-  type CategoryDto,
-  type LocationDto,
-  type TicketDto,
-  type TicketTypeDto,
-  type CommentDto,
-  type CommentResponse,
-  type RatingResponse,
-  type NotificationResponse,
-  type PaymentResponseDto,
-  type UserAuthResponseDto,
-  type UserCreateDto,
-  type LoginRequestDto,
-  type ApiResponseEventDto,
-  type ApiResponseUserDto,
-  type ApiResponseCategoryDto,
-  type ApiResponseLocationDto,
-  type ApiResponseTicketDto,
-  type ApiResponseTicketTypeDto,
-  type ApiResponseNotificationResponse,
-  type ApiResponsePaymentResponseDto,
-  type ApiResponseUserAuthResponseDto,
-  type PageEventDto,
-  type PagedResponseUserDto,
-  type PageCategoryDto,
-  type PageLocationDto,
-  type PageTicketDto,
-  type PageTicketTypeDto,
-  type PageNotificationResponse,
-  type Pageable,
-  type SortObject,
-  type PageableObject,
-  // Enums
   UserAuthResponseDtoRole,
   UserCreateDtoRole,
   UserDtoRole,
@@ -59,4 +60,4 @@ export {
   RatingStatusUpdateRequestStatus,
   TestNotificationRequestNotificationType,
   GetMyTicketsStatus,
-} from "./generated/client";
+} from './generated/client';
