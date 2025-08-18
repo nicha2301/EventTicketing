@@ -8,6 +8,19 @@ export interface EventsListResponse {
   currentPage: number;
 }
 
+export interface SearchEventsParams {
+  keyword?: string;
+  categoryId?: string;
+  locationId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
 export const listEvents = async (params?: {
   page?: number;
   size?: number;
@@ -28,6 +41,37 @@ export const listEvents = async (params?: {
   const { data } = response.data;
   if (!data) {
     throw new Error("Failed to fetch events");
+  }
+
+  return {
+    events: data.content || [],
+    totalPages: data.totalPages || 0,
+    totalElements: data.totalElements || 0,
+    currentPage: data.number || 0,
+  };
+};
+
+export const searchEvents = async (params: SearchEventsParams): Promise<EventsListResponse> => {
+  const response = await http<ApiResponsePageEventDto>({
+    url: "/api/events/search",
+    method: "GET",
+    params: {
+      keyword: params.keyword,
+      categoryId: params.categoryId,
+      locationId: params.locationId,
+      minPrice: params.minPrice,
+      maxPrice: params.maxPrice,
+      startDate: params.startDate,
+      endDate: params.endDate,
+      page: params.page || 0,
+      size: params.size || 12,
+      sort: params.sort,
+    },
+  });
+
+  const { data } = response.data;
+  if (!data) {
+    throw new Error("Failed to search events");
   }
 
   return {

@@ -111,6 +111,46 @@ export function usePurchaseFlow() {
   const createPaymentMutation = useCreatePayment();
   const { currentUser } = useAuthStore();
 
+  // Function xử lý thanh toán vé đã đặt
+  const completeReservedTicketPayment = async (
+    ticketId: string,
+    amount: number,
+    paymentMethod: string = "MOMO",
+    promoCode?: string
+  ) => {
+    try {
+      const paymentData: PaymentCreateDto = {
+        ticketId: ticketId,  
+        amount: amount,
+        paymentMethod: paymentMethod.toLowerCase(),
+        returnUrl: `${window.location.origin}/payment/pending?ticketId=${ticketId}`,
+        description: `Thanh toán vé ${ticketId}`,
+        metadata: {
+          fromReserved: "true",
+          promoCode: promoCode || "",
+        },
+      };
+
+      const paymentResult = await createPaymentMutation.mutateAsync(paymentData);
+      
+      const paymentInfo = {
+        ticketId: ticketId,
+        paymentId: paymentResult.id,
+        amount: amount,
+        paymentMethod,
+        paymentUrl: paymentResult.paymentUrl,
+        fromReserved: true,
+        createTime: new Date().toISOString()
+      };
+      
+      sessionStorage.setItem('pendingPaymentInfo', JSON.stringify(paymentInfo));
+      
+      return paymentResult;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const completePurchase = async (
     eventId: string,
     selectedTickets: TicketItemDto[],
@@ -198,6 +238,7 @@ export function usePurchaseFlow() {
 
   return {
     completePurchase,
+    completeReservedTicketPayment,
     isPurchasing: purchaseTicketsMutation.isPending,
     isCreatingPayment: createPaymentMutation.isPending,
     isLoading: purchaseTicketsMutation.isPending || createPaymentMutation.isPending,

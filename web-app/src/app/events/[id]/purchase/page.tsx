@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { getEventById, type EventDto } from "@/lib/api/generated/client";
+import { getTicketById } from "@/lib/api/generated/client";
 import { useTicketTypes, usePurchaseFlow, validatePurchaseData, calculateTotalAmount } from "@/hooks/usePurchase";
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { formatPriceVND } from "@/lib/utils";
-import { ArrowLeft, Shield, CreditCard, Clock, MapPin, Calendar } from "lucide-react";
+import { ArrowLeft, Shield, CreditCard, Clock, MapPin, Calendar, Ticket } from "lucide-react";
 import Link from "next/link";
 import TicketSelector from "@/components/purchase/TicketSelector";
 import PaymentMethodSelector from "@/components/purchase/PaymentMethodSelector";
@@ -26,8 +27,11 @@ interface SelectedTicket {
 export default function PurchasePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const eventId = params.id as string;
   const { currentUser, isAuthenticated, isHydrated } = useAuthStore();
+  const ticketId = searchParams.get('ticketId');
+  const fromReserved = searchParams.get('fromReserved') === 'true';
   
   // State
   const [selectedTickets, setSelectedTickets] = useState<SelectedTicket[]>([]);
@@ -40,6 +44,7 @@ export default function PurchasePage() {
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("MOMO");
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [isReservedTicket, setIsReservedTicket] = useState(false);
 
   // Queries and mutations
   const { data: event, isLoading: eventLoading } = useQuery({
@@ -54,8 +59,22 @@ export default function PurchasePage() {
     enabled: !!eventId,
   });
 
+  // Query for reserved ticket if ticketId is provided
+  const { data: reservedTicket, isLoading: reservedTicketLoading } = useQuery({
+    queryKey: ["reserved-ticket", ticketId],
+    queryFn: async () => {
+      if (!ticketId) return null;
+      const response = await getTicketById(ticketId);
+      if (response.data?.success && response.data?.data) {
+        return response.data.data;
+      }
+      throw new Error("Reserved ticket not found");
+    },
+    enabled: !!ticketId && fromReserved,
+  });
+
   const { data: ticketTypesData, isLoading: ticketTypesLoading } = useTicketTypes(eventId);
-  const { completePurchase, isLoading: purchaseLoading } = usePurchaseFlow();
+  const { completePurchase, completeReservedTicketPayment, isLoading: purchaseLoading } = usePurchaseFlow();
 
   const ticketTypes = ticketTypesData?.content || [];
 
@@ -69,6 +88,25 @@ export default function PurchasePage() {
       }));
     }
   }, [currentUser, buyerInfo.name]);
+
+  // Auto-fill reserved ticket information
+  useEffect(() => {
+    if (reservedTicket && fromReserved) {
+      setIsReservedTicket(true);
+      
+      setSelectedTickets([{
+        ticketTypeId: reservedTicket.ticketTypeId,
+        quantity: 1
+      }]);
+      
+      setBuyerInfo(prev => ({
+        ...prev,
+        name: reservedTicket.userName || currentUser?.fullName || "",
+        email: currentUser?.email || "",
+        phone: currentUser?.phoneNumber || "",
+      }));
+    }
+  }, [reservedTicket, fromReserved, currentUser]);
 
   useEffect(() => {
     if (isHydrated && !isAuthenticated) {
@@ -104,11 +142,9 @@ export default function PurchasePage() {
 
   const handleTicketChange = (index: number, ticketTypeId: string, quantity: number) => {
     setSelectedTickets(prev => {
-      // If index is beyond current array, add new ticket
       if (index >= prev.length) {
         return [...prev, { ticketTypeId, quantity }];
       }
-      // Otherwise update existing ticket
       return prev.map((ticket, i) => 
         i === index ? { ticketTypeId, quantity } : ticket
       );
@@ -131,41 +167,50 @@ export default function PurchasePage() {
   };
 
   const handlePurchase = async () => {
-    // Validation
-    const errors = validatePurchaseData(
-      selectedTickets.map(st => ({ 
-        ticketTypeId: st.ticketTypeId, 
-        quantity: st.quantity 
-      })),
-      buyerInfo
-    );
-
     if (!agreeTerms) {
-      errors.push("Vui lòng đồng ý với điều khoản và điều kiện");
-    }
-
-    if (errors.length > 0) {
-      errors.forEach(error => toast.error(error));
+      toast.error("Vui lòng đồng ý với điều khoản và điều kiện");
       return;
     }
 
     try {
-      await completePurchase(
-        eventId,
-        selectedTickets.map(st => ({ 
-          ticketTypeId: st.ticketTypeId, 
-          quantity: st.quantity 
-        })),
-        buyerInfo,
-        paymentMethod,
-        promoCode || undefined
-      );
+      if (isReservedTicket && reservedTicket) {
+        await completeReservedTicketPayment(
+          reservedTicket.id!,  
+          reservedTicket.price,
+          paymentMethod,
+          promoCode
+        );
+      } else {
+        const errors = validatePurchaseData(
+          selectedTickets.map(st => ({ 
+            ticketTypeId: st.ticketTypeId, 
+            quantity: st.quantity 
+          })),
+          buyerInfo
+        );
+
+        if (errors.length > 0) {
+          errors.forEach(error => toast.error(error));
+          return;
+        }
+
+        await completePurchase(
+          eventId,
+          selectedTickets.map(st => ({ 
+            ticketTypeId: st.ticketTypeId, 
+            quantity: st.quantity 
+          })),
+          buyerInfo,
+          paymentMethod,
+          promoCode || undefined
+        );
+      }
     } catch (error) {
       console.error("Purchase error:", error);
     }
   };
 
-  if (eventLoading || ticketTypesLoading) {
+  if (eventLoading || ticketTypesLoading || (fromReserved && reservedTicketLoading)) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
@@ -208,11 +253,11 @@ export default function PurchasePage() {
         {/* Header */}
         <div className="mb-8">
           <Link 
-            href={`/events/${eventId}`}
+            href={fromReserved && ticketId ? `/tickets/${ticketId}` : `/events/${eventId}`}
             className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Quay lại sự kiện
+            {fromReserved && ticketId ? 'Quay lại chi tiết vé' : 'Quay lại sự kiện'}
           </Link>
           
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -225,7 +270,9 @@ export default function PurchasePage() {
                 />
               )}
               <div className="flex-1">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">{event.title}</h1>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  {fromReserved && reservedTicket ? `Thanh toán vé: ${reservedTicket.ticketTypeName}` : event.title}
+                </h1>
                 <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-1" />
@@ -248,13 +295,34 @@ export default function PurchasePage() {
           {/* Left Column - Ticket Selection & Buyer Info */}
           <div className="space-y-6">
             {/* Ticket Selection */}
-            <TicketSelector
-              ticketTypes={ticketTypes}
-              selectedTickets={selectedTickets}
-              onAddTicket={handleAddTicket}
-              onRemoveTicket={handleRemoveTicket}
-              onTicketChange={handleTicketChange}
-            />
+            {fromReserved && reservedTicket ? (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Ticket className="h-5 w-5 mr-2 text-blue-600" />
+                  Vé đã đặt
+                </h3>
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium text-gray-900">{reservedTicket.ticketTypeName}</span>
+                    <span className="text-sm text-gray-600">1 vé</span>
+                  </div>
+                  <div className="text-lg font-bold text-blue-600">
+                    {formatPriceVND(reservedTicket.price)}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Vé này đã được đặt trước và đang chờ thanh toán
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <TicketSelector
+                ticketTypes={ticketTypes}
+                selectedTickets={selectedTickets}
+                onAddTicket={handleAddTicket}
+                onRemoveTicket={handleRemoveTicket}
+                onTicketChange={handleTicketChange}
+              />
+            )}
 
             {/* Buyer Information */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -270,6 +338,8 @@ export default function PurchasePage() {
                     onChange={(e) => setBuyerInfo(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Nhập họ và tên"
                     required
+                    disabled={isReservedTicket}
+                    className={isReservedTicket ? "bg-gray-50 cursor-not-allowed" : ""}
                   />
                 </div>
                 
@@ -283,6 +353,8 @@ export default function PurchasePage() {
                     onChange={(e) => setBuyerInfo(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="Nhập email"
                     required
+                    disabled={isReservedTicket}
+                    className={isReservedTicket ? "bg-gray-50 cursor-not-allowed" : ""}
                   />
                 </div>
                 
@@ -295,9 +367,19 @@ export default function PurchasePage() {
                     value={buyerInfo.phone}
                     onChange={(e) => setBuyerInfo(prev => ({ ...prev, phone: e.target.value }))}
                     placeholder="Nhập số điện thoại"
+                    disabled={isReservedTicket}
+                    className={isReservedTicket ? "bg-gray-50 cursor-not-allowed" : ""}
                   />
                 </div>
               </div>
+              
+              {isReservedTicket && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    ℹ️ Thông tin người mua đã được điền sẵn từ vé đã đặt và không thể chỉnh sửa
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Promo Code */}
@@ -365,21 +447,21 @@ export default function PurchasePage() {
                 </label>
               </div>
 
-              <Button
-                onClick={handlePurchase}
-                disabled={!agreeTerms || selectedTickets.length === 0 || purchaseLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
-                size="lg"
-              >
-                {purchaseLoading ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Đang xử lý...
-                  </div>
-                ) : (
+                                            <Button
+                 onClick={handlePurchase}
+                 disabled={!agreeTerms || (selectedTickets.length === 0 && !isReservedTicket) || purchaseLoading}
+                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
+                 size="lg"
+               >
+                 {purchaseLoading ? (
+                   <div className="flex items-center">
+                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                     Đang xử lý...
+                   </div>
+                 ) : (
                   <div className="flex items-center">
                     <CreditCard className="h-5 w-5 mr-2" />
-                    Thanh toán {formatPriceVND(total)}
+                    {isReservedTicket ? 'Hoàn tất thanh toán' : `Thanh toán ${formatPriceVND(total)}`}
                   </div>
                 )}
               </Button>

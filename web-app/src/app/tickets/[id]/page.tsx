@@ -432,9 +432,14 @@ export default function TicketDetailPage() {
                 )}
                 
                 {ticket.status === TicketDtoStatus.RESERVED && (
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 sm:col-span-2">
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Thanh toán ngay
+                  <Button 
+                    asChild
+                    className="w-full bg-blue-600 hover:bg-blue-700 sm:col-span-2"
+                  >
+                    <Link href={`/events/${ticket.eventId}/purchase?ticketId=${ticket.id}&fromReserved=true`}>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Thanh toán ngay
+                    </Link>
                   </Button>
                 )}
 
