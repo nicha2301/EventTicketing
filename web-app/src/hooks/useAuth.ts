@@ -15,7 +15,7 @@ export const useLogin = () => {
       clearSession();
       setLoading(true);
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setSession(data.token, {
         id: data.id,
         email: data.email,
@@ -23,9 +23,20 @@ export const useLogin = () => {
         role: data.role,
         profilePictureUrl: data.profilePictureUrl,
       }, data.refreshToken);
+
+      try { await fetch("/api/auth/role", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role: data.role }) }); } catch {}
       
       toast.success("Đăng nhập thành công!");
       queryClient.invalidateQueries(); 
+
+      try {
+        const returnTo = typeof window !== 'undefined' ? sessionStorage.getItem('returnTo') : null;
+        if (returnTo) {
+          sessionStorage.removeItem('returnTo');
+          router.push(returnTo);
+          return;
+        }
+      } catch {}
       
       if (data.role === "ADMIN") {
         router.push("/admin");
@@ -79,7 +90,7 @@ export const useGoogleLogin = () => {
     onMutate: () => {
       setLoading(true);
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setSession(data.token, {
         id: data.id,
         email: data.email,
@@ -88,8 +99,19 @@ export const useGoogleLogin = () => {
         profilePictureUrl: data.profilePictureUrl,
       }, data.refreshToken);
       
+      try { await fetch("/api/auth/role", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role: data.role }) }); } catch {}
+      
       toast.success("Đăng nhập Google thành công!");
       queryClient.invalidateQueries();
+
+      try {
+        const returnTo = typeof window !== 'undefined' ? sessionStorage.getItem('returnTo') : null;
+        if (returnTo) {
+          sessionStorage.removeItem('returnTo');
+          router.push(returnTo);
+          return;
+        }
+      } catch {}
       
       if (data.role === "ADMIN") {
         router.push("/admin");
@@ -124,15 +146,17 @@ export const useLogout = () => {
     onMutate: () => {
       setLoading(true);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       clearSession();
-      queryClient.clear(); 
+      queryClient.clear();
+      try { await fetch("/api/auth/role", { method: "DELETE" }); } catch {}
       toast.success("Đăng xuất thành công!");
       router.push("/");
     },
-    onError: (error: any) => {
+    onError: async (error: any) => {
       clearSession();
       queryClient.clear();
+      try { await fetch("/api/auth/role", { method: "DELETE" }); } catch {}
       const message = error?.response?.data?.message || "Đăng xuất thành công!";
       toast.success(message);
       router.push("/");
@@ -163,7 +187,7 @@ export const useResetPassword = () => {
     mutationFn: authApi.resetPassword,
     onSuccess: () => {
       toast.success("Đặt lại mật khẩu thành công!");
-      router.push("/login");
+      router.push("/?login=1");
     },
     onError: (error: any) => {
       const message = error?.response?.data?.message || "Đặt lại mật khẩu thất bại";

@@ -1,31 +1,32 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED_PREFIXES = ["/organizer", "/admin"];
-
 export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  const isProtectedPrefix = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+  const { pathname, search } = req.nextUrl;
   const roleCookie = req.cookies.get("role")?.value;
 
-  if (!isProtectedPrefix) return NextResponse.next();
-
-  if (isProtectedPrefix && !roleCookie) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+  if (pathname.startsWith("/admin")) {
+    if (roleCookie !== "ADMIN") {
+      const url = req.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
   }
 
-  if (pathname.startsWith("/admin") && roleCookie !== "ADMIN") {
-    const url = req.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
-  }
-
-  if (pathname.startsWith("/organizer") && roleCookie && !["ORGANIZER", "ADMIN"].includes(roleCookie)) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
+  if (pathname.startsWith("/organizer")) {
+    if (!roleCookie) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/auth/gate";
+      url.searchParams.set("returnTo", pathname + search);
+      return NextResponse.rewrite(url);
+    }
+    if (roleCookie !== "ORGANIZER" && roleCookie !== "ADMIN") {
+      const url = req.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
   }
 
   return NextResponse.next();
@@ -34,7 +35,7 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     "/organizer/:path*",
-    "/admin/:path*"
+    "/admin/:path*",
   ],
 };
 

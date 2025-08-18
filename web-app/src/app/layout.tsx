@@ -7,6 +7,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthModalProvider } from "@/hooks/useAuthModal";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -44,7 +45,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <QueryProvider>
             <AuthModalProvider>
               <div className="flex min-h-screen flex-col">
-                <Navbar />
+                <Suspense fallback={null}>
+                  <Navbar />
+                </Suspense>
                 <main className="flex-1">{children}</main>
                 <Footer />
               </div>
