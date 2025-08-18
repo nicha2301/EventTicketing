@@ -5,26 +5,25 @@ import { usePaymentHistory } from "@/hooks/usePaymentHistory";
 import { useAuthHydration } from "@/hooks/useAuthHydration";
 import { PaymentCard } from "@/components/payment/PaymentCard";
 import { PaymentFilter } from "@/components/payment/PaymentFilter";
-import { PaymentResponseDtoStatus } from "@/lib/api/generated/client";
+import { PaymentResponseDto, PaymentResponseDtoStatus } from "@/lib/api/generated/client";
 import { PageLoading, ErrorState } from "@/components/ui/LoadingSpinner";
 
 export default function PaymentHistoryPage() {
+  type PaymentListItem = PaymentResponseDto & { event?: { imageUrl?: string; startTime: string } };
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(0);
   const isHydrated = useAuthHydration();
 
   const { data, isLoading, error } = usePaymentHistory(
-    statusFilter as PaymentResponseDtoStatus || undefined,
+    (statusFilter as PaymentResponseDtoStatus) || undefined,
     currentPage,
     20
   );
 
-  // Show loading during hydration
   if (!isHydrated) {
     return <PageLoading message="Đang khởi tạo..." />;
   }
 
-  // No need for search filtering since we removed search
   const payments = data?.content || [];
 
   if (isLoading) {
@@ -43,15 +42,13 @@ export default function PaymentHistoryPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      {/* Header - Compact Design */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Lịch sử thanh toán</h1>
             <p className="text-sm text-gray-600 mt-1">Theo dõi tất cả giao dịch mua vé của bạn</p>
           </div>
-          
-          {/* Status Filter - Inline with header */}
+
           <div className="flex items-center space-x-4">
             <PaymentFilter
               selectedStatus={statusFilter}
@@ -61,7 +58,6 @@ export default function PaymentHistoryPage() {
         </div>
       </div>
 
-      {/* Payment List - Compact Cards */}
       {payments.length === 0 ? (
         <div className="text-center py-12">
           <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
@@ -81,13 +77,12 @@ export default function PaymentHistoryPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {payments.map((payment: any) => (
+          {(payments as PaymentListItem[]).map((payment) => (
             <PaymentCard key={payment.id} payment={payment} />
           ))}
         </div>
       )}
 
-      {/* Pagination */}
       {data && data.totalPages > 1 && (
         <div className="mt-8 flex justify-center">
           <div className="flex items-center space-x-2">
@@ -98,11 +93,11 @@ export default function PaymentHistoryPage() {
             >
               Trước
             </button>
-            
+
             <span className="px-3 py-2 text-sm text-gray-700">
               Trang {currentPage + 1} / {data.totalPages}
             </span>
-            
+
             <button
               onClick={() => setCurrentPage(Math.min(data.totalPages - 1, currentPage + 1))}
               disabled={currentPage === data.totalPages - 1}
@@ -116,3 +111,5 @@ export default function PaymentHistoryPage() {
     </div>
   );
 }
+
+
