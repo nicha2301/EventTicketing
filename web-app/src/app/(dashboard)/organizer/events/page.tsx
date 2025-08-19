@@ -1,13 +1,15 @@
 "use client";
 
-import { Suspense, useMemo, useMemo as useReactMemo, useState } from "react";
-import Link from "next/link";
-import { useAuthStore } from "@/store/auth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { EventDto } from "@/lib/api";
-import { publishEvent, cancelEvent } from "@/lib/api/modules/events";
-import { useRequireRole } from "@/hooks/useRequireRole";
+import { ErrorState, PageLoading } from "@/components/ui/LoadingSpinner";
+import { useAuthHydration } from "@/hooks/useAuthHydration";
 import { useOrganizerEvents } from "@/hooks/useFeaturedEvents";
+import { useRequireRole } from "@/hooks/useRequireRole";
+import type { EventDto } from "@/lib/api";
+import { cancelEvent, publishEvent } from "@/lib/api/modules/events";
+import { useAuthStore } from "@/store/auth";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { Suspense, useEffect, useMemo as useReactMemo, useState } from "react";
 
 function useOrganizerId() {
   const { currentUser } = useAuthStore();
@@ -113,9 +115,10 @@ function EventsTable({ items, onPublish, onCancel }: { items: EventDto[]; onPubl
 
 function OrganizerEventsListContent() {
   useRequireRole("ORGANIZER", { openModal: true, allowAdmin: true });
+  const isHydrated = useAuthHydration();
   const [page, setPage] = useState<number>(0);
   const size = 10;
-  const { data, isLoading, error } = useOrganizerEvents(page, size);
+  const { data, isLoading, error, refetch } = useOrganizerEvents(page, size);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("");
   const debounced = useReactMemo(() => {
@@ -142,6 +145,11 @@ function OrganizerEventsListContent() {
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => cancelEvent(id, { reason }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["organizer-events"] })
   });
+
+  // Ensure fetch after hydration
+  useEffect(() => {
+    if (isHydrated) refetch();
+  }, [isHydrated, page, size, refetch]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -235,10 +243,10 @@ function OrganizerEventsListContent() {
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-600">Đang tải...</div>
+        {!isHydrated || isLoading ? (
+          <PageLoading message="Đang tải danh sách sự kiện..." />
         ) : error ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-red-600">Không thể tải danh sách sự kiện.</div>
+          <ErrorState title="Không thể tải danh sách sự kiện" message="Vui lòng thử lại" onRetry={() => refetch()} />
         ) : items.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>

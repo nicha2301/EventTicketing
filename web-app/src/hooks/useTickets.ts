@@ -1,7 +1,7 @@
 'use client'
 
 import { useInitialization } from '@/hooks/useInitialization'
-import { TicketCheckInRequestDto, TicketDtoStatus } from '@/lib/api'
+import { ApiResponsePageTicketDto, ApiResponsePageTicketTypeDto, TicketCheckInRequestDto, TicketDtoStatus } from '@/lib/api'
 import { checkInTicketWithRequest } from '@/lib/api/generated/client'
 import { cancelUserTicket, getEventTickets, getEventTicketTypes, getUserTickets } from '@/lib/api/modules/tickets'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -46,20 +46,20 @@ export function useTickets(status?: TicketDtoStatus, page = 0) {
 }
 
 export function useEventTickets(eventId: string, page = 0, size = 10) {
-  return useQuery({
+  return useQuery<ApiResponsePageTicketDto>({
     queryKey: ['event-tickets', eventId, page, size],
     enabled: !!eventId,
     queryFn: ({ signal }) => getEventTickets(eventId, page, size, signal),
-    placeholderData: (prev) => prev,
+    retry: 1,
   })
 }
 
 export function useEventTicketTypes(eventId: string, page = 0, size = 10) {
-  return useQuery({
+  return useQuery<ApiResponsePageTicketTypeDto>({
     queryKey: ['event-ticket-types', eventId, page, size],
     enabled: !!eventId,
     queryFn: ({ signal }) => getEventTicketTypes(eventId, page, size, signal),
-    placeholderData: (prev) => prev,
+    retry: 1,
   })
 }
 
