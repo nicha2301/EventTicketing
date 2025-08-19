@@ -41,7 +41,7 @@ export const useLogin = () => {
       if (data.role === "ADMIN") {
         router.push("/admin");
       } else if (data.role === "ORGANIZER") {
-        router.push("/organizer");
+        router.push("/organizer/events");
       } else {
         router.push("/");
       }
@@ -116,7 +116,7 @@ export const useGoogleLogin = () => {
       if (data.role === "ADMIN") {
         router.push("/admin");
       } else if (data.role === "ORGANIZER") {
-        router.push("/organizer");
+        router.push("/organizer/events");
       } else {
         router.push("/");
       }

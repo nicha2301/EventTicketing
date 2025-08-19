@@ -222,3 +222,20 @@ export const generateRevenueReport = async (req: ReportRequest) => generateReven
 export const generateAttendanceReport = async (req: ReportRequest) => generateAttendanceReportApi(req);
 export const exportReportToPdf = async (reportId: number) => exportReportToPdfApi(reportId);
 export const exportReportToExcel = async (reportId: number) => exportReportToExcelApi(reportId);
+
+export const getEventImages = async (
+  id: string,
+  signal?: AbortSignal
+) => {
+  const response = await http<{ data: any[] }>({
+    url: `/api/events/${id}/images`,
+    method: 'GET',
+    signal,
+  });
+  return response.data?.data ?? [];
+};
+
+import { deleteEvent as deleteEventApi, deleteEventImage as deleteEventImageApi } from "../generated/client";
+
+export const deleteEvent = async (id: string) => deleteEventApi(id);
+export const deleteEventImage = async (id: string, imageId: string) => deleteEventImageApi(id, imageId);

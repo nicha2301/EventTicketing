@@ -20,6 +20,9 @@ export function useOrganizerEvents(page: number, size: number) {
     queryKey: ["organizer-events", organizerId, page, size],
     enabled: !!organizerId && (currentUser?.role === 'ORGANIZER' || currentUser?.role === 'ADMIN'),
     queryFn: async ({ signal }) => (await getOrganizerEvents(organizerId, page, size, signal)).data,
+    refetchOnMount: 'always',
+    refetchOnReconnect: true,
+    staleTime: 0,
     placeholderData: (prev) => prev,
   });
 }

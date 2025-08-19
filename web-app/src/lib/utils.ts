@@ -15,3 +15,4 @@ export function truncate(text: string, max: number) {
 }
 
 
+

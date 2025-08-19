@@ -183,7 +183,7 @@ function CreateEventWizard() {
         }
       }
       toast.success("Tạo sự kiện thành công");
-      if (eventId) router.push(`/organizer/events/${eventId}/edit`); else router.push("/organizer");
+      if (eventId) router.push(`/organizer/events/${eventId}/edit`); else router.push("/organizer/events");
     } catch (e: any) {
       toast.error(e?.response?.data?.message || "Tạo sự kiện thất bại");
     }
