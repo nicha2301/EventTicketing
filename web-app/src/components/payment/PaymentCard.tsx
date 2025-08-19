@@ -2,6 +2,7 @@
 
 import { PaymentResponseDto, PaymentResponseDtoStatus } from "@/lib/api/generated/client";
 import EventImage from "@/components/EventImage";
+import { useRouter } from "next/navigation";
 
 interface PaymentHistoryItem extends PaymentResponseDto {
   event?: {
@@ -72,8 +73,27 @@ function formatDateTime(dateString: string): string {
 }
 
 export function PaymentCard({ payment }: PaymentCardProps) {
+  const router = useRouter();
+
+  const handleOpenTicket = () => {
+    if (payment.ticketId) {
+      router.push(`/tickets/${payment.ticketId}`);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+    <div
+      className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+      role="button"
+      tabIndex={0}
+      onClick={handleOpenTicket}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleOpenTicket();
+        }
+      }}
+    >
       <div className="flex items-center space-x-3">
         {/* Event Image - Smaller */}
         <div className="flex-shrink-0">
@@ -120,16 +140,27 @@ export function PaymentCard({ payment }: PaymentCardProps) {
             payment.status === PaymentResponseDtoStatus.FAILED) && (
             <div className="mt-3 flex justify-end space-x-3">
               {payment.status === PaymentResponseDtoStatus.COMPLETED && (
-                <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                <button onClick={(e) => { e.stopPropagation(); handleOpenTicket(); }} className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                   Xem vé
                 </button>
               )}
               {payment.status === PaymentResponseDtoStatus.FAILED && payment.paymentUrl && (
-                <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(payment.paymentUrl as string, "_blank");
+                  }}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
                   Thử lại
                 </button>
               )}
-              <button className="text-gray-600 hover:text-gray-800 text-sm font-medium">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                className="text-gray-600 hover:text-gray-800 text-sm font-medium"
+              >
                 Chi tiết
               </button>
             </div>

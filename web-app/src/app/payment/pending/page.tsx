@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { 
@@ -14,7 +14,7 @@ import {
 import { usePaymentStatus, useCheckPaymentStatus } from "@/hooks/usePaymentStatus";
 import { toast } from "sonner";
 
-export default function PaymentPendingPage() {
+function PendingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -306,5 +306,13 @@ export default function PaymentPendingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentPendingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Đang tải...</div>}>
+      <PendingContent />
+    </Suspense>
   );
 }

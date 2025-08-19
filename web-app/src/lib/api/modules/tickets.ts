@@ -3,6 +3,9 @@ import {
   getMyTickets,
   getMyPendingTickets,
   cancelTicket as cancelTicketAPI,
+  createTicketType as createTicketTypeApi,
+  updateTicketType as updateTicketTypeApi,
+  deleteTicketType as deleteTicketTypeApi,
   type TicketDto,
   type GetMyTicketsStatus,
   type ApiResponseTicketDto,
@@ -91,3 +94,49 @@ export async function getTicketTypesByEvent(eventId: string, signal?: AbortSigna
     throw error;
   }
 }
+
+export async function getEventTickets(
+  eventId: string,
+  page = 0,
+  size = 10,
+  signal?: AbortSignal
+) {
+  const params = new URLSearchParams();
+  params.set('page', String(page));
+  params.set('size', String(size));
+  const response = await http<ApiResponsePageTicketDto>({
+    url: `/api/events/${eventId}/tickets?${params.toString()}`,
+    method: 'GET',
+    signal,
+  });
+  return response.data;
+}
+
+export async function getEventTicketTypes(
+  eventId: string,
+  page = 0,
+  size = 10,
+  signal?: AbortSignal
+) {
+  const params = new URLSearchParams();
+  params.set('page', String(page));
+  params.set('size', String(size));
+  const response = await http<ApiResponsePageTicketTypeDto>({
+    url: `/api/events/${eventId}/ticket-types?${params.toString()}`,
+    method: 'GET',
+    signal,
+  });
+  return response.data;
+}
+
+export const createTicketType = async (eventId: string, dto: any) => {
+  return createTicketTypeApi(eventId, dto);
+};
+
+export const updateTicketType = async (ticketTypeId: string, dto: any) => {
+  return updateTicketTypeApi(ticketTypeId, dto);
+};
+
+export const deleteTicketType = async (ticketTypeId: string) => {
+  return deleteTicketTypeApi(ticketTypeId);
+};

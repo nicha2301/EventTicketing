@@ -3,11 +3,15 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { ChevronRight, MapPin, Calendar, Clock, Users, Star, Heart, Share2, Bookmark, ShoppingCart } from 'lucide-react'
-import { EventDto } from '@/lib/api/generated/client'
+import { EventDto, cancelEvent, publishEvent } from '@/lib/api/generated/client'
 import { Button } from '@/components/ui/button'
 import { EventRatings } from '@/components/ratings/EventRatings'
 import { sanitizeEventImageUrl } from '@/lib/utils/image'
 import { useEventRatingStats } from '@/hooks/useEventRatingStats'
+import { useAuthStore } from '@/store/auth'
+import { useMutation } from '@tanstack/react-query'
+import { useState } from 'react'
+import { toast } from 'sonner'
 
 interface EventDetailContentProps {
   event: EventDto
@@ -15,6 +19,19 @@ interface EventDetailContentProps {
 
 export function EventDetailContent({ event }: EventDetailContentProps) {
   const { averageRating, totalRatings, isLoading: ratingsLoading } = useEventRatingStats(event.id)
+  const { currentUser } = useAuthStore()
+  const isOrganizer = !!currentUser && (currentUser.role === 'ADMIN' || currentUser.id === event.organizerId)
+  const [currentStatus, setCurrentStatus] = useState(event.status)
+  const publishMut = useMutation({
+    mutationFn: async () => publishEvent(event.id as string),
+    onSuccess: () => { setCurrentStatus('PUBLISHED' as any); toast.success('Đã xuất bản sự kiện'); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Xuất bản thất bại')
+  })
+  const cancelMut = useMutation({
+    mutationFn: async (reason: string) => cancelEvent(event.id as string, { reason }),
+    onSuccess: () => { setCurrentStatus('CANCELLED' as any); toast.success('Đã huỷ sự kiện'); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Huỷ sự kiện thất bại')
+  })
   
   const formatPrice = (minPrice?: number, maxPrice?: number, isFree?: boolean) => {
     if (isFree) return 'Miễn phí'
@@ -148,6 +165,30 @@ export function EventDetailContent({ event }: EventDetailContentProps) {
                         Chia sẻ
                       </Button>
                     </div>
+
+                    {isOrganizer && (
+                      <div className="flex flex-wrap items-center gap-2 pt-2">
+                        <Link href={`/organizer/events/${event.id}/edit`} className="text-sm text-blue-600 hover:text-blue-800">Sửa</Link>
+                        <Link href={`/organizer/events/${event.id}/tickets`} className="text-sm text-gray-700 hover:text-gray-900">Vé</Link>
+                        <Link href={`/organizer/events/${event.id}/check-in`} className="text-sm text-gray-700 hover:text-gray-900">Check-in</Link>
+                        <Link href={`/organizer/reports`} className="text-sm text-gray-700 hover:text-gray-900">Báo cáo</Link>
+                        <Link href={`/organizer/analytics`} className="text-sm text-gray-700 hover:text-gray-900">Analytics</Link>
+                        {currentStatus === 'DRAFT' && (
+                          <button
+                            onClick={() => publishMut.mutate()}
+                            className="text-sm text-green-700 hover:text-green-900"
+                            disabled={publishMut.isPending}
+                          >Xuất bản</button>
+                        )}
+                        {currentStatus !== 'CANCELLED' && (
+                          <button
+                            onClick={() => { const r = prompt('Lý do huỷ?'); if (r) cancelMut.mutate(r) }}
+                            className="text-sm text-red-700 hover:text-red-900"
+                            disabled={cancelMut.isPending}
+                          >Huỷ</button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -253,13 +294,13 @@ export function EventDetailContent({ event }: EventDetailContentProps) {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Trạng thái</span>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    event.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
-                    event.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
+                    currentStatus === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
+                    currentStatus === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-gray-100 text-gray-800'
                   }`}>
-                    {event.status === 'PUBLISHED' ? 'Đang mở bán' :
-                     event.status === 'DRAFT' ? 'Bản nháp' :
-                     event.status}
+                    {currentStatus === 'PUBLISHED' ? 'Đang mở bán' :
+                     currentStatus === 'DRAFT' ? 'Bản nháp' :
+                     currentStatus}
                   </span>
                 </div>
                 {event.maxAttendees && (

@@ -1,10 +1,11 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import { getUserTickets, cancelUserTicket } from '@/lib/api/modules/tickets'
 import { useInitialization } from '@/hooks/useInitialization'
-import { TicketDtoStatus } from '@/lib/api'
+import { TicketCheckInRequestDto, TicketDtoStatus } from '@/lib/api'
+import { checkInTicketWithRequest } from '@/lib/api/generated/client'
+import { cancelUserTicket, getEventTickets, getEventTicketTypes, getUserTickets } from '@/lib/api/modules/tickets'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 export function useTickets(status?: TicketDtoStatus, page = 0) {
   const queryClient = useQueryClient()
@@ -42,4 +43,37 @@ export function useTickets(status?: TicketDtoStatus, page = 0) {
     refetch,
     cancelTicketMutation,
   }
+}
+
+export function useEventTickets(eventId: string, page = 0, size = 10) {
+  return useQuery({
+    queryKey: ['event-tickets', eventId, page, size],
+    enabled: !!eventId,
+    queryFn: ({ signal }) => getEventTickets(eventId, page, size, signal),
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function useEventTicketTypes(eventId: string, page = 0, size = 10) {
+  return useQuery({
+    queryKey: ['event-ticket-types', eventId, page, size],
+    enabled: !!eventId,
+    queryFn: ({ signal }) => getEventTicketTypes(eventId, page, size, signal),
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function useCheckIn() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: TicketCheckInRequestDto) =>
+      checkInTicketWithRequest(payload),
+    onSuccess: (_res, vars) => {
+      if (vars.eventId) {
+        queryClient.invalidateQueries({
+          queryKey: ['event-tickets', vars.eventId],
+        })
+      }
+    },
+  })
 }

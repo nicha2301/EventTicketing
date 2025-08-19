@@ -31,6 +31,15 @@ export type {
   ApiResponseNotificationResponse,
   ApiResponsePaymentResponseDto,
   ApiResponseUserAuthResponseDto,
+  EventCreateDto,
+  EventUpdateDto,
+  EventCancelDto,
+  UploadEventImageBody,
+  UploadEventImageParams,
+  CloudinaryImageRequest,
+  CreateEventWithImagesBody,
+  CreateEventWithImagesParams,
+  ReportRequest,
   PageEventDto,
   PagedResponseUserDto,
   PageCategoryDto,
@@ -41,6 +50,7 @@ export type {
   Pageable,
   SortObject,
   PageableObject,
+  TicketCheckInRequestDto,
 } from './generated/client';
 
 // Generated client enums
