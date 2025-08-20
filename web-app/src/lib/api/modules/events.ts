@@ -209,9 +209,50 @@ export const createEventWithImages = async (
 export const getKPIDashboard = async (eventId: string, signal?: AbortSignal) => getKPIDashboardApi(eventId, signal);
 export const getEventPerformance = async (eventId: string, signal?: AbortSignal) => getEventPerformanceApi(eventId, signal);
 export const getDailyRevenue = async (
-  params: { eventId: string },
+  params: { eventId: string; startDate?: string; endDate?: string },
   signal?: AbortSignal
-) => getDailyRevenueApi(params as any, signal);
+) => {
+  let { startDate, endDate } = params;
+
+  const extractDatePart = (dateTimeStr: string | undefined): string | undefined => {
+    if (!dateTimeStr) return undefined;
+    return dateTimeStr.split(' ')[0].split('T')[0];
+  };
+
+  try {
+    if (!startDate || !endDate) {
+      const event = await getEventById(params.eventId);
+      const eventSalesStart = (event as any)?.salesStartDate as string | undefined;
+      const eventSalesEnd = (event as any)?.salesEndDate as string | undefined;
+      const eventStart = (event as any)?.startDate as string | undefined;
+      const eventEnd = (event as any)?.endDate as string | undefined;
+
+      startDate = startDate ?? extractDatePart(eventSalesStart) ?? extractDatePart(eventStart);
+      endDate = endDate ?? extractDatePart(eventSalesEnd) ?? extractDatePart(eventEnd);
+    }
+  } catch {
+  }
+
+  // Final fallback: last 30 days
+  if (!startDate || !endDate) {
+    const fallbackEnd = new Date();
+    const fallbackStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    endDate = endDate ?? fallbackEnd.toISOString().split('T')[0];
+    startDate = startDate ?? fallbackStart.toISOString().split('T')[0];
+  }
+
+  startDate = extractDatePart(startDate);
+  endDate = extractDatePart(endDate);
+
+  return getDailyRevenueApi(
+    {
+      eventId: params.eventId,
+      startDate: startDate!,
+      endDate: endDate!,
+    },
+    signal,
+  );
+};
 export const getTicketSalesByType = async (eventId: string, signal?: AbortSignal) => getTicketSalesByTypeApi(eventId, signal);
 export const getPaymentMethodsAnalysis = async (eventId: string, signal?: AbortSignal) => getPaymentMethodsAnalysisApi(eventId, signal);
 export const getAttendeeAnalytics = async (eventId: string, signal?: AbortSignal) => getAttendeeAnalyticsApi(eventId, signal);
