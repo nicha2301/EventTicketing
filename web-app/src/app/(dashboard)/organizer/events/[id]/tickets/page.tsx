@@ -15,6 +15,7 @@ import { useEventTicketTypes } from "@/hooks/useTickets";
 import { getEventTicketTypes as fetchEventTicketTypes } from "@/lib/api/modules/tickets";
 import { useAuthHydration } from "@/hooks/useAuthHydration";
 import { PageLoading, ErrorState } from "@/components/ui/LoadingSpinner";
+import { toast } from "sonner";
 
 const schema = organizerTicketTypeSchema;
 
@@ -50,7 +51,11 @@ function TicketTypeForm({ eventId, onDone, editing }: { eventId: string; onDone:
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["event-ticket-types", eventId] });
       try { (window as any).next?.router?.refresh?.(); } catch {}
+      toast.success("Loại vé đã được tạo thành công!");
       onDone();
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Không thể tạo loại vé");
     }
   });
   const updateMut = useMutation({
@@ -58,7 +63,11 @@ function TicketTypeForm({ eventId, onDone, editing }: { eventId: string; onDone:
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["event-ticket-types", eventId] });
       try { (window as any).next?.router?.refresh?.(); } catch {}
+      toast.success("Loại vé đã được cập nhật thành công!");
       onDone();
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Không thể cập nhật loại vé");
     }
   });
 
@@ -214,6 +223,10 @@ function TicketTypesContent() {
     mutationFn: async (id: string) => deleteTicketType(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["event-ticket-types", eventId] });
+      toast.success("Loại vé đã được xóa thành công!");
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Không thể xóa loại vé");
     }
   });
 
@@ -291,7 +304,9 @@ function TicketTypesContent() {
                     <td className="px-6 py-3 text-sm text-gray-700">{t.isActive ? 'Active' : 'Inactive'}</td>
                     <td className="px-6 py-3 text-right space-x-2">
                       <button onClick={() => setEditing(t)} className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 bg-white hover:bg-gray-50">Sửa</button>
-                      <button onClick={() => { if (confirm('Bạn có chắc chắn muốn xoá loại vé này?')) delMut.mutate(t.id as string) }} className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md text-xs text-white bg-red-600 hover:bg-red-700">Xoá</button>
+                      <button onClick={() => { if (confirm('Bạn có chắc chắn muốn xoá loại vé này?')) delMut.mutate(t.id as string) }} disabled={delMut.isPending} className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md text-xs text-white bg-red-600 hover:bg-red-700 disabled:opacity-60">
+                        {delMut.isPending ? 'Đang xóa...' : 'Xoá'}
+                      </button>
                     </td>
                   </tr>
                 ))}

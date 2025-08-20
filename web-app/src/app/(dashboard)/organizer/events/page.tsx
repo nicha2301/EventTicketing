@@ -10,6 +10,9 @@ import { useAuthStore } from "@/store/auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { Suspense, useEffect, useMemo as useReactMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { usePublishEvent, useCancelEvent, useDeleteEvent } from "@/hooks/useEvents";
+import { toast } from "sonner";
 
 function useOrganizerId() {
   const { currentUser } = useAuthStore();
@@ -21,7 +24,15 @@ function useIsOrganizerRole() {
   return currentUser?.role === 'ORGANIZER' || currentUser?.role === 'ADMIN';
 }
 
-function EventsTable({ items, onPublish, onCancel }: { items: EventDto[]; onPublish: (id: string) => void; onCancel: (id: string) => void; }) {
+function EventsTable({ items, onPublish, onCancel, onDelete, pendingPublishId, pendingCancelId, pendingDeleteId }: { 
+  items: EventDto[]; 
+  onPublish: (id: string) => void; 
+  onCancel: (id: string) => void; 
+  onDelete: (id: string) => void;
+  pendingPublishId?: string | null;
+  pendingCancelId?: string | null;
+  pendingDeleteId?: string | null;
+}) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT': return 'bg-gray-100 text-gray-800';
@@ -96,10 +107,40 @@ function EventsTable({ items, onPublish, onCancel }: { items: EventDto[]; onPubl
                   <div className="flex items-center justify-end space-x-2">
                     <Link href={`/organizer/events/${e.id}/edit`} className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">Sửa</Link>
                     {e.status === 'DRAFT' && (
-                      <button onClick={() => onPublish(e.id as string)} className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">Xuất bản</button>
+                      <button onClick={() => onPublish(e.id as string)} disabled={pendingPublishId === e.id} className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 disabled:opacity-60">
+                        {pendingPublishId === e.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                            Đang xử lý...
+                          </>
+                        ) : (
+                          'Xuất bản'
+                        )}
+                      </button>
                     )}
-                    {e.status !== 'CANCELLED' && (
-                      <button onClick={() => onCancel(e.id as string)} className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200">Huỷ</button>
+                    {e.status === 'PUBLISHED' && (
+                      <button onClick={() => onCancel(e.id as string)} disabled={pendingCancelId === e.id} className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors duration-200 disabled:opacity-60">
+                        {pendingCancelId === e.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                            Đang xử lý...
+                          </>
+                        ) : (
+                          'Hủy'
+                        )}
+                      </button>
+                    )}
+                    {e.status === 'CANCELLED' && (
+                      <button onClick={() => onDelete(e.id as string)} disabled={pendingDeleteId === e.id} className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 disabled:opacity-60">
+                        {pendingDeleteId === e.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                            Đang xử lý...
+                          </>
+                        ) : (
+                          'Xóa'
+                        )}
+                      </button>
                     )}
                     <Link href={`/organizer/events/${e.id}/tickets`} className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">Vé</Link>
                   </div>
@@ -137,14 +178,59 @@ function OrganizerEventsListContent() {
   const totalPages = data?.totalPages ?? 1;
 
   const qc = useQueryClient();
-  const publishMut = useMutation({
-    mutationFn: async (id: string) => publishEvent(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["organizer-events"] })
-  });
-  const cancelMut = useMutation({
-    mutationFn: async ({ id, reason }: { id: string; reason: string }) => cancelEvent(id, { reason }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["organizer-events"] })
-  });
+  const publishMut = usePublishEvent();
+  const cancelMut = useCancelEvent();
+  const deleteMut = useDeleteEvent();
+  const [pendingPublishId, setPendingPublishId] = useState<string | null>(null);
+  const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const handlePublish = async (eventId: string) => {
+    try {
+      setPendingPublishId(eventId);
+      await publishMut.mutateAsync(eventId);
+      toast.success("Sự kiện đã được xuất bản thành công!");
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.message || "Không thể xuất bản sự kiện");
+    }
+    finally {
+      setPendingPublishId(null);
+    }
+  };
+
+  const handleCancel = async (eventId: string, eventTitle: string) => {
+    const reason = prompt(`Lý do hủy sự kiện "${eventTitle}":`);
+    if (!reason) return;
+    
+    try {
+      setPendingCancelId(eventId);
+      await cancelMut.mutateAsync({ eventId, reason });
+      toast.success("Sự kiện đã được hủy thành công!");
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.message || "Không thể hủy sự kiện");
+    }
+    finally {
+      setPendingCancelId(null);
+    }
+  };
+
+  const handleDelete = async (eventId: string, eventTitle: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa sự kiện "${eventTitle}"?`)) return;
+    
+    try {
+      setPendingDeleteId(eventId);
+      await deleteMut.mutateAsync(eventId);
+      toast.success("Sự kiện đã được xóa thành công!");
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.message || "Không thể xóa sự kiện");
+    }
+    finally {
+      setPendingDeleteId(null);
+    }
+  };
 
   // Ensure fetch after hydration
   useEffect(() => {
@@ -154,12 +240,16 @@ function OrganizerEventsListContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="container-page py-8">
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="mb-4 sm:mb-0">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="mb-2 sm:mb-0">
             <h1 className="text-3xl font-bold text-gray-900 mb-1">Danh sách sự kiện</h1>
             <p className="text-gray-600">Bộ lọc và hành động nhanh</p>
           </div>
-          <Link href="/organizer/events/new" className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-lg hover:shadow-xl">Tạo sự kiện</Link>
+          <div className="flex items-center gap-2">
+            <Link href="/organizer/events/new" className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-lg hover:shadow-xl">Tạo sự kiện</Link>
+            <Link href="/organizer/analytics" className="inline-flex items-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-lg hover:shadow-xl">Analytics</Link>
+            <Link href="/organizer/events/check-in" className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 shadow-lg hover:shadow-xl">Check-in</Link>
+          </div>
         </div>
 
         {/* Stats Cards moved from /organizer */}
@@ -254,20 +344,23 @@ function OrganizerEventsListContent() {
             <p className="mt-1 text-sm text-gray-500">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc.</p>
           </div>
         ) : (
-          <EventsTable items={items as EventDto[]} onPublish={(id) => publishMut.mutate(id)} onCancel={(id) => {
-            const evt = items.find((e:any)=> e.id===id);
-            const now = new Date();
-            const start = evt?.startDate ? new Date(evt.startDate as any) : new Date(0);
-            const end = evt?.endDate ? new Date(evt.endDate as any) : new Date(0);
-            if (now >= start && now <= end) {
-              alert('Không thể hủy: Sự kiện đang diễn ra.');
-              return;
-            }
-            if (!confirm('Bạn có chắc chắn muốn hủy sự kiện này? Hành động này không thể hoàn tác.')) return;
-            const reason = prompt('Nhập lý do hủy sự kiện:');
-            if (!reason) return;
-            cancelMut.mutate({ id, reason }, { onSuccess: () => { try { (window as any).next?.router?.refresh?.(); } catch {} } });
-          }} />
+          <EventsTable 
+            items={items as EventDto[]} 
+            onPublish={handlePublish}
+            onCancel={(id) => {
+              const evt = items.find((e:any)=> e.id===id);
+              if (!evt) return;
+              handleCancel(id, evt?.title || '');
+            }}
+            onDelete={(id) => {
+              const evt = items.find((e:any)=> e.id===id);
+              if (!evt) return;
+              handleDelete(id, evt?.title || '');
+            }}
+            pendingPublishId={pendingPublishId}
+            pendingCancelId={pendingCancelId}
+            pendingDeleteId={pendingDeleteId}
+          />
         )}
 
         {totalPages > 1 && (

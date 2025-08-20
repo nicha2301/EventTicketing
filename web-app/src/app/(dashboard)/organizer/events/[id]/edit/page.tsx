@@ -8,8 +8,9 @@ import { organizerEventUpdateSchema, type OrganizerEventUpdateInput } from "@/li
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 const schema = organizerEventUpdateSchema;
 type FormValues = OrganizerEventUpdateInput;
@@ -77,7 +78,45 @@ function EditEventContent() {
     updateMut.mutate(dto, { onSuccess: () => {
       router.push(`/organizer/events`);
       try { (window as any).next?.router?.refresh?.(); } catch {}
+      toast.success("Sự kiện đã được cập nhật thành công!");
+    }, onError: (error) => {
+      toast.error(error?.message || "Không thể cập nhật sự kiện");
     }});
+  };
+
+  const handlePublish = async () => {
+    try {
+      await publishMut.mutateAsync(eventId);
+      toast.success("Sự kiện đã được xuất bản thành công!");
+      router.push('/organizer/events');
+    } catch (error: any) {
+      toast.error(error?.message || "Không thể xuất bản sự kiện");
+    }
+  };
+
+  const handleCancel = async () => {
+    const reason = prompt("Lý do hủy sự kiện:");
+    if (!reason) return;
+    
+    try {
+      await cancelMut.mutateAsync({ eventId: eventId, reason });
+      toast.success("Sự kiện đã được hủy thành công!");
+      router.push('/organizer/events');
+    } catch (error: any) {
+      toast.error(error?.message || "Không thể hủy sự kiện");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Bạn chắc chắn muốn xóa sự kiện này?')) return;
+    
+    try {
+      await deleteEventMut.mutateAsync(eventId);
+      toast.success("Sự kiện đã được xóa thành công!");
+      router.push('/organizer/events');
+    } catch (error: any) {
+      toast.error(error?.message || "Không thể xóa sự kiện");
+    }
   };
 
   return (
@@ -267,7 +306,7 @@ function EditEventContent() {
                   {!(eventData as any)?.status || (eventData as any)?.status === 'DRAFT' ? (
                     <button 
                       type="button" 
-                      onClick={() => publishMut.mutate(eventId, { onSuccess: () => router.push('/organizer/events') })} 
+                      onClick={handlePublish} 
                       className="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
                       disabled={publishMut.isPending}
                     >
@@ -286,17 +325,7 @@ function EditEventContent() {
                 {(eventData as any)?.status !== 'CANCELLED' ? (
                   <button 
                     type="button" 
-                    onClick={() => { 
-                      const now = new Date();
-                      const start = new Date((eventData as any)?.startDate);
-                      const end = new Date((eventData as any)?.endDate);
-                      if (now >= start && now <= end) {
-                        alert('Không thể hủy: Sự kiện đang diễn ra.');
-                        return;
-                      }
-                      const r = prompt('Lý do hủy sự kiện?'); 
-                      if (r) cancelMut.mutate({ eventId, reason: r }, { onSuccess: () => { router.push('/organizer/events'); try { (window as any).next?.router?.refresh?.(); } catch {} } }); 
-                    }} 
+                    onClick={handleCancel} 
                     className="inline-flex items-center px-6 py-3 border border-red-300 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
                     disabled={cancelMut.isPending}
                   >
@@ -312,9 +341,7 @@ function EditEventContent() {
                 ) : (
                   <button 
                     type="button" 
-                    onClick={() => { 
-                      if (confirm('Bạn chắc chắn muốn xóa sự kiện đã huỷ?')) deleteEventMut.mutate(eventId, { onSuccess: () => router.push('/organizer/events') });
-                    }} 
+                    onClick={handleDelete} 
                     className="inline-flex items-center px-6 py-3 border border-red-300 shadow-sm text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
                     disabled={deleteEventMut.isPending}
                   >
@@ -408,11 +435,7 @@ function EditEventContent() {
                 <p className="text-sm text-red-700 mb-4">Hành động này không thể hoàn tác. Sự kiện và dữ liệu liên quan có thể bị xoá theo chính sách backend.</p>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirm('Bạn chắc chắn muốn xóa sự kiện này?')) {
-                      deleteEventMut.mutate(eventId, { onSuccess: () => router.push('/organizer/events') });
-                    }
-                  }}
+                  onClick={handleDelete}
                   className="inline-flex items-center px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
                   disabled={deleteEventMut.isPending}
                 >
