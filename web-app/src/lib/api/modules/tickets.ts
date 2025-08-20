@@ -105,7 +105,7 @@ export async function getEventTickets(
   params.set('page', String(page));
   params.set('size', String(size));
   const response = await http<ApiResponsePageTicketDto>({
-    url: `/api/events/${eventId}/tickets?${params.toString()}`,
+    url: `/api/tickets/event/${eventId}?${params.toString()}`,
     method: 'GET',
     signal,
   });
