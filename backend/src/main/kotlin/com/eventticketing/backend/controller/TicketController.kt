@@ -8,9 +8,11 @@ import com.eventticketing.backend.dto.TicketCheckInRequestDto
 import com.eventticketing.backend.entity.TicketStatus
 import com.eventticketing.backend.util.SecurityUtils
 import com.eventticketing.backend.service.TicketService
+import com.eventticketing.backend.service.EventService
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -22,7 +24,8 @@ import java.util.*
 @RequestMapping("/api/tickets")
 class TicketController(
     private val ticketService: TicketService,
-    private val securityUtils: SecurityUtils
+    private val securityUtils: SecurityUtils,
+    private val eventService: EventService
 ) {
 
     /**
@@ -85,16 +88,31 @@ class TicketController(
     }
 
     /**
-     * Lấy danh sách vé của một sự kiện (chỉ admin)
+     * Lấy danh sách vé của một sự kiện
      */
     @GetMapping("/event/{eventId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','ORGANIZER')")
     fun getTicketsByEventId(
         @PathVariable eventId: UUID,
-        @PageableDefault(size = 20) pageable: Pageable
+        @PageableDefault(size = 20) pageable: Pageable,
+        @RequestParam(required = false) status: TicketStatus?
     ): ResponseEntity<ApiResponse<Page<TicketDto>>> {
+        if (!securityUtils.isAdmin()) {
+            val currentUserId = securityUtils.getCurrentUserId()
+                ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Người dùng chưa đăng nhập"))
+            val event = eventService.getEventById(eventId)
+            if (event.organizerId != currentUserId) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Bạn không có quyền xem vé của sự kiện này"))
+            }
+        }
         val tickets = ticketService.getTicketsByEventId(eventId, pageable)
-        return ResponseEntity.ok(ApiResponse.success(tickets))
+        val result = if (status != null) {
+            val filtered = tickets.content.filter { it.status == status }
+            PageImpl(filtered, pageable, filtered.size.toLong())
+        } else {
+            tickets
+        }
+        return ResponseEntity.ok(ApiResponse.success(result))
     }
     
     /**
@@ -102,11 +120,48 @@ class TicketController(
      * Hỗ trợ check-in bằng ID hoặc mã vé
      */
     @PostMapping("/check-in")
-    @PreAuthorize("hasRole('ORGANIZER')")
+    @PreAuthorize("hasAnyRole('ORGANIZER','ADMIN')")
     fun checkInTicketWithRequest(@Valid @RequestBody request: TicketCheckInRequestDto): ResponseEntity<ApiResponse<TicketDto>> {
+        if (!securityUtils.isAdmin()) {
+            val currentUserId = securityUtils.getCurrentUserId()
+                ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Người dùng chưa đăng nhập"))
+            val event = eventService.getEventById(request.eventId)
+            if (event.organizerId != currentUserId) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Bạn không có quyền check-in vé của sự kiện này"))
+            }
+        }
         val ticket = ticketService.checkInTicket(request)
         return ResponseEntity.ok(ApiResponse.success(
             "Đã check-in vé thành công",
+            ticket
+        ))
+    }
+
+    /**
+     * Check-in vé theo sự kiện
+     * Yêu cầu eventId trong path trùng với eventId trong payload.
+     */
+    @PostMapping("/event/{eventId}/check-in")
+    @PreAuthorize("hasAnyRole('ORGANIZER','ADMIN')")
+    fun checkInTicketForEvent(
+        @PathVariable eventId: UUID,
+        @Valid @RequestBody request: TicketCheckInRequestDto
+    ): ResponseEntity<ApiResponse<TicketDto>> {
+        if (request.eventId != eventId) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("Vé không thuộc sự kiện này"))
+        }
+        if (!securityUtils.isAdmin()) {
+            val currentUserId = securityUtils.getCurrentUserId()
+                ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Người dùng chưa đăng nhập"))
+            val event = eventService.getEventById(eventId)
+            if (event.organizerId != currentUserId) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Bạn không có quyền check-in vé của sự kiện này"))
+            }
+        }
+        val ticket = ticketService.checkInTicket(request)
+        return ResponseEntity.ok(ApiResponse.success(
+            "Đã check-in vé cho sự kiện thành công",
             ticket
         ))
     }

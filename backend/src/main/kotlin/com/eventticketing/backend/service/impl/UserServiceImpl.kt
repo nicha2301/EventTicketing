@@ -75,7 +75,7 @@ class UserServiceImpl(
             phoneNumber = userCreateDto.phoneNumber,
             role = UserRole.USER, // Luôn gán role USER cho tài khoản mới đăng ký
             enabled = false, // Tài khoản chưa kích hoạt
-            notificationPreferences = emptyMap() // Khởi tạo đúng kiểu dữ liệu Map<String, Any>
+            notificationPreferences = defaultNotificationPreferences() // Khởi tạo đầy đủ cấu hình thông báo mặc định
         )
 
         val savedUser = userRepository.save(user)
@@ -488,7 +488,7 @@ class UserServiceImpl(
             phoneNumber = adminUserCreateDto.phoneNumber,
             role = role,
             enabled = adminUserCreateDto.enabled,
-            notificationPreferences = emptyMap()
+            notificationPreferences = defaultNotificationPreferences()
         )
         
         val savedUser = userRepository.save(user)
@@ -531,7 +531,7 @@ class UserServiceImpl(
                     role = UserRole.USER, // Luôn gán role USER cho tài khoản mới đăng ký
                     enabled = true, // Tài khoản Google đã được xác thực nên kích hoạt luôn
                     profilePictureUrl = googleAuthRequest.profilePictureUrl,
-                    notificationPreferences = emptyMap() // Khởi tạo đúng kiểu dữ liệu Map<String, Any>
+                    notificationPreferences = defaultNotificationPreferences() // Khởi tạo đầy đủ cấu hình thông báo mặc định
                 )
                 
                 userRepository.save(newUser)
@@ -552,6 +552,27 @@ class UserServiceImpl(
             logger.error("Đăng nhập Google thất bại: ${e.message}")
             throw UnauthorizedException("Không thể xác thực với Google: ${e.message}")
         }
+    }
+
+    private fun defaultNotificationPreferences(): Map<String, Any> {
+        return mapOf(
+            "email" to mapOf(
+                "enabled" to true,
+                "accountNotifications" to true,
+                "eventReminders" to true,
+                "commentNotifications" to true,
+                "ratingNotifications" to true,
+                "marketingNotifications" to false
+            ),
+            "push" to mapOf(
+                "enabled" to true,
+                "accountNotifications" to true,
+                "eventReminders" to true,
+                "commentNotifications" to true,
+                "ratingNotifications" to true,
+                "marketingNotifications" to false
+            )
+        )
     }
 
     private fun mapToUserDto(user: User): UserDto {

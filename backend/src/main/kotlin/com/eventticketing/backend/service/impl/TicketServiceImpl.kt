@@ -136,8 +136,7 @@ class TicketServiceImpl(
     }
 
     override fun getTicketsByEventId(eventId: UUID, pageable: Pageable): Page<TicketDto> {
-        // Chỉ admin mới có quyền xem tất cả vé của sự kiện
-        if (!securityUtils.isAdmin()) {
+        if (!securityUtils.isAdmin() && !securityUtils.isOrganizer()) {
             throw TicketException("Không có quyền xem tất cả vé của sự kiện")
         }
 
