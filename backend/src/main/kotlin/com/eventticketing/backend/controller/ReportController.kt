@@ -4,7 +4,6 @@ import com.eventticketing.backend.dto.report.ReportDto
 import com.eventticketing.backend.dto.report.ReportRequest
 import com.eventticketing.backend.dto.report.ReportSummaryDto
 import com.eventticketing.backend.security.CurrentUser
-import com.eventticketing.backend.security.UserPrincipal
 import com.eventticketing.backend.service.ReportService
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.data.domain.Page
@@ -25,30 +24,30 @@ class ReportController(private val reportService: ReportService) {
     @PostMapping("/revenue")
     @PreAuthorize("hasRole('ORGANIZER') or hasRole('ADMIN')")
     fun generateRevenueReport(
-        @CurrentUser userPrincipal: UserPrincipal,
+        @CurrentUser userId: UUID,
         @RequestBody request: ReportRequest
     ): ResponseEntity<ReportDto> {
-        val report = reportService.generateRevenueReport(userPrincipal.id, request)
+        val report = reportService.generateRevenueReport(userId, request)
         return ResponseEntity(report, HttpStatus.CREATED)
     }
 
     @PostMapping("/sales")
     @PreAuthorize("hasRole('ORGANIZER') or hasRole('ADMIN')")
     fun generateSalesReport(
-        @CurrentUser userPrincipal: UserPrincipal,
+        @CurrentUser userId: UUID,
         @RequestBody request: ReportRequest
     ): ResponseEntity<ReportDto> {
-        val report = reportService.generateSalesReport(userPrincipal.id, request)
+        val report = reportService.generateSalesReport(userId, request)
         return ResponseEntity(report, HttpStatus.CREATED)
     }
 
     @PostMapping("/attendance")
     @PreAuthorize("hasRole('ORGANIZER') or hasRole('ADMIN')")
     fun generateAttendanceReport(
-        @CurrentUser userPrincipal: UserPrincipal,
+        @CurrentUser userId: UUID,
         @RequestBody request: ReportRequest
     ): ResponseEntity<ReportDto> {
-        val report = reportService.generateAttendanceReport(userPrincipal.id, request)
+        val report = reportService.generateAttendanceReport(userId, request)
         return ResponseEntity(report, HttpStatus.CREATED)
     }
 
@@ -62,10 +61,10 @@ class ReportController(private val reportService: ReportService) {
     @GetMapping
     @PreAuthorize("hasRole('ORGANIZER') or hasRole('ADMIN')")
     fun getReportsByCurrentUser(
-        @CurrentUser userPrincipal: UserPrincipal,
+        @CurrentUser userId: UUID,
         pageable: Pageable
     ): ResponseEntity<Page<ReportSummaryDto>> {
-        val reports = reportService.getReportsByUser(userPrincipal.id, pageable)
+        val reports = reportService.getReportsByUser(userId, pageable)
         return ResponseEntity(reports, HttpStatus.OK)
     }
 
@@ -143,4 +142,5 @@ class ReportController(private val reportService: ReportService) {
         val data = reportService.getCheckInStatistics(eventId)
         return ResponseEntity(data, HttpStatus.OK)
     }
-} 
+}
+ 

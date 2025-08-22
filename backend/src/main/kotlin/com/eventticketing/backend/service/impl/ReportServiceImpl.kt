@@ -29,6 +29,7 @@ import java.io.OutputStream
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
+import java.math.RoundingMode
 
 @Service
 class ReportServiceImpl(
@@ -86,7 +87,7 @@ class ReportServiceImpl(
 
         val totalRevenue = revenueData.sumOf { it.amount }
         val avgTicketPrice = if (revenueData.isNotEmpty()) {
-            totalRevenue.divide(revenueData.size.toBigDecimal())
+            totalRevenue.divide(revenueData.size.toBigDecimal(), 2, RoundingMode.HALF_UP)
         } else {
             java.math.BigDecimal.ZERO
         }
