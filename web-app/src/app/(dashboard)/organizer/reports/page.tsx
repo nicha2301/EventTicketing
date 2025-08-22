@@ -1,16 +1,15 @@
 "use client";
 
-import { Suspense, useMemo, useState, useEffect } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import Link from "next/link";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { useGenerateSalesReport, useGenerateRevenueReport, useGenerateAttendanceReport, useExportPdf, useExportExcel, useMyReports, useReportById, useEventReports, useReportsByType } from "@/hooks/useReports";
+import { PageLoading } from "@/components/ui/LoadingSpinner";
+import { useAuthHydration } from "@/hooks/useAuthHydration";
+import { useOrganizerEvents } from "@/hooks/useFeaturedEvents";
+import { useEventReports, useExportExcel, useExportPdf, useGenerateAttendanceReport, useGenerateRevenueReport, useGenerateSalesReport, useMyReports, useReportById, useReportsByType } from "@/hooks/useReports";
 import { organizerReportSchema, type OrganizerReportInput } from "@/lib/validation/organizer/events";
 import { useAuthStore } from "@/store/auth";
-import { useAuthHydration } from "@/hooks/useAuthHydration";
-import { PageLoading } from "@/components/ui/LoadingSpinner";
-import { useOrganizerEvents } from "@/hooks/useFeaturedEvents";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { Suspense, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 function downloadBlob(data: Blob, filename: string) {
@@ -21,7 +20,6 @@ function downloadBlob(data: Blob, filename: string) {
 }
 
 function ReportsContent() {
-  const { currentUser } = useAuthStore();
   const isHydrated = useAuthHydration();
   const { data: eventsPage } = useOrganizerEvents(0, 50);
   const { register, formState: { errors }, watch, setValue } = useForm<OrganizerReportInput>({ resolver: zodResolver(organizerReportSchema) });
@@ -74,9 +72,14 @@ function ReportsContent() {
     }
     try {
       const res = await exportPdfMut.mutateAsync(lastReportId);
-      downloadBlob(new Blob([res.data as any]), `report-${lastReportId}.pdf`);
+      if (res instanceof Blob) {
+        downloadBlob(res, `report-${lastReportId}.pdf`);
+      } else {
+        downloadBlob(new Blob([res]), `report-${lastReportId}.pdf`);
+      }
       toast.success("Báo cáo PDF đã được xuất thành công!");
     } catch (error: any) {
+      console.error('PDF Export Error:', error);
       toast.error(error?.message || "Không thể xuất báo cáo PDF");
     }
   };
@@ -88,9 +91,44 @@ function ReportsContent() {
     }
     try {
       const res = await exportExcelMut.mutateAsync(lastReportId);
-      downloadBlob(new Blob([res.data as any]), `report-${lastReportId}.xlsx`);
+      if (res instanceof Blob) {
+        downloadBlob(res, `report-${lastReportId}.xlsx`);
+      } else {
+        downloadBlob(new Blob([res]), `report-${lastReportId}.xlsx`);
+      }
       toast.success("Báo cáo Excel đã được xuất thành công!");
     } catch (error: any) {
+      console.error('Excel Export Error:', error);
+      toast.error(error?.message || "Không thể xuất báo cáo Excel");
+    }
+  };
+
+  const handleExportPdf = async (reportId: number) => {
+    try {
+      const res = await exportPdfMut.mutateAsync(reportId);
+      if (res instanceof Blob) {
+        downloadBlob(res, `report-${reportId}.pdf`);
+      } else {
+        downloadBlob(new Blob([res]), `report-${reportId}.pdf`);
+      }
+      toast.success("Báo cáo PDF đã được xuất thành công!");
+    } catch (error: any) {
+      console.error('PDF Export Error:', error);
+      toast.error(error?.message || "Không thể xuất báo cáo PDF");
+    }
+  };
+
+  const handleExportExcel = async (reportId: number) => {
+    try {
+      const res = await exportExcelMut.mutateAsync(reportId);
+      if (res instanceof Blob) {
+        downloadBlob(res, `report-${reportId}.xlsx`);
+      } else {
+        downloadBlob(new Blob([res]), `report-${reportId}.xlsx`);
+      }
+      toast.success("Báo cáo Excel đã được xuất thành công!");
+    } catch (error: any) {
+      console.error('Excel Export Error:', error);
       toast.error(error?.message || "Không thể xuất báo cáo Excel");
     }
   };
@@ -296,7 +334,23 @@ function ReportsContent() {
               {lastReportDetail && (
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Xem nhanh báo cáo gần nhất</h3>
-                  <pre className="bg-gray-50 rounded-lg p-4 text-sm overflow-auto max-h-64">{JSON.stringify((lastReportDetail as any)?.data?.resultData ?? {}, null, 2)}</pre>
+                  <div className="bg-gray-50 rounded-lg p-4 text-sm">
+                    <div className="mb-2">
+                      <strong>Tên:</strong> {(lastReportDetail as any)?.data?.name || 'N/A'}
+                    </div>
+                    <div className="mb-2">
+                      <strong>Loại:</strong> {(lastReportDetail as any)?.data?.type || 'N/A'}
+                    </div>
+                    <div className="mb-2">
+                      <strong>Ngày tạo:</strong> {(lastReportDetail as any)?.data?.dateGenerated ? new Date((lastReportDetail as any).data.dateGenerated).toLocaleString('vi-VN') : 'N/A'}
+                    </div>
+                    {(lastReportDetail as any)?.data?.resultData && (
+                      <div className="mt-3">
+                        <strong>Dữ liệu kết quả:</strong>
+                        <pre className="mt-2 bg-white p-3 rounded border overflow-auto max-h-48">{JSON.stringify((lastReportDetail as any).data.resultData, null, 2)}</pre>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -364,7 +418,7 @@ function ReportsContent() {
             </div>
 
             {(() => {
-              const data = listMode === 'mine' ? (myReports?.data as any) : listMode === 'event' ? (eventReports?.data as any) : (typeReports?.data as any);
+              const data = listMode === 'mine' ? (myReports as any) : listMode === 'event' ? (eventReports as any) : (typeReports as any);
               const items = data?.data?.content ?? [];
               const totalPages = data?.data?.totalPages ?? 1;
               return (
@@ -387,8 +441,8 @@ function ReportsContent() {
                             <td className="px-4 py-3 text-sm text-gray-500">{new Date(r.dateGenerated).toLocaleString('vi-VN')}</td>
                             <td className="px-4 py-3 text-sm text-gray-700 text-right space-x-2">
                               <button onClick={() => setLastReportId(r.id)} className="px-3 py-1.5 rounded-md border text-gray-700 hover:bg-gray-50">Xem</button>
-                              <button onClick={() => exportPdfMut.mutate(r.id)} className="px-3 py-1.5 rounded-md border text-gray-700 hover:bg-gray-50">PDF</button>
-                              <button onClick={() => exportExcelMut.mutate(r.id)} className="px-3 py-1.5 rounded-md border text-gray-700 hover:bg-gray-50">Excel</button>
+                              <button onClick={() => handleExportPdf(r.id)} className="px-3 py-1.5 rounded-md border text-gray-700 hover:bg-gray-50">PDF</button>
+                              <button onClick={() => handleExportExcel(r.id)} className="px-3 py-1.5 rounded-md border text-gray-700 hover:bg-gray-50">Excel</button>
                             </td>
                           </tr>
                         ))}

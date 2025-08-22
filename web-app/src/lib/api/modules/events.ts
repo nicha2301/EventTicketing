@@ -11,6 +11,45 @@ import type {
   CreateEventWithImagesBody,
   CreateEventWithImagesParams,
 } from "../generated/client";
+
+// Temporary interfaces for Report types
+interface ReportSummaryDto {
+  id: number;
+  name: string;
+  type: string;
+  dateGenerated: string;
+  eventId?: string;
+  eventTitle?: string;
+}
+
+interface ReportDto {
+  id: number;
+  name: string;
+  type: string;
+  dateGenerated: string;
+  eventId?: string;
+  eventTitle?: string;
+  resultData?: any;
+  parameters?: any;
+}
+
+interface ApiResponsePageReportSummaryDto {
+  data: {
+    content: ReportSummaryDto[];
+    totalPages: number;
+    totalElements: number;
+    number: number;
+    size: number;
+  };
+  message: string;
+  success: boolean;
+}
+
+interface ApiResponseReportDto {
+  data: ReportDto;
+  message: string;
+  success: boolean;
+}
 import {
   publishEvent as publishEventApi,
   cancelEvent as cancelEventApi,
@@ -29,8 +68,6 @@ import {
   generateSalesReport as generateSalesReportApi,
   generateRevenueReport as generateRevenueReportApi,
   generateAttendanceReport as generateAttendanceReportApi,
-  exportReportToPdf as exportReportToPdfApi,
-  exportReportToExcel as exportReportToExcelApi,
   type ReportRequest,
 } from "../generated/client";
 
@@ -261,8 +298,84 @@ export const getRegistrationTimeline = async (eventId: string, signal?: AbortSig
 export const generateSalesReport = async (req: ReportRequest) => generateSalesReportApi(req);
 export const generateRevenueReport = async (req: ReportRequest) => generateRevenueReportApi(req);
 export const generateAttendanceReport = async (req: ReportRequest) => generateAttendanceReportApi(req);
-export const exportReportToPdf = async (reportId: number) => exportReportToPdfApi(reportId);
-export const exportReportToExcel = async (reportId: number) => exportReportToExcelApi(reportId);
+export const exportReportToPdf = async (reportId: number, signal?: AbortSignal) => {
+  const response = await http<Blob>({
+    url: `/api/reports/${reportId}/export/pdf`,
+    method: 'GET',
+    responseType: 'blob',
+    signal,
+  });
+  return response.data;
+};
+
+export const exportReportToExcel = async (reportId: number, signal?: AbortSignal) => {
+  const response = await http<Blob>({
+    url: `/api/reports/${reportId}/export/excel`,
+    method: 'GET',
+    responseType: 'blob',
+    signal,
+  });
+  return response.data;
+};
+
+export const getReportsByCurrentUser = async (
+  page = 0,
+  size = 10,
+  signal?: AbortSignal
+) => {
+  const params = new URLSearchParams();
+  params.set('page', String(page));
+  params.set('size', String(size));
+  const response = await http<ApiResponsePageReportSummaryDto>({
+    url: `/api/reports?${params.toString()}`,
+    method: 'GET',
+    signal,
+  });
+  return response.data;
+};
+
+export const getReportById = async (reportId: number, signal?: AbortSignal) => {
+  const response = await http<ApiResponseReportDto>({
+    url: `/api/reports/${reportId}`,
+    method: 'GET',
+    signal,
+  });
+  return response.data;
+};
+
+export const getReportsByEvent = async (
+  eventId: string,
+  page = 0,
+  size = 10,
+  signal?: AbortSignal
+) => {
+  const params = new URLSearchParams();
+  params.set('page', String(page));
+  params.set('size', String(size));
+  const response = await http<ApiResponsePageReportSummaryDto>({
+    url: `/api/reports/event/${eventId}?${params.toString()}`,
+    method: 'GET',
+    signal,
+  });
+  return response.data;
+};
+
+export const getReportsByType = async (
+  type: string,
+  page = 0,
+  size = 10,
+  signal?: AbortSignal
+) => {
+  const params = new URLSearchParams();
+  params.set('page', String(page));
+  params.set('size', String(size));
+  const response = await http<ApiResponsePageReportSummaryDto>({
+    url: `/api/reports/type/${type}?${params.toString()}`,
+    method: 'GET',
+    signal,
+  });
+  return response.data;
+};
 
 export const getEventImages = async (
   id: string,
